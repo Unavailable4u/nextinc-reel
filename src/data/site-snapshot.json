@@ -1,0 +1,328 @@
+{
+  "meta": {
+    "tool": "scripts/sync-site.mjs",
+    "siteRepo": "nextinc",
+    "commit": "8751940dbd399248225a9b0caeeb715d99bfcc7a",
+    "dirty": false,
+    "syncedAt": "2026-11-09T07:54:51.295Z",
+    "files": {
+      "assets/data/site.js": "c09909484f3bd45d90bb2ff1b00052f81fa0433e8739fa1f9d0d14eb607059b8",
+      "assets/data/projects.js": "7a8c678636251ec8f6dab15e451fa070380e4521a5a1b450c24465ae3ca7901f",
+      "assets/data/films.js": "96116129ffd0a58dad13921f6977683431553322fa971d6e87f3c21979549f95",
+      "assets/data/team.js": "5acc7b70dd25acbe56e07cc4fd360fa77ab12c89ea44b0a91f4b0ad1d1c36523"
+    },
+    "media": {
+      "assets/img/projects/spherex-blink/cover.webp": "2d9101c353cf6959b4cf13e9740ff798a6baa6af79913c9503856160ee6d43f5",
+      "assets/img/projects/spherex-blink/astraea-d3-epochs.webp": "3867b001035d60332701dac7ca4142a5fc776d6d7469fd741b127680d5e04e7f",
+      "assets/img/projects/spherex-blink/astraea-d6-epochs.webp": "b52abf91ed84c5db6a7a78992bf73d33806f78bbc74dfb088b2425f3be00440b",
+      "assets/img/projects/minilocker/cover.webp": "3a5404aa88722706e0b69007d65f4d01e783fe9b24d98139d6b22618f092b33a",
+      "assets/img/projects/next-inc-immersive/cover.webp": "f7d1650bb30f2677abbd32632e421a789ce5f5b61b763eee9e373f8f99f6bec5",
+      "assets/img/brand/mini-me-logo.png": "d276aa4cde704822e69435935e045f2471cd52603ac903d2351faa7191c88ed5",
+      "assets/img/icons/icon.svg": "a32b6603dd792b86d2659f12de07460214462fb6e9e4c92fc9c8c7884c0ced1d",
+      "scripts/brand/glyph-x.json": "0098f965a6d18cbfa094c9b53dc1661562bb91129cc11ea542a46f1fc49757f6",
+      "assets/fonts/OFL.txt": "a0b1566efe6391d722dfcd2d72d60c00b425786f1eccf599872ca91aa6bf10ef",
+      "assets/fonts/cmu-serif-500-italic.woff2": "ca6814638ccaf0547f6d8554893ecacb1410457e4ceca553b5db683518de9426",
+      "assets/fonts/cmu-serif-500-roman.woff2": "0a1d023e8caef86f9c01b2a0857e1d9883685a3a5be3fe89aef93ce826419c5a",
+      "assets/fonts/cmu-serif-700-italic.woff2": "e550047e1b849fc1cf14ae2b5c9d17afe3f855da8dc869158bce844a3fd2cff8",
+      "assets/fonts/cmu-serif-700-roman.woff2": "1a5382bd56f17e4b770df5ac833362ff24fb987cf204fa13050a978964ae22d0",
+      "assets/fonts/cmu-typewriter-text-500-italic.woff2": "fad93aa2a68f418947df45087b0a8b66a923fbd14cb14ed1b271b762aefc8bc1",
+      "assets/fonts/cmu-typewriter-text-500-roman.woff2": "7f0899e92a550b7732e6e177b1ad3b15218955fdf3882bd17a64a6b03257bd44"
+    }
+  },
+  "site": {
+    "name": "Next Inc.",
+    "url": "https://www.wearenext.tech",
+    "email": "ariblabib360@gmail.com",
+    "tagline": "Where research becomes working software.",
+    "blurb": "Next Inc. is an innovation lab and full-stack technology partner. We bridge the gap between cutting-edge research and practical application — web and app development, enterprise SaaS, and sophisticated AI and LLM modeling.",
+    "hubs": [
+      {
+        "id": "us",
+        "label": "Pennsylvania",
+        "name": "Pennsylvania, USA",
+        "role": "USA Operations Hub",
+        "lat": 40.9,
+        "lon": -77.8
+      },
+      {
+        "id": "bd",
+        "label": "Rajshahi",
+        "name": "Vodra, Rajshahi, Bangladesh",
+        "role": "Engineering & R&D Hub",
+        "lat": 24.37,
+        "lon": 88.6
+      }
+    ],
+    "disciplines": [
+      {
+        "name": "Comprehensive Digital Engineering",
+        "text": "We design and develop responsive, user-centric websites and intuitive mobile applications that drive engagement and deliver seamless digital experiences across all devices.",
+        "outputs": "Websites · Web apps · Mobile apps · Design systems"
+      },
+      {
+        "name": "Advanced AI & LLM Capabilities",
+        "text": "We build and integrate custom artificial intelligence and Large Language Models to automate complex workflows, enhance decision-making, and unlock powerful, data-driven insights.",
+        "outputs": "Custom models · LLM integration · Agents · Workflow automation"
+      },
+      {
+        "name": "Scalable SaaS Architecture",
+        "text": "We create robust, cloud-based Software-as-a-Service platforms engineered for high performance, security, and long-term enterprise scalability.",
+        "outputs": "Multi-tenant platforms · APIs · Cloud infrastructure · Security"
+      },
+      {
+        "name": "Research-Driven Innovation",
+        "text": "Our dedicated focus on continuous R&D means we are not just reacting to technology trends — we are exploring new methodologies and pioneering solutions that keep our clients ahead.",
+        "outputs": "Prototypes · Feasibility studies · Evaluation · Technical reports"
+      }
+    ],
+    "method": {
+      "title": "The Next Inc. method",
+      "input": "a problem worth solving",
+      "output": "software people rely on",
+      "lines": [
+        {
+          "i": 0,
+          "t": "<b>Listen</b> to the people who live with the problem",
+          "cm": "no assumptions"
+        },
+        {
+          "i": 0,
+          "t": "<b>Frame</b> a hypothesis and decide how we will measure it",
+          "cm": "before any code"
+        },
+        {
+          "i": 0,
+          "t": "<b>repeat</b>"
+        },
+        {
+          "i": 1,
+          "t": "<b>Prototype</b> the smallest thing that could prove us wrong",
+          "cm": "days, not months"
+        },
+        {
+          "i": 1,
+          "t": "<b>Test</b> it with real users; record what happened, not what we hoped"
+        },
+        {
+          "i": 1,
+          "t": "<b>Revise</b> the design"
+        },
+        {
+          "i": 0,
+          "t": "<b>until</b> the measure moves"
+        },
+        {
+          "i": 0,
+          "t": "<b>Build</b> it properly — tested, documented, observable",
+          "cm": "production grade"
+        },
+        {
+          "i": 0,
+          "t": "<b>Ship</b>, then keep measuring",
+          "cm": "the work is never done"
+        }
+      ]
+    },
+    "stats": [
+      {
+        "n": 2,
+        "label": "Operating hubs",
+        "tag": "USA · Bangladesh"
+      },
+      {
+        "n": 3,
+        "label": "Founders",
+        "tag": "CEO · CTO · COO"
+      },
+      {
+        "n": 4,
+        "label": "Disciplines",
+        "tag": "Web · AI · SaaS · R&D"
+      },
+      {
+        "n": 2,
+        "label": "Completed projects",
+        "tag": "SPHEREx · MiniLocker"
+      }
+    ],
+    "marquee": [
+      "Websites & web apps",
+      "Mobile applications",
+      "Enterprise SaaS",
+      "AI & LLM systems",
+      "Agents & automation",
+      "Research & prototyping",
+      "Design systems"
+    ]
+  },
+  "projects": [
+    {
+      "slug": "mini-me",
+      "title": "Mini Me",
+      "year": 2026,
+      "category": "ai",
+      "status": "coming-soon",
+      "featured": true,
+      "summary": "A personal AI workspace where specialised agents work on the task you describe.",
+      "abstract": "Mini Me is a personal, workspace-centred AI environment built around chat. You describe a task, and specialised agents for research, writing, review and testing work on it inside a workspace that keeps your context, sources and notes. It is our flagship product.",
+      "role": "Flagship product — concept, design, engineering",
+      "tags": [
+        "multi-agent",
+        "LLM",
+        "engineering"
+      ],
+      "cover": "assets/img/projects/mini-me/cover.webp",
+      "palette": "ink",
+      "motif": "nodes",
+      "car": "red",
+      "carLogo": "assets/img/projects/mini-me/car-logo.svg"
+    },
+    {
+      "slug": "spherex-blink",
+      "title": "SPHEREx Blink Comparator",
+      "year": 2026,
+      "category": "research",
+      "status": "completed",
+      "featured": true,
+      "cover": "assets/img/projects/spherex-blink/cover.webp",
+      "summary": "An interactive blink comparator for real SPHEREx infrared images of the sky.",
+      "abstract": "A public web app built for the NASA Space Apps 2026 challenge Planet X and SPHEREx. It blinks real SPHEREx infrared images of one patch of sky taken on different dates, so anything that moves stands out, the technique used to find Pluto. It then helps you decide what moved and how far away it is, and lets visitors flag candidates for follow-up.",
+      "brief": "The challenge asked for four things: multi-epoch comparison, spectral band navigation, interactive data and metadata, and crowdsourced anomaly flagging.",
+      "approach": "Blink and overlay controls for two frames, band plates for each detector, click-to-inspect coordinates and metadata with a mover check, and a flagging panel that exports CSV or JSON. A Planet X lab adds exact parallax and a distance range with error bars.",
+      "outcome": "20 real fields (219 frames) built from SPHEREx Quick Release 2, plus one clearly labelled simulated practice field. Across the 16 asteroid fields the known object is found in 148 of 150 frames. Nothing in it claims a detection.",
+      "tags": [
+        "NASA Space Apps",
+        "SPHEREx",
+        "astronomy",
+        "web app"
+      ],
+      "gallery": [
+        {
+          "src": "assets/img/projects/spherex-blink/astraea-d3-epochs.webp",
+          "alt": "Seven greyscale infrared frames of the same star field, taken on different dates, each labelled with its date and wavelength.",
+          "caption": "Seven epochs of the asteroid Astraea's field, detector D3, 28 to 31 July 2025. A blink comparator flips between them so anything that moves stands out."
+        },
+        {
+          "src": "assets/img/projects/spherex-blink/astraea-d6-epochs.webp",
+          "alt": "Four greyscale infrared frames of the same star field from detector D6, each labelled with its date and wavelength.",
+          "caption": "The same field through detector D6. Each detector sees a different range of wavelengths, so the app warns when two frames are too different in colour to compare brightness."
+        }
+      ],
+      "palette": "indigo",
+      "motif": "orbits",
+      "car": "indigo",
+      "carLogo": "assets/img/projects/spherex-blink/car-logo.svg",
+      "links": {
+        "live": "https://spherex-blink-web.vercel.app/",
+        "repo": "https://github.com/Unavailable4u/spherex-blink"
+      }
+    },
+    {
+      "slug": "minilocker",
+      "title": "MiniLocker",
+      "year": 2026,
+      "category": "ai",
+      "status": "completed",
+      "featured": true,
+      "cover": "assets/img/projects/minilocker/cover.webp",
+      "summary": "A sandbox for AI agents that logs every action and measures what a run could touch.",
+      "abstract": "MiniLocker gives an AI agent a shell and a web browser while keeping what it can break small, visible and provable. Every task runs in a fresh locked-down Docker container with no network route, and the only way out is an allowlisting proxy. Every action goes into a hash-chained ledger, and a Blast Radius report measured from that ledger shows what the run could and could not touch.",
+      "brief": "An agent with a shell and a browser can be talked into anything: a hostile web page, a poisoned package or an ordinary mistake can leak keys or wipe a disk.",
+      "approach": "Hard limits instead of trust: hardened containers, an egress allowlist, a policy engine with strict and observe profiles, decoy credentials, and snapshots with rewind. A built-in Attack Lab runs 15 scripted attacks against the real sandbox, so the containment claims can be checked rather than read.",
+      "outcome": "Each Attack Lab run is reported as contained, breached or inconclusive. The sandbox, egress control, ledger and report, Attack Lab and deployment are working and tested end to end; the credential broker has so far only been exercised against a recorded upstream.",
+      "tags": [
+        "AI agents",
+        "sandboxing",
+        "security"
+      ],
+      "palette": "forest",
+      "motif": "rings",
+      "car": "forest",
+      "carLogo": "assets/img/projects/minilocker/car-logo.svg",
+      "links": {
+        "repo": "https://github.com/shaikh-dotcom/MiniLocker"
+      }
+    },
+    {
+      "slug": "next-inc-immersive",
+      "title": "Next Inc. Immersive",
+      "year": 2026,
+      "category": "web",
+      "status": "prototype",
+      "featured": true,
+      "cover": "assets/img/projects/next-inc-immersive/cover.webp",
+      "summary": "A showcase build of our website for 3D and high-graphics animation.",
+      "abstract": "Next Inc. Immersive is a showcase build of our website that demonstrates 3D and high-graphics animation. It is not our production site, which is the one you are reading. It is built with React and Vite, draws its 3D scenes with Three.js through react-three-fiber, adds particle effects with tsparticles, and uses Tailwind for the layout.",
+      "tags": [
+        "3D",
+        "WebGL",
+        "React",
+        "Three.js"
+      ],
+      "palette": "crimson",
+      "motif": "waves",
+      "car": "ochre",
+      "links": {
+        "live": "https://next-in-c.onrender.com/",
+        "repo": "https://github.com/shaikh-dotcom/Next-In-C"
+      }
+    }
+  ],
+  "films": [
+    {
+      "id": "minilocker-film",
+      "title": "MiniLocker — Blast Radius Zero",
+      "sub": "The film for the Vultr Agent Rush hackathon",
+      "duration": "2:50",
+      "year": 2026,
+      "kind": "launch",
+      "project": "minilocker",
+      "provider": "youtube",
+      "src": "q5bYqguilGs",
+      "poster": "assets/img/projects/minilocker/cover.webp",
+      "palette": "forest",
+      "motif": "rings"
+    },
+    {
+      "id": "mini-me-chat-film",
+      "title": "Mini Me — The Chat tab",
+      "sub": "A first look at the Chat tab",
+      "duration": "1:03",
+      "year": 2026,
+      "kind": "walkthrough",
+      "project": "mini-me",
+      "provider": "youtube",
+      "src": "4fNrtf8CX_o",
+      "poster": "assets/img/films/mini-me-chat-film.webp",
+      "palette": "ink",
+      "motif": "nodes"
+    }
+  ],
+  "team": [
+    {
+      "name": "Arib Labib",
+      "role": "Member",
+      "photo": "assets/img/team/arib-labib.jpg",
+      "webp": "assets/img/team/arib-labib.webp",
+      "w": 400,
+      "h": 400
+    },
+    {
+      "name": "Shuaib Islam",
+      "role": "Co-Founder & CTO",
+      "photo": "assets/img/team/shuaib-islam.jpg",
+      "webp": "assets/img/team/shuaib-islam.webp",
+      "w": 596,
+      "h": 563
+    },
+    {
+      "name": "Shaikh Muhammad",
+      "role": "Co-Founder & COO",
+      "photo": "assets/img/team/shaikh-muhammad.jpg",
+      "webp": "assets/img/team/shaikh-muhammad.webp",
+      "w": 449,
+      "h": 567
+    }
+  ],
+  "affiliation": "Next Inc. Innovation Lab — Pennsylvania, USA · Rajshahi, Bangladesh"
+}

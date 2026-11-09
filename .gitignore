@@ -1,0 +1,18 @@
+# generated
+out/
+node_modules/
+.cache/
+.remotion/
+*.log
+# big intermediates (keep masters in out/ or on your backup drive, not in git)
+*.exr
+*.blend1
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+# secrets: there should never be any in this repo
+.env
+.env.*
+prompts-out/

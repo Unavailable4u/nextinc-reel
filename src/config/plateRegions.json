@@ -1,0 +1,13 @@
+{
+  "note": "Photo pixels (736 x 672, origin top-left; x1 and y1 are exclusive). The strict pixel test of `npm run plate:verify` compares these regions between the original and the rendered frame. Measured on the photo: every region sits inside the bright light sources found by `npm run plate:measure`. The right-hand regions stop at x = 670 because the outer 60 px of each side are feathered into the pillarbox on purpose.",
+  "feather": 60,
+  "regions": {
+    "lamp": { "x0": 100, "y0": 345, "x1": 152, "y1": 466, "what": "Edison lamp: glass globe, filament, base" },
+    "lamp_on_desk": { "x0": 105, "y0": 466, "x1": 145, "y1": 484, "what": "the lamp's light pooled on the desk top" },
+    "led_left_upper": { "x0": 113, "y0": 222, "x1": 433, "y1": 232, "what": "LED strip under the upper-left shelf" },
+    "led_left_lower": { "x0": 115, "y0": 286, "x1": 316, "y1": 296, "what": "LED strip under the lower-left shelf" },
+    "led_right_upper": { "x0": 330, "y0": 174, "x1": 670, "y1": 188, "what": "LED strip under the upper-right shelf" },
+    "led_right_lower": { "x0": 397, "y0": 266, "x1": 670, "y1": 276, "what": "LED strip under the lower-right shelf" },
+    "led_desk_back": { "x0": 110, "y0": 450, "x1": 628, "y1": 460, "what": "LED glow along the back of the desk" }
+  }
+}

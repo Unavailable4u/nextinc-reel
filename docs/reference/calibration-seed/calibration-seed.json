@@ -1,0 +1,45 @@
+{
+  "what": "A fitted camera for the desk plane of public/plates/original/desk-plate.jpg, measured by hand on the 736 x 672 photo. A STARTING POINT for Patch 03 (the match lab), not its result. Every number is a design assumption about an unknown real scene except where marked 'measured'.",
+  "units": "cm in the world, photo pixels in the image. The desk top is the plane Y = 0. X is measured from the camera centre line (positive right). Zd is measured from the FRONT edge of the desk top towards the wall.",
+  "model": "pinhole camera looking horizontally, principal point (cx, horizonY). Equivalent to a camera pitched DOWN by pitchDegEquivalent with the principal point at the image centre.",
+  "calibration": {
+    "f_px": 1263,
+    "cx": 368,
+    "horizonY": 268,
+    "camHeightCm": 80,
+    "camDistToFrontEdgeCm": 468,
+    "desk": { "xMin": -114.5, "xMax": 118.6, "depthCm": 65 }
+  },
+  "equivalentToThePatch03Sliders": {
+    "verticalFovDeg": 29.8,
+    "horizontalFovDeg": 32.5,
+    "pitchDegEquivalent": 3.08,
+    "note": "With the principal point at the image centre (y = 336), the horizon sits at y = 268 only if the camera looks DOWN by about 3.1 degrees: atan((336 - 268) / 1263). The photo's verticals stay vertical to within about 4 px over 300 px, so either a 3.1 degree pitch or a pure vertical lens shift reproduces it."
+  },
+  "measuredOnThePhoto": {
+    "deskTopFrontEdgeY": 483.5,
+    "deskTopFrontLeftX": 59,
+    "deskTopFrontRightX": 688,
+    "deskTopBackEdgeY": 457,
+    "deskTopBackLeftX": 98,
+    "deskTopBackRightX": 650,
+    "horizonYFromTheDepthLines": "about 264 to 272 (the desk's side edges converge there)",
+    "frontApronFaceY": "483.5 to about 495 (the vertical face under the desk top; NOT desk top)"
+  },
+  "scaleAssumption": {
+    "deskWidthCm": 233,
+    "pxPerCmAtFrontEdge": 2.7,
+    "why": "Chosen so a 3-monitor group is about 45 cm each and the keyboard about 32 cm. A design assumption: the photo has no known real size."
+  },
+  "crossChecks": {
+    "backCornersPredicted": { "left": 96.7, "right": 649.0, "y": 457.6 },
+    "backCornersMeasured": { "left": 98, "right": 650, "y": 457 },
+    "lampBaseImpliedWidthCm": 11.4,
+    "speakerImpliedWidthCm": 16.4,
+    "note": "The back corners were NOT used in the fit; the model predicts them within 1.3 px. The lamp base and the speaker come out at believable sizes (11 and 16 cm)."
+  },
+  "suggestedAnchors": {
+    "pile": { "X": -80, "Zd": 14, "xPhotoPx": 158, "yPhotoPx": 476, "why": "between the lamp (x 105-150) and the keyboard mat (x 300+), clear of the chair" },
+    "riser": { "X": 93, "Zd": 15, "xPhotoPx": 608, "yPhotoPx": 476, "why": "front edge of the right end, in front of the speaker; the chair's right edge reaches about X = +65 at the desk front" }
+  }
+}

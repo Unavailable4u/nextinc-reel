@@ -1,0 +1,51 @@
+{
+  "name": "nextinc-reel",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Code-driven 3D motion film: the Next Inc. company reel for the website's Fig. 1 slot (film id next-inc-reel). 1920x1080, 60 fps, 5400 frames.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "node tools/run-tests.mjs",
+    "timeline": "node tools/print-timeline.mjs",
+    "sync": "node scripts/sync-site.mjs",
+    "select:test": "node scripts/test-select.mjs",
+    "plate:verify": "node scripts/verify-plate.mjs",
+    "plate:measure": "node tools/measure-plate.mjs",
+    "prompt": "node tools/make-prompt.mjs",
+    "bench": "node scripts/stub.mjs bench 04",
+    "motion": "node scripts/stub.mjs motion 05",
+    "stills": "node scripts/stub.mjs stills 13",
+    "qr:check": "node scripts/stub.mjs qr:check 09",
+    "audit": "node scripts/stub.mjs audit 23",
+    "render": "node scripts/stub.mjs render 24"
+  },
+  "dependencies": {
+    "@react-three/drei": "9.122.0",
+    "@react-three/fiber": "8.17.14",
+    "@react-three/postprocessing": "2.19.1",
+    "@remotion/bundler": "4.0.540",
+    "@remotion/cli": "4.0.540",
+    "@remotion/renderer": "4.0.540",
+    "@remotion/three": "4.0.540",
+    "@remotion/zod-types": "4.0.540",
+    "postprocessing": "6.39.6",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "4.0.540",
+    "sharp": "0.35.5",
+    "three": "0.170.0",
+    "zod": "3.22.3"
+  },
+  "devDependencies": {
+    "@types/node": "20.19.43",
+    "@types/react": "18.3.31",
+    "@types/react-dom": "18.3.7",
+    "@types/three": "0.170.0",
+    "esbuild": "0.25.12",
+    "typescript": "5.9.3"
+  }
+}

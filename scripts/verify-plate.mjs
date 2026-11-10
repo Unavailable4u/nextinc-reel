@@ -6,8 +6,9 @@
 //      must look like for that view (bilinear sampling in linear light, exactly what the GPU does when magnifying):
 //        A. feather OFF  -> the bare photo: SSIM over the whole photo area must be >= 0.98;
 //        B. feather ON   -> the real frame 0: SSIM >= 0.98 outside the feathered strips, and no pixel in the lamp / LED regions
-//           (src/config/plateRegions.json) differs by more than 3 levels;
-//   3. the pillarbox bars are black.
+//           (src/config/plateRegions.json) differs by more than 3 levels. The plate is 16:9 and the configured feather is 0, so B
+//           reuses the render of A;
+//   3. the frame has no bars (and if the plate ever stops filling the frame, the bars must be black).
 // Flags: --skip-render (only the checksum), --keep (keep the rendered PNGs in out/plate-verify/)
 import fs from "node:fs";
 import path from "node:path";
@@ -23,7 +24,7 @@ if (args.help) {
   process.exit(0);
 }
 
-const PLATE = path.join(ROOT, "public/plates/original/desk-plate.jpg");
+const PLATE = path.join(ROOT, "public/plates/original/desk-plate.png");
 const SSIM_MIN = 0.98;
 const REGION_MAX_DIFF = 3;
 const results = [];
@@ -35,7 +36,7 @@ const check = (name, ok, detail) => {
 // ---- 1. checksum ----
 const want = fs.readFileSync(path.join(ROOT, "docs/reference/.plate.sha256"), "utf8").trim().split(/\s+/)[0];
 const got = crypto.createHash("sha256").update(fs.readFileSync(PLATE)).digest("hex");
-console.log("\n1. Checksum of public/plates/original/desk-plate.jpg");
+console.log("\n1. Checksum of public/plates/original/desk-plate.png");
 check("SHA-256 equals docs/reference/.plate.sha256", got === want, got === want ? got.slice(0, 8) + "..." + got.slice(-5) : `got ${got}, want ${want}`);
 if (args["skip-render"]) finish();
 
@@ -47,7 +48,8 @@ const PF = await import(pathToFileURL(outfile).href + `?t=${Date.now()}`);
 const cfgFile = path.join(tmp, "plate-config.mjs");
 await build({ entryPoints: [path.join(ROOT, "src/config/plate.ts")], bundle: true, platform: "node", format: "esm", outfile: cfgFile, logLevel: "silent", loader: { ".json": "json" } });
 const CFG = await import(pathToFileURL(cfgFile).href + `?t=${Date.now()}`);
-const { PLATE_W, PLATE_H, INTEGRITY_REGIONS, PILLARBOX } = CFG;
+const { PLATE_W, PLATE_H, PLATE_FILE, PLATE_SHA256, INTEGRITY_REGIONS, PILLARBOX } = CFG;
+check("src/config/plate.ts names this file and this checksum", `public/${PLATE_FILE}` === path.relative(ROOT, PLATE).split(path.sep).join("/") && PLATE_SHA256 === got, `${PLATE_FILE}, ${String(PLATE_SHA256).slice(0, 8)}...`);
 const view = PF.VIEW_FIT;
 const SW = 1920;
 const SH = 1080;
@@ -156,8 +158,9 @@ async function compare(label, feather) {
 
 console.log("\n2. Rendering frame 0 through the film (this bundles the project; about a minute)");
 const serveUrl = await makeBundle();
-await compare("A. bare photo (feather off)", false);
-const B = await compare("B. real frame 0 (feather on), outside the feathered strips", true);
+const A = await compare("A. bare photo (feather off)", false);
+const B = PILLARBOX.feather > 0 ? await compare("B. real frame 0 (feather on), outside the feathered strips", true) : A;
+if (PILLARBOX.feather <= 0) console.log("  (feather is 0 in src/config/plate.ts: the real frame 0 is the bare photo, so B is A)");
 
 // strict regions on the real frame 0
 let worst = 0;
@@ -175,14 +178,18 @@ for (const [name, r] of Object.entries(INTEGRITY_REGIONS)) {
 }
 check(`B. strict pixel test in ${Object.keys(INTEGRITY_REGIONS).length} lamp / LED regions`, worst <= REGION_MAX_DIFF, `largest difference ${worst} levels in "${worstName}" (need <= ${REGION_MAX_DIFF})`);
 
-// ---- 3. bars are black ----
-let barMax = 0;
-for (let y = 0; y < SH; y += 7) {
-  for (let x = 0; x < Math.floor(B.left) - 4; x += 5) { const i = (y * SW + x) * 3; barMax = Math.max(barMax, B.img.data[i], B.img.data[i + 1], B.img.data[i + 2]); }
-  for (let x = Math.ceil(B.right) + 4; x < SW; x += 5) { const i = (y * SW + x) * 3; barMax = Math.max(barMax, B.img.data[i], B.img.data[i + 1], B.img.data[i + 2]); }
-}
+// ---- 3. bars ----
 console.log("\n3. Pillarbox");
-check("bars outside the photo are black", barMax <= 1, `brightest bar pixel ${barMax}`);
+if (B.left <= 0.5 && B.right >= SW - 0.5) {
+  check("the photo fills the frame: no bars", true, `photo spans x ${B.left.toFixed(1)} to ${B.right.toFixed(1)} of ${SW}`);
+} else {
+  let barMax = 0;
+  for (let y = 0; y < SH; y += 7) {
+    for (let x = 0; x < Math.floor(B.left) - 4; x += 5) { const i = (y * SW + x) * 3; barMax = Math.max(barMax, B.img.data[i], B.img.data[i + 1], B.img.data[i + 2]); }
+    for (let x = Math.ceil(B.right) + 4; x < SW; x += 5) { const i = (y * SW + x) * 3; barMax = Math.max(barMax, B.img.data[i], B.img.data[i + 1], B.img.data[i + 2]); }
+  }
+  check("bars outside the photo are black", barMax <= 1, `brightest bar pixel ${barMax}`);
+}
 
 if (!args.keep) fs.rmSync(path.join(OUT, "plate-verify"), { recursive: true, force: true });
 finish();

@@ -81,7 +81,8 @@ docs/
 content/
   books.md      the editorial truth table for the four books
 public/
-  plates/original/desk-plate.jpg   YOUR PHOTO. READ-ONLY.
+  plates/original/desk-plate.png   YOUR PHOTO (1536 x 864, 16:9). READ-ONLY.
+  plates/superseded/desk-plate-v1.jpg   the first photo (736 x 672), kept unchanged for the record
   plates/derived/   anything produced from it (upscales, blurred probes)
   fonts/ brand/ textures/ models/ screens/ films/ audio/ qr/
 src/          config/ (timeline, plate), lib/ (ease, spring, prng, noise, hash, units, fonts), data/ (snapshot + selectors),

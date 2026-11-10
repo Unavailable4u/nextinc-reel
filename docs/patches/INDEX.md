@@ -1,6 +1,6 @@
 # Patch index (27 patches, 00-26)
 
-**Progress: Patches 00, 01 and 02 are done** (see `docs/PATCH_NOTES.md`). Start with Patch 03.
+**Progress: Patches 00, 01 and 02 are done, plus Patch 02a (the plate was replaced by a 1536 x 864 image; see `docs/PATCH_NOTES.md`).** Start with Patch 03.
 
 Use `node tools/make-prompt.mjs <n>` (created in Patch 00) to assemble the five parts of each prompt. Do them in order; patches marked parallel-safe may swap with each other.
 

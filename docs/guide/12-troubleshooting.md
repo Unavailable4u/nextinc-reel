@@ -8,7 +8,7 @@
 | `Sequence` throws inside the 3D canvas | default layout is a DOM element | `layout="none"` |
 | Render runs out of memory | too many large textures alive at once | dispose page textures after each act; lower page texture size for pages never read; lower concurrency |
 | Plate looks different from the photo | tone mapping or colour space applied to the plate | `NoToneMapping`, plate material `toneMapped = false`, texture sRGB; run `npm run plate:verify` |
-| Plate looks soft in S00 | magnification above 1.607 with a non-Lanczos resample | use a mipmapped texture with anisotropy; check D-05 |
+| Plate looks soft in S00 | magnification above 1.25 with a non-Lanczos resample | use a mipmapped texture with anisotropy; check D-05 |
 | Books look pasted on | no contact shadow, wrong light direction or colour | guide 03, sections 1-2 |
 | Books float above the desk strip | the match camera is wrong | redo Patch 03; check the desk edges overlay at three frames |
 | Text on pages shimmers | texture filtering | anisotropy 16, mipmaps, 2048 x 3072 |

@@ -1,45 +1,55 @@
 {
-  "what": "A fitted camera for the desk plane of public/plates/original/desk-plate.jpg, measured by hand on the 736 x 672 photo. A STARTING POINT for Patch 03 (the match lab), not its result. Every number is a design assumption about an unknown real scene except where marked 'measured'.",
+  "what": "A fitted camera for the desk plane of public/plates/original/desk-plate.png, measured on the 1536 x 864 plate. A STARTING POINT for Patch 03 (the match lab), not its result. Every number is a design assumption about an unknown real scene except where marked 'measured'. It replaces the seed made for the superseded 736 x 672 photo.",
   "units": "cm in the world, photo pixels in the image. The desk top is the plane Y = 0. X is measured from the camera centre line (positive right). Zd is measured from the FRONT edge of the desk top towards the wall.",
   "model": "pinhole camera looking horizontally, principal point (cx, horizonY). Equivalent to a camera pitched DOWN by pitchDegEquivalent with the principal point at the image centre.",
   "calibration": {
-    "f_px": 1263,
-    "cx": 368,
-    "horizonY": 268,
-    "camHeightCm": 80,
-    "camDistToFrontEdgeCm": 468,
-    "desk": { "xMin": -114.5, "xMax": 118.6, "depthCm": 65 }
+    "f_px": 1895,
+    "cx": 544.7,
+    "horizonY": 395.6,
+    "camHeightCm": 45.6,
+    "camDistToFrontEdgeCm": 508,
+    "desk": {
+      "xMin": -88.6,
+      "xMax": 144.4,
+      "depthCm": 65
+    }
   },
   "equivalentToThePatch03Sliders": {
-    "verticalFovDeg": 29.8,
-    "horizontalFovDeg": 32.5,
-    "pitchDegEquivalent": 3.08,
-    "note": "With the principal point at the image centre (y = 336), the horizon sits at y = 268 only if the camera looks DOWN by about 3.1 degrees: atan((336 - 268) / 1263). The photo's verticals stay vertical to within about 4 px over 300 px, so either a 3.1 degree pitch or a pure vertical lens shift reproduces it."
+    "verticalFovDeg": 25.7,
+    "horizontalFovDeg": 44.1,
+    "pitchDegEquivalent": 1.09,
+    "lensShiftXPx": -223,
+    "note": "With the principal point at the image centre (y = 432), the horizon sits at y = 395.6 only if the camera looks DOWN by about 1.1 degrees: atan((432 - 395.6) / 1895). The plate's vertical lines stay vertical, so a pure lens shift (principal point at x = 544.7, 223 px left of the plate centre) reproduces it better than a yaw. HORIZON IS UNCERTAIN: the desk edges give y = 396, but the room's ceiling and baseboard lines point to about y = 464. The seed follows the desk edges because the books sit on the desk. Patch 03's lab should let the horizon slide between 380 and 470 and the person chooses by eye."
   },
-  "measuredOnThePhoto": {
-    "deskTopFrontEdgeY": 483.5,
-    "deskTopFrontLeftX": 59,
-    "deskTopFrontRightX": 688,
-    "deskTopBackEdgeY": 457,
-    "deskTopBackLeftX": 98,
-    "deskTopBackRightX": 650,
-    "horizonYFromTheDepthLines": "about 264 to 272 (the desk's side edges converge there)",
-    "frontApronFaceY": "483.5 to about 495 (the vertical face under the desk top; NOT desk top)"
+  "measuredOnThePlate": {
+    "deskTopFrontEdgeY": 565.7,
+    "deskTopFrontLeftX": 214.3,
+    "deskTopFrontRightX": 1084,
+    "deskTopBackEdgeY": 546.4,
+    "deskTopBackLeftX": 251.8,
+    "deskTopBackRightX": 1022.8,
+    "horizonYFromTheDepthLines": "about 396 from the desk's side edges; about 464 from the room's ceiling and baseboard lines (see the note above)",
+    "frontApronFaceY": "565.7 down to about 580 (the vertical face under the desk top; NOT desk top)"
   },
   "scaleAssumption": {
     "deskWidthCm": 233,
-    "pxPerCmAtFrontEdge": 2.7,
-    "why": "Chosen so a 3-monitor group is about 45 cm each and the keyboard about 32 cm. A design assumption: the photo has no known real size."
-  },
-  "crossChecks": {
-    "backCornersPredicted": { "left": 96.7, "right": 649.0, "y": 457.6 },
-    "backCornersMeasured": { "left": 98, "right": 650, "y": 457 },
-    "lampBaseImpliedWidthCm": 11.4,
-    "speakerImpliedWidthCm": 16.4,
-    "note": "The back corners were NOT used in the fit; the model predicts them within 1.3 px. The lamp base and the speaker come out at believable sizes (11 and 16 cm)."
+    "pxPerCmAtFrontEdge": 3.73,
+    "why": "Kept at 233 cm so the desk is the same size as in the first plan (3 monitors at about 47 cm each). The desk is 1.38 x larger on this plate, so px per cm rises from 2.7 to 3.73. A design assumption: the plate has no known real size."
   },
   "suggestedAnchors": {
-    "pile": { "X": -80, "Zd": 14, "xPhotoPx": 158, "yPhotoPx": 476, "why": "between the lamp (x 105-150) and the keyboard mat (x 300+), clear of the chair" },
-    "riser": { "X": 93, "Zd": 15, "xPhotoPx": 608, "yPhotoPx": 476, "why": "front edge of the right end, in front of the speaker; the chair's right edge reaches about X = +65 at the desk front" }
+    "pile": {
+      "X": -35,
+      "Zd": 16,
+      "xPhotoPx": 418,
+      "yPhotoPx": 561,
+      "why": "on the desk between the lamp (x 283-340) and the keyboard mat (x 520+), clear of the chair; the free zone is about 52 cm wide"
+    },
+    "riser": {
+      "X": 118,
+      "Zd": 16,
+      "xPhotoPx": 971,
+      "yPhotoPx": 561,
+      "why": "front edge of the right end, beside the speaker and webcam; the free zone is about 52 cm wide. Keep the riser on the desk and off the new bookshelf at the right"
+    }
   }
 }

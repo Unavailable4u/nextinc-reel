@@ -1,5 +1,7 @@
 ### PATCH 02 - The plate rig, pillarbox and integrity test
 
+> **Superseded in part by Patch 02a** (`docs/PATCH_NOTES.md`): the plate is now a 1536 x 864 (16:9) image, so there is no pillarbox in use and the numbers below describe the first 736 x 672 photo.
+
 **Needs:** 00
 **Parallel-safe with:** 01
 **Size:** L

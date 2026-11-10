@@ -24,7 +24,7 @@ RULES THAT MATTER HERE:
 - Books never overlap the exclusion list; the riser sits at the desk front edge.
 
 CHECK:
-- Stills at M = 6.2 (pile) and M = 5.5 (riser)
+- Stills at M = 4.49 (pile) and M = 3.98 (riser)
 - `getBookLocation` returns the table in the storyboard at frames 0, 960, 2880, 3000, 3840, 4139, 4200, 5399
 - `npx tsc --noEmit`
 ```

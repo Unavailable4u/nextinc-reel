@@ -7,14 +7,14 @@ import { HEIGHT, WIDTH } from "../config/timeline";
 
 /** Which part of the photo is on screen: magnification M and the photo pixel at the centre of the frame. */
 export interface PlateView {
-  /** on-screen photo width / 736 */
+  /** on-screen photo width / 1536 */
   M: number;
   /** photo px at the screen centre */
   cx: number;
   cy: number;
 }
 
-/** The opening view: the whole photo, centred, full height. */
+/** The opening view: the whole photo, centred; at 16:9 it fills the frame exactly. */
 export const VIEW_FIT: PlateView = { M: M_FIT_HEIGHT, cx: PLATE_W / 2, cy: PLATE_H / 2 };
 
 /** The 3D scene camera the plate is placed in front of (placeholder until Patch 03). */

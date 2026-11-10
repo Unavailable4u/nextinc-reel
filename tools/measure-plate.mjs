@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const file = path.join(ROOT, "public/plates/original/desk-plate.jpg");
+const file = path.join(ROOT, "public/plates/original/desk-plate.png");
 const { data, info } = await sharp(file).removeAlpha().raw().toBuffer({ resolveWithObject: true });
 const W = info.width;
 const H = info.height;
@@ -30,7 +30,7 @@ function rect(x0, y0, x1, y1) {
 }
 
 console.log(`file ${path.relative(ROOT, file)}  ${W} x ${H}  ${fs.statSync(file).size} bytes`);
-console.log("\nEdge strips (the pillarbox takes its colour from these):");
+console.log("\nEdge strips (kept for reference; the 16:9 plate needs no pillarbox):");
 for (const m of [30, 40, 60]) {
   console.log(`  left  ${String(m).padStart(2)} px  `, JSON.stringify(rect(0, 0, m, H)));
   console.log(`  right ${String(m).padStart(2)} px  `, JSON.stringify(rect(W - m, 0, W, H)));

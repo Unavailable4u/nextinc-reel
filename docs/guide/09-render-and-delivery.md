@@ -7,7 +7,7 @@
 | Composition | 1920 x 1080, **60 fps**, 5400 frames |
 | Master | H.264 (CRF 14-16), `yuv420p`, Rec. 709 tags, `+faststart`, AAC 192 kbps |
 | Optional high-quality master | PNG sequence (`out/frames/`), for re-encoding later |
-| 4K | optional, 3840 x 2160. The plate is 736 px wide, so 4K only sharpens the books and text; the background will be soft anyway. Do 1080p first. |
+| 4K | optional, 3840 x 2160. The plate is 1536 px wide, so even the opening view of a 4K frame shows it at M = 2.5, at the edge of the sharp budget; 4K sharpens the books and text, and the background is soft from S02 on anyway. Do 1080p first. |
 
 **Cost.** Twice the frames of the earlier film's 30 fps, and each frame is a 3D render with depth of field. Planning numbers, not promises: if `npm run bench` (Patch 04) reports 2 s per frame, the film takes 5400 x 2 s = 3 h. At 4 s per frame: 6 h. A software-only renderer can be 10x slower. **Always render by shot ranges**, so a change in one shot re-renders only that shot (section 3).
 

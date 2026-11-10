@@ -9,7 +9,7 @@
 
 | Regime | Name | What the camera does | What the photo does |
 |---|---|---|---|
-| R1 | Establishing | Nearly still, tiny drift | Shown 1:1, pillarboxed into its own dark edges |
+| R1 | Establishing | Nearly still, tiny drift | Shown 1:1, filling the frame (the plate is 16:9) |
 | R2 | Plate-follow | Walks/dollies toward or away from the desk, small pan | Scales and shifts with the camera, with a growing defocus |
 | R3 | Hero | The book is held in front of the camera at reading distance | Only a defocused glow behind it (amber strips, dark wall) |
 | R4 | Truck / display | Slides right at desk height, then settles | Pans (zoomed in), defocused except on the display |
@@ -52,7 +52,7 @@ Full rules and numbers: `05-camera-and-motion.md`.
 ## Act by act
 
 ### Act 0 - The plate (S00, 0:00-0:04)
-- **Image:** your photograph, exactly as supplied, centred with its own dark left and right edges fading into black (the left edge is nearly black already, the right edge is dark brown; a soft feather of about 60 photo pixels hides the seam). 2.5% slow push-in. A few **dust motes** drift in the lamp light (3D particles, seeded). Fine film grain.
+- **Image:** your photograph, exactly as supplied (1536 x 864, 16:9), filling the 1920 x 1080 frame at M = 1.25: no bars, no feather. 2.5% slow push-in (M 1.25 to 1.28), centred, because the camera has no sideways room below M = 1.319 (guide 05). A few **dust motes** drift in the lamp light (3D particles, seeded). Fine film grain. The plate also shows a lit bookshelf at the right and a window and plant at the left; they are part of the picture and stay untouched.
 - **Do not:** animate, relight or retouch anything inside the photo.
 - **The pile is already there**, left of the keyboard, between the lamp and the keyboard mat: three small hardcover books, a few pixels tall at this size. Most viewers will not notice them yet. That is the point; the camera will find them.
 - **Sound:** room tone fades in over 1 s (very low), a faint lamp hum, a single distant clock-like tick on bar 2 is optional.
@@ -127,7 +127,7 @@ Immersive has never been in the pile: it is "on the riser" from the start of the
 ## Cut-downs (plan now, build only if asked)
 
 - **60 s:** drop S09-S10 pause, shorten S11-S13 to 2.5 s each, drop S15, S16 starts from the pile; the second book is S17-S19 only.
-- **30 s social:** S00 (2 s), S02-S05 (6 s), S12 (3 s), S23 (6 s), S24-S25 (6 s), with the riffle as a transition. Square (1:1) is not supported by the plate: the photo is nearly square, so a 1:1 crop of the middle is possible; check before promising it.
+- **30 s social:** S00 (2 s), S02-S05 (6 s), S12 (3 s), S23 (6 s), S24-S25 (6 s), with the riffle as a transition. Square (1:1) is possible with this plate: a window of plate x 216 to 1080 (864 px wide, M = 1.25) holds almost the whole desk, and the pile (x 418) and riser (x 971) anchors fall inside it; check the stills before promising it (D-28). Vertical (9:16) is not supported.
 - **Hover loop for the site** (3-5 s, 640 px, at most 500 KB, muted): S05 or S23's first 4 s.
 
 ## Stills and thumbnails

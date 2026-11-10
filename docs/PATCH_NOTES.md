@@ -101,3 +101,32 @@ Versions pinned in Patch 00: Node >=20 (built and tested on 22.23; `.nvmrc` not 
 
 **Checks run and results:** `npm run plate:verify` PASSED (5 checks): SHA-256 `82aa3d3c...04b41`; bare photo SSIM 0.99993 (largest channel difference 2 levels); real frame 0 SSIM 0.99995 outside the feather, largest difference 1 level in 7 lamp/LED regions (limit 3); bars brightest pixel 0. **Negative tests:** appending one byte to the photo makes the checksum fail; enabling a film-style tone curve on the plate material drops SSIM to 0.63 and the script exits 1. A renderer-level tone curve alone does NOT change the photo (the plate material opts out), which is the intended protection. Frame 0, a `DevPlate` sheet at M=4 with the grid, and readouts were rendered and looked at. `npx tsc --noEmit` 0 errors. Not run: the Studio GUI, and anything on a GPU or on Windows (software WebGL was used).
 
+---
+
+## Patch 02a - New plate: 1536 x 864 (16:9), no pillarbox  (2026-11-11)
+
+Replaces the 736 x 672 photo with a larger image. Patches 00 to 02 stay as they were; this patch changes the plate and everything measured on it.
+
+**Files created / changed:**
+`public/plates/original/desk-plate.png` (new plate, byte-identical to the supplied file), `public/plates/superseded/desk-plate-v1.jpg` (the first photo, moved with `git mv`, bytes unchanged), `docs/reference/.plate.sha256` (new checksum), `docs/reference/.plate-v1.sha256`, `.gitattributes` (superseded plates are plain blobs), `src/config/plate.ts`, `src/config/plateRegions.json`, `src/plate/PlateFollow.ts` and `src/ReelFilm.tsx` (comments), `scripts/verify-plate.mjs`, `tools/measure-plate.mjs`, `AGENTS.md` and `README.md` (the path), `docs/reference/calibration-seed/*` (re-fitted seed and a new overlay image), `tests/calibration-seed.test.ts`, `tests/plate.test.ts` (new), and the plan documents listed below.
+
+**PUBLIC API changes:**
+- `config/plate.ts`: `PLATE_FILE = "plates/original/desk-plate.png"`, `PLATE_W = 1536`, `PLATE_H = 864`, `PLATE_SHA256 = 3aa7af92...44af0`, `PILLARBOX.feather = 0`, `M_FIT_HEIGHT = M_FIT_WIDTH = 1.25`, new `DESK_M_RATIO = 629 / 869.7` (old M x this = new M for the same desk framing). `EDGE_MARGIN` (40), the `MAGNIFICATION` thresholds (2.6 and 5) and the component and function signatures are unchanged.
+- `plateRegions.json`: 11 regions (the 7 old names with new boxes, plus `shelf_unit_led_a`, `shelf_unit_led_b`, `shelf_unit_lantern`, `corner_candle`) and `feather: 0`.
+- `verify-plate.mjs` also checks that `config/plate.ts` names the same file and checksum; renders once when the feather is 0; and passes the bars check when the photo fills the frame.
+- Calibration seed: `PLATE_REF = { w: 1536, h: 864 }`, `CALIB_SEED = { f: 1895, cx: 544.7, horizonY: 395.6, camHeightCm: 45.6, camDistCm: 508, desk: { xMin: -88.6, xMax: 144.4, depth: 65 } }`; the json key `measuredOnThePhoto` is now `measuredOnThePlate`.
+
+**Decisions and conventions later patches must follow:**
+- D-04 and D-21 are obsolete; D-05 is updated; D-24 to D-28 are new (`docs/DECISIONS.md`). D-25 (the horizon) and D-27 (rights) need your answer.
+- At the opening view the plate fills the frame at M = 1.25: no bars, no feather, frame 0 is the plate untouched. The margin rule only restricts the camera from M = 1.319; below that the view is centred.
+- **M conversion** (first plan x 0.7233): S00 1.607 to 1.65 becomes **1.25 to 1.28**; S01 end 3.4 becomes 2.46; S02 end 6.2 becomes 4.49; S03 end 6.4 becomes 4.63; S04 hidden handover 9 becomes 6.51; S15 9 to 6.4 becomes 6.51 to 4.63; S22 to 3.4 then 5.2 becomes 2.46 then 3.76 (truck +330 px becomes about +456 plate px); S23 5.2 to 5.5 becomes 3.76 to 3.98; S24 5.5 to 5.65 becomes 3.98 to 4.09; S25 4.09. Guide 05 holds the table.
+- The new anchors are the pile at X = -35 cm (plate px 418, 561) and the riser at X = 118 cm (plate px 971, 561); both free zones are about 52 cm wide.
+- Our books stay on the desk, never on the new right-hand bookshelf (D-26).
+
+**Documents updated:** `DECISIONS.md`; guides 00, 01, 02, 05, 09, 12 and `context-header.md`; the prompts of Patches 02 (a note), 03, 04, 12, 14, 17 and 19; `patches/INDEX.md`; `README.md`; `reference/` (`desk-plate-analysis.md` and `measured-calibration.md` rewritten, `glossary.md`, `plate-licence.md`).
+
+**Known issues:** the horizon is uncertain (desk edges y = 396, room lines y = 464), so the seed may need the lab's slider. The plate was not re-checked for banding at the edges. `plate:verify` was run on software WebGL, so run it once on your machine.
+
+**Warnings for the next patch (03):** start from `docs/reference/measured-calibration.md` and the seed, not from the old numbers. The shelf in the plate holds a helmet that resembles a licensed character (D-27). The plate's right-hand bookshelf is bright; check S23's framing.
+
+**Checks run and results:** `npx tsc --noEmit` clean. `npm test` 46 of 46 (it was 36 before, with the seed tests changed and `tests/plate.test.ts` added). `npm run plate:verify` PASSED (5 checks): SHA-256 `3aa7af92...44af0`; the bare plate SSIM 0.99991 (largest channel difference 1 level); strict pixel test in 11 lamp / LED regions, largest difference 1 level (limit 3); the photo spans x 0 to 1920, no bars. Negative tests: one byte appended to a copy of the plate fails the checksum; a plate material darkened in the render fails SSIM (0.918) and the region test (55 levels). Both were reverted and the plate is byte-identical to the supplied file.

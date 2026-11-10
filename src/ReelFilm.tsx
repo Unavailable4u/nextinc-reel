@@ -11,9 +11,9 @@ void loadFonts();
 export type ReelFilmProps = {
   /** the frame / beat / bar / shot readout (top-left). On while working, off for real renders and for `plate:verify`. */
   hud: boolean;
-  /** the 60 px feather that joins the photo to the pillarbox. Off = the bare photo (used by `plate:verify`). */
+  /** the feather that joins the photo to the pillarbox (0 px for the 16:9 plate, so this switch changes nothing at the opening view). Off = the bare photo (used by `plate:verify`). */
   feather: boolean;
-  /** an explicit view of the photo; when absent the film uses the opening view (the whole photo, pillarboxed) */
+  /** an explicit view of the photo; when absent the film uses the opening view (the whole photo, filling the frame) */
   view?: PlateView;
 };
 
@@ -37,7 +37,7 @@ const Readout: React.FC = () => {
 };
 
 /**
- * THE FILM (patches 00-02: the photograph, pillarboxed, plus the readout). Shots are added from Patch 13 on; this file is then
+ * THE FILM (patches 00-02: the photograph, plus the readout). Shots are added from Patch 13 on; this file is then
  * the only place that concatenates them.
  */
 export const ReelFilm: React.FC<ReelFilmProps> = ({ hud, feather, view }) => {

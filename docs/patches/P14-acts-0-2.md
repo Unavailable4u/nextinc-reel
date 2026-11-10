@@ -13,7 +13,7 @@ PATCH 14 - Shots S00-S04: plate, approach, pile, lift.
 GOAL: the opening: the photo, the walk to the desk, the focus pull onto the pile, and the lift into regime R3.
 
 CREATE / CHANGE:
-- `src/shots/S00.tsx` ... `S04.tsx`: keyframes from guide 05 section 4; pillarbox leaves at M = 2.6 (about frame 360); dust visible from frame 0; walk bob fading 440-480; focus pull to the pile; pile hold with 1.5 cm drift and 3% push; the press-lift-rotate of MiniMe; the R2-to-R3 handover hidden behind the book
+- `src/shots/S00.tsx` ... `S04.tsx`: keyframes from guide 05 section 4; there is no pillarbox (the plate fills the frame); the sharp budget ends at M = 2.6, which S01 no longer reaches; dust visible from frame 0; walk bob fading 440-480; focus pull to the pile; pile hold with 1.5 cm drift and 3% push; the press-lift-rotate of MiniMe; the R2-to-R3 handover hidden behind the book
 - sound cues listed in `src/shots/*.cues` for later wiring (frame, name)
 
 RULES THAT MATTER HERE:

@@ -28,8 +28,8 @@ What is different here: that film was a 2D interface seen through a virtual came
 | D-01 | Technology | Remotion + React Three Fiber (Three.js) |
 | D-02 | Frame rate | **60 fps** master (`fps = 60`) |
 | D-03 | Frame and length | 1920x1080, 16:9, **90.000 s = 5400 frames** |
-| D-04 | The photo in a 16:9 frame | Open with the full photo, pillarboxed into its own dark edges, then push in |
-| D-05 | Plate resolution | Original used as is for the first 4 s; defocus rule beyond (see guide 02) |
+| D-04 | The photo in a 16:9 frame | **Obsolete.** The plate is 1536 x 864 (exactly 16:9), so it fills the frame; there is no pillarbox (D-24) |
+| D-05 | Plate resolution | The 1536 x 864 plate as supplied; defocus rule beyond M = 2.6 (see guide 02) |
 | D-06 | Hands | None. The pick-up is implied by the camera operator model |
 | D-07 | "The desk on the right" | The **right end of the same desk**, with a small two-tier riser holding all four books |
 | D-08 | Book titles | `MiniMe` (brand spelling) on the cover; the data says `Mini Me` |
@@ -40,7 +40,7 @@ What is different here: that film was a 2D interface seen through a virtual came
 
 ## Five things that will surprise you
 
-1. **Your photo is small: 736 x 672 pixels.** A 1080p frame is 1920 px wide, so the photo is magnified at least 1.6x even in the opening shot, and 5x or more when the camera "goes to the table". The plan turns this into a strength: as the camera approaches the books, the photo behind them goes out of focus (it is physically behind the subject, so it should). The rules are in guide 02 ("Magnification budget") and guide 03 ("Depth of field"). If you can get a bigger version of the same image from where it came from, use it (D-05).
+1. **Your plate is 1536 x 864 pixels (16:9).** A 1080p frame is 1920 px wide, so the plate is magnified 1.25x in the opening shot and about 4x when the camera "goes to the table" (about 6.5x only behind the hero book). That is a gentler budget than the first, smaller photo had. The plan still turns the rest into a strength: as the camera approaches the books, the plate behind them goes out of focus (it is physically behind the subject, so it should). The rules are in guide 02 ("Magnification budget") and guide 03 ("Depth of field"). The first photo (736 x 672) is kept in `public/plates/superseded/` and is no longer used (D-24).
 2. **The photo is a flat picture, not a 3D scene.** The camera can push in, pull back and slide sideways, but it cannot walk around the desk or look down at it. The shots are designed around that (guide 05, "Four camera regimes"). The books are real 3D and can be viewed from any angle; the room cannot.
 3. **The visible desk top is a thin strip.** Books can only sit where the strip is free: left of the chair (between the lamp and the keyboard) and at the right end (in front of the speaker). Both zones are measured in `docs/reference/desk-plate-analysis.md`. The chair covers the middle, which is useful: it becomes a natural wipe when the camera travels right (guide 01, shot S22).
 4. **Realism comes from many small things, not one big one.** Contact shadows, a believable lamp, paper that is slightly translucent, a cover that has a little weight, a camera that breathes. The realism bible lists them, and the QA patch scores them on a rubric. Two **gates** (G1 after the stills, G2 after the first motion test) tell you early if the real-time approach is good enough, and `docs/guide/15-plan-b-blender.md` is the fallback.

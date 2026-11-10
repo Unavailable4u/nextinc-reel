@@ -2,11 +2,11 @@
 // Not used by the film yet: Patch 03 decides how the match camera enters src/ (it may lift this file to src/plate/ whole).
 //
 // It answers two questions with the fitted camera of calibration-seed.json:
-//   1. projectDesk(): where does a desk point land on the 736 x 672 photo?
+//   1. projectDesk(): where does a desk point land on the 1536 x 864 plate?
 //   2. threeCameraParams(): how must a three.js PerspectiveCamera be set (fov, aspect, setViewOffset) so that 3D objects sit on
 //      the desk at ANY zoom/pan of a 16:9 window onto the photo? Verified against three.js itself to 0.01 output px.
 
-export const PLATE_REF = { w: 736, h: 672 } as const;
+export const PLATE_REF = { w: 1536, h: 864 } as const;
 export const OUTPUT = { w: 1920, h: 1080 } as const;
 
 export interface Calib {
@@ -19,12 +19,12 @@ export interface Calib {
 }
 
 export const CALIB_SEED: Calib = {
-  f: 1263,
-  cx: 368,
-  horizonY: 268,
-  camHeightCm: 80,
-  camDistCm: 468,
-  desk: { xMin: -114.5, xMax: 118.6, depth: 65 },
+  f: 1895,
+  cx: 544.7,
+  horizonY: 395.6,
+  camHeightCm: 45.6,
+  camDistCm: 508,
+  desk: { xMin: -88.6, xMax: 144.4, depth: 65 },
 };
 
 export interface PlateWindow {

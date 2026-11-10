@@ -44,17 +44,19 @@ The photograph is the **plate**. The books are 3D. They meet at the desk surface
 3. **Plate-follow.** When the camera moves, the plate plane moves with it by a single function, `plateTransform(cameraPose)`, so that the point on the plate where the pile sits stays registered with the 3D desk. For a dolly toward the pile this reduces to a scale; for a slide it reduces to a shift. Because the plate is flat, a large change of viewpoint cannot be faked: moves are budgeted (guide 05).
 4. **Shadow catcher.** An invisible plane at `y = 0` with a shadow-only material receives the books' shadows and a faint warm reflection. It draws no desk colour of its own, so the photo's wood is what the viewer sees, darkened under each book.
 5. **Occlusion.** Books must never be covered by the chair, keyboard or lamp unless physically right. The placement zones keep books where nothing in the photo is in front of them. The one exception, the chair wipe in S22, is a deliberate full-frame occluder.
-6. **Pillarbox.** In S00 the plate is centred at full height; the left and right bars are the same near-black as the photo's own edges, with a feathered join (about 60 photo px). The left edge averages luminance 13/255 and the right edge about 40/255 (see `reference/desk-plate-analysis.md`), so the join is invisible when feathered. As the camera pushes in (S01), the plate's width grows past the frame width when the magnification reaches 2.6, at about frame 360, and the bars slide out of frame.
+6. **No pillarbox.** The plate is 1536 x 864, exactly 16:9, so in S00 it fills the 1920 x 1080 frame at M = 1.25: no bars and no feather (`PILLARBOX.feather = 0`). `Pillarbox.tsx` stays in the code for any view that shows less than the whole plate, which cannot happen at M of 1.25 or more. The margin rule (guide 05) only starts to restrict the camera at M = 1.319, where the window is 1456 px wide (the plate minus 40 px on each side); below that the view is simply centred. D-04 and D-21 are obsolete (D-24).
 
-### Magnification budget (how much we may enlarge a 736 px photo)
+### Magnification budget (how much we may enlarge a 1536 px plate)
 
-Define **plate magnification** `M` = (on-screen width of the plate in px) / 736.
+Define **plate magnification** `M` = (on-screen width of the plate in px) / 1536.
 
 | M | Allowed | Rule |
 |---|---|---|
-| up to 2.6 (the whole plate fills 1920 px) | In focus | This covers S00 and the start of S01. |
-| 2.6 to 5 | Only with defocus | Blur radius at least 6 px at 1080p, rising to 25 px by M = 5. |
-| above 5 | Heavy bokeh only | Blur radius at least 25 px. Nothing in the photo may be read or recognised at this size. |
+| up to 2.6 | In focus | This covers S00 and all of S01 (which now ends at M = 2.46). The whole plate fills 1920 px at M = 1.25. |
+| 2.6 to 5 | Only with defocus | Blur radius at least 6 px at 1080p, rising to 25 px by M = 5. S02 to S04's start (M 2.46 to 4.63) and the riser views (M 3.76 to 4.09) sit here or just below. |
+| above 5 | Heavy bokeh only | Blur radius at least 25 px. Nothing in the photo may be read or recognised at this size. Only the R3 backdrop (M = 6.51) is up here now. |
+
+The thresholds are unchanged from the first plan: they limit how much each plate pixel is enlarged, not how the desk is framed. The new plate is 2.09x wider, so the same framing of the desk needs 0.7233 x the old M (S02's pile view is 4.49 instead of 6.2) and less of the film needs heavy blur. Patch 04 may relax the starting blur values after looking.
 
 Depth of field is the cheat that makes this honest: the books are physically close to the camera, the wall and monitors are physically far, and a real lens at that distance blurs them. The defocus values are **starting values**, tuned in Patch 04 by looking, and the `npm run motion` audit (Patch 05) flags any frame where the plate breaks this table.
 
@@ -62,9 +64,9 @@ Depth of field is the cheat that makes this honest: the books are physically clo
 
 You said not to change the photo. This is how we prove it:
 
-1. Render frame 0 with the books hidden, at `M` = 1.607 (full height in the frame, pillarboxed).
+1. Render frame 0 with the books hidden, at `M` = 1.25 (the whole plate, filling the frame).
 2. Crop the plate area, resize the original to the same size, and compare. **Pass when SSIM is at least 0.98** and no pixel in the lamp or LED regions moves by more than 3 levels.
-3. `npm run plate:verify` also checks the original file's SHA-256 against `docs/reference/.plate.sha256` (`82aa3d3c...04b41`).
+3. `npm run plate:verify` also checks the original file's SHA-256 against `docs/reference/.plate.sha256` (`3aa7af92...44af0`; the first photo's `82aa3d3c...04b41` is in `.plate-v1.sha256`).
 
 Adding grain, vignette, dust and the ending's dim happens **after** the comparison frame, and each is a named layer you can switch off.
 

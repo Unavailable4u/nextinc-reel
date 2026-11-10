@@ -13,7 +13,7 @@ PATCH 17 - Shots S14-S15: close and set down.
 GOAL: the book closes, is set down beside the pile with weight, and the camera returns to the pile.
 
 CREATE / CHANGE:
-- `S14.tsx`, `S15.tsx`: pages flip back, the board closes with a six-frame air puff, the back cover glimpse; set-down with the contact shadow tightening and the settle; R3 back to R2 (M from 9 to 6.4); the ledger puts MiniMe "beside"
+- `S14.tsx`, `S15.tsx`: pages flip back, the board closes with a six-frame air puff, the back cover glimpse; set-down with the contact shadow tightening and the settle; R3 back to R2 (M from 6.51 to 4.63); the ledger puts MiniMe "beside"
 
 RULES THAT MATTER HERE:
 - The set-down contacts the desk on a beat (frame 2940) and its sound cue starts two frames earlier.

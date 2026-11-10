@@ -13,7 +13,7 @@ PATCH 19 - Shots S22-S23: truck right, chair wipe, riser reveal, labels.
 GOAL: the travel to the right, the chair as an occluder hiding the set swap, and the labelled riser.
 
 CREATE / CHANGE:
-- `S22.tsx` (pull back to M = 3.4, truck right about +330 photo px, the chair covers the whole frame during 4140-4199 while the ledger swaps; margin 40 px respected)
+- `S22.tsx` (pull back to M = 2.46, truck right about +456 plate px, the chair covers the whole frame during 4140-4199 while the ledger swaps; margin 40 px respected)
 - `S23.tsx` and `src/fx/Labels.tsx`: hairline leader, 5 px dot, name in CMU Serif Italic 26 px, mono sub-line 18 px (`year - status`), one label per beat from frame 4380, a soft highlight sweep per book; all text from `getRiserLabel`
 
 RULES THAT MATTER HERE:

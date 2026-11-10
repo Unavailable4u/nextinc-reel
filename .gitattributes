@@ -13,3 +13,4 @@
 *.ktx2 filter=lfs diff=lfs merge=lfs -text
 # The plate stays a normal blob so its checksum is easy to verify
 public/plates/original/* -filter -diff
+public/plates/superseded/* -filter -diff

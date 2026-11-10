@@ -1,12 +1,13 @@
 // Proves the numbers in docs/reference/calibration-seed/ are internally consistent and agree with three.js. Patch 03 starts here.
 import * as THREE from "three";
-import { CALIB_SEED, deskToWorld, photoToScreen, projectDesk, threeCameraParams, unprojectToDesk, type PlateWindow } from "../docs/reference/calibration-seed/plateCamera.seed";
+import { CALIB_SEED, PLATE_REF, deskToWorld, photoToScreen, projectDesk, threeCameraParams, unprojectToDesk, type PlateWindow } from "../docs/reference/calibration-seed/plateCamera.seed";
 import seed from "../docs/reference/calibration-seed/calibration-seed.json";
 import { prng } from "../src/lib/prng";
+import { PLATE_H, PLATE_W } from "../src/config/plate";
 import { near, test } from "./harness";
 
 test("seed: the model predicts the hand-measured desk corners (back corners were NOT used in the fit)", () => {
-  const m = seed.measuredOnThePhoto;
+  const m = seed.measuredOnThePlate;
   const d = CALIB_SEED.desk;
   near(projectDesk(CALIB_SEED, d.xMin, 0, d.depth).x, m.deskTopBackLeftX, 2.5, "back-left x");
   near(projectDesk(CALIB_SEED, d.xMax, 0, d.depth).x, m.deskTopBackRightX, 2.5, "back-right x");
@@ -29,14 +30,14 @@ test("seed: unproject inverts project on the desk plane", () => {
 test("seed: a three.js camera with setViewOffset projects exactly like the analytic model, for random windows", () => {
   const r = prng(11);
   for (let i = 0; i < 60; i++) {
-    const win: PlateWindow = { cx: 100 + r() * 540, cy: 250 + r() * 300, zoom: 1.6 + r() * 9 };
+    const win: PlateWindow = { cx: 200 + r() * 1136, cy: 300 + r() * 260, zoom: 1.25 + r() * 7 };
     const p = threeCameraParams(CALIB_SEED, win);
     const cam = new THREE.PerspectiveCamera(p.fovDeg, p.aspect, 1, 5000);
     cam.position.set(...p.position);
     cam.setViewOffset(p.view.fullW, p.view.fullH, p.view.x, p.view.y, p.view.w, p.view.h);
     cam.updateMatrixWorld(true);
     cam.updateProjectionMatrix();
-    const X = -110 + r() * 220;
+    const X = -85 + r() * 225;
     const Y = r() * 25;
     const Zd = r() * 60;
     const ndc = new THREE.Vector3(...deskToWorld(CALIB_SEED, X, Y, Zd)).project(cam);
@@ -48,9 +49,20 @@ test("seed: a three.js camera with setViewOffset projects exactly like the analy
     near(sy, s.y, 0.01, "screen y");
   }
 });
-test("seed: the pitch equivalent in the json is atan((336 - horizonY) / f)", () => {
-  const deg = (Math.atan((336 - CALIB_SEED.horizonY) / CALIB_SEED.f) * 180) / Math.PI;
+test("seed: the pitch equivalent in the json is atan((432 - horizonY) / f)", () => {
+  const deg = (Math.atan((432 - CALIB_SEED.horizonY) / CALIB_SEED.f) * 180) / Math.PI;
   near(deg, seed.equivalentToThePatch03Sliders.pitchDegEquivalent, 0.02);
-  const vfov = (2 * Math.atan(336 / CALIB_SEED.f) * 180) / Math.PI;
+  const vfov = (2 * Math.atan(432 / CALIB_SEED.f) * 180) / Math.PI;
   near(vfov, seed.equivalentToThePatch03Sliders.verticalFovDeg, 0.05);
+});
+test("seed: PLATE_REF is the real plate size", () => {
+  near(PLATE_REF.w, PLATE_W, 0, "width");
+  near(PLATE_REF.h, PLATE_H, 0, "height");
+});
+test("seed: the anchors sit where the model puts them", () => {
+  for (const a of [seed.suggestedAnchors.pile, seed.suggestedAnchors.riser]) {
+    const p = projectDesk(CALIB_SEED, a.X, 0, a.Zd);
+    near(p.x, a.xPhotoPx, 1.5, "anchor x");
+    near(p.y, a.yPhotoPx, 1.5, "anchor y");
+  }
 });

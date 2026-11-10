@@ -1,16 +1,16 @@
 // THE PLATE: the owner's desk photograph. It is never edited, redrawn, re-saved or relit (`npm run plate:verify`).
-// All pixel values here are in PHOTO pixels of the original 736 x 672 file (origin top-left).
+// All pixel values here are in PHOTO pixels of the original 1536 x 864 file (origin top-left).
 
 import regionsJson from "./plateRegions.json";
 import { HEIGHT, WIDTH } from "./timeline";
 
 /** path under public/ (read-only; originals live in plates/original, anything made from it in plates/derived) */
-export const PLATE_FILE = "plates/original/desk-plate.jpg";
-export const PLATE_W = 736;
-export const PLATE_H = 672;
+export const PLATE_FILE = "plates/original/desk-plate.png";
+export const PLATE_W = 1536;
+export const PLATE_H = 864;
 
 /** SHA-256 of the original file; the same value as docs/reference/.plate.sha256 (checked by `npm run plate:verify`). */
-export const PLATE_SHA256 = "82aa3d3c859fd182689bf509338271f1097e1781b9ff94cf9ea7793418f04b41";
+export const PLATE_SHA256 = "3aa7af92d957fc90427f096aa6f2e7fb2ac1a3192cff17d2b1a3496381044af0";
 
 /**
  * Photo pixels the camera must keep between the edge of its window and the edge of the photo when the photo is larger than the
@@ -18,23 +18,26 @@ export const PLATE_SHA256 = "82aa3d3c859fd182689bf509338271f1097e1781b9ff94cf9ea
  */
 export const EDGE_MARGIN = 40;
 
-/** The black pillarbox that frames the photo when it does not fill the 16:9 frame (guide 02, "Pillarbox"). */
+/**
+ * The black pillarbox that frames the photo when it does not fill the 16:9 frame (guide 02, "Pillarbox"). The plate is 1536 x 864,
+ * exactly 16:9, so at the opening view it fills the frame: no bars and no feather. The component stays for any view below M_FIT_*.
+ */
 export const PILLARBOX = {
   /** the bars */
   color: "#000000",
   /** the photo's outer strip that fades into the bar, in photo px */
-  feather: 60,
+  feather: 0,
 } as const;
 
 /** Regions the strict pixel test compares (lamp and LED strips); see plateRegions.json. */
 export const INTEGRITY_REGIONS = regionsJson.regions as Record<string, { x0: number; y0: number; x1: number; y1: number; what: string }>;
 
 // ---------- magnification ----------
-// M = (on-screen width of the photo in px) / 736.
+// M = (on-screen width of the photo in px) / 1536.
 
-/** the whole photo exactly fills the frame HEIGHT (pillarboxed): the opening shot */
+/** the whole photo exactly fills the frame HEIGHT: the opening shot */
 export const M_FIT_HEIGHT = HEIGHT / PLATE_H;
-/** the photo exactly fills the frame WIDTH: no bars from here on */
+/** the photo exactly fills the frame WIDTH: no bars from here on (the same value as M_FIT_HEIGHT, the plate being 16:9) */
 export const M_FIT_WIDTH = WIDTH / PLATE_W;
 
 export type MagBand = "sharp" | "defocus" | "bokeh";
@@ -50,6 +53,12 @@ export const MAGNIFICATION = {
   /** minimum blur radius at defocusUpTo and everywhere above */
   minBlurAtBokeh: 25,
 } as const;
+
+/**
+ * Factor between the superseded 736 x 672 photo and this plate for the same desk framing: the desk front edge was 629 px wide there
+ * and is 869.7 px here. Old M x DESK_M_RATIO = new M (the opening view is the exception: it is 1.25 now).
+ */
+export const DESK_M_RATIO = 629 / 869.7;
 
 /** M for a photo that is `onScreenWidth` px wide on screen. */
 export const plateMagnification = (onScreenWidth: number): number => onScreenWidth / PLATE_W;

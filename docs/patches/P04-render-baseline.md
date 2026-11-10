@@ -26,8 +26,8 @@ RULES THAT MATTER HERE:
 - All shadows and noise are deterministic (fixed seeds, fixed shadow map size).
 
 CHECK:
-- Stills of the placeholder pile at M = 3.4 and 6.2: warm gradient toward the lamp, amber rim, tight contact line, soft cast shadow
-- At M = 6.2 the wall and monitors are soft, the pile is sharp
+- Stills of the placeholder pile at M = 2.46 and 4.49: warm gradient toward the lamp, amber rim, tight contact line, soft cast shadow
+- At M = 4.49 the wall and monitors are soft, the pile is sharp
 - `npm run plate:verify` passes (books hidden, DOF at neutral)
 - `npm run bench` prints a table; paste it into `PATCH_NOTES.md`
 ```

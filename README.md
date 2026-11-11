@@ -2,7 +2,7 @@
 
 A code-driven, deterministic 3D motion film for the Next Inc. website: the **company intro reel** that sits right after the hero section of the home page (the slot the site calls *Fig. 1*, film id `next-inc-reel`).
 
-**This repository is a guide pack plus the first three patches already built and tested.** It contains the plan, the rules, the storyboard, the asset lists and the numbered patch prompts (`docs/patches/`), and the code of **Patches 00, 01 and 02**: the scaffold, the site-data sync with typed selectors, and the plate rig with its integrity test. You continue from **Patch 03** (the camera match lab). Each patch adds code to `src/`, and `docs/PATCH_NOTES.md` is the memory between sessions.
+**This repository is a guide pack plus the first four patches already built and tested.** It contains the plan, the rules, the storyboard, the asset lists and the numbered patch prompts (`docs/patches/`), and the code of **Patches 00, 01, 02 and 03**: the scaffold, the site-data sync with typed selectors, the plate rig with its integrity test, and the camera match lab with the placement zones. You continue from **Patch 04** (lights, shadows, depth of field) after confirming the match in the lab (`docs/reference/match-notes.md`). Each patch adds code to `src/`, and `docs/PATCH_NOTES.md` is the memory between sessions.
 
 ## Status
 
@@ -14,7 +14,7 @@ A code-driven, deterministic 3D motion film for the Next Inc. website: the **com
 
 First run on your own machine: `npm install`, then `npm run sync -- --copy-media` (needs the website repo next to this one, or `SITE_REPO=<path>`), then `npm run plate:verify` (the first run downloads Remotion's browser), then `npm run studio`. Details and every check that was run are in `docs/PATCH_NOTES.md`.
 
-**Also read `docs/reference/measured-calibration.md` before Patch 03.** The photo has been measured by hand and a tested starting camera for it is in `docs/reference/calibration-seed/`. It also lists four things the build found in the guides (one affects what appears on screen).
+**Also read `docs/reference/measured-calibration.md` and `docs/reference/match-notes.md`.** The photo has been measured by hand and a tested starting camera for it is in `docs/reference/calibration-seed/`. It also lists four things the build found in the guides (one affects what appears on screen).
 
 ## The film in one paragraph
 

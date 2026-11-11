@@ -1,9 +1,13 @@
-// How the flat photo follows the camera. In this first version the camera is fixed and only the photo moves: the whole story of
-// a "dolly" or a "slide" is a scale and a shift of one flat card (guide 02, "Plate-follow"). Patch 03 replaces the placeholder
-// match with the calibrated one; Patch 05 drives `PlateView` from the camera rig.
+// How the flat photo follows the camera. The scene camera is the MATCH camera of Patch 03 (src/config/plateMatch.json): a pinhole
+// camera whose desk plane lies on the plate's desk strip. The photo is a flat card square to its axis, and a `PlateView` is a
+// WINDOW of that camera's sensor (a scale and a shift, guide 02, "Plate-follow"). The camera and the card do not move when the
+// view changes, so a 3D object standing on the desk stays on the desk at every zoom and pan. Patch 05 drives `PlateView` from the
+// camera rig.
 
+import plateMatchJson from "../config/plateMatch.json";
 import { EDGE_MARGIN, M_FIT_HEIGHT, PLATE_H, PLATE_W } from "../config/plate";
 import { HEIGHT, WIDTH } from "../config/timeline";
+import { cardTransform, matchCameraRig, parsePlateMatch, type MatchCameraRig, type MatchParams } from "./plateCamera";
 
 /** Which part of the photo is on screen: magnification M and the photo pixel at the centre of the frame. */
 export interface PlateView {
@@ -17,39 +21,32 @@ export interface PlateView {
 /** The opening view: the whole photo, centred; at 16:9 it fills the frame exactly. */
 export const VIEW_FIT: PlateView = { M: M_FIT_HEIGHT, cx: PLATE_W / 2, cy: PLATE_H / 2 };
 
-/** The 3D scene camera the plate is placed in front of (placeholder until Patch 03). */
-export interface PlateMatch {
-  /** vertical field of view of the scene camera, degrees */
-  fovDeg: number;
-  /** distance from the camera to the photo plane, cm */
-  plateDistanceCm: number;
-}
-export const PLACEHOLDER_MATCH: PlateMatch = { fovDeg: 25, plateDistanceCm: 600 };
+/** The match camera: the numbers of `src/config/plateMatch.json` (see `plateCamera.ts` for what each one means). */
+export type PlateMatch = MatchParams;
+export const PLATE_MATCH: PlateMatch = parsePlateMatch(plateMatchJson);
 
 export interface PlateTransform {
-  /** world cm per photo pixel */
+  /** world cm per photo pixel on the card */
   cmPerPx: number;
-  /** world size of the whole photo plane, cm */
+  /** world size of the whole photo card, cm */
   width: number;
   height: number;
-  /** world position of the plane centre; the camera is at the origin looking down -Z */
+  /** centre of the card in CAMERA space (the camera at the origin looking down -Z); the card sits in a group that carries the camera's pose */
   position: [number, number, number];
 }
 
 /**
- * The plane the photo is drawn on, for a view. The plane faces the camera exactly, so one photo pixel covers exactly M screen
- * pixels (no perspective distortion) and a view maps to a pure scale and shift.
+ * The card the photo is drawn on. It is square to the camera's axis, `plateDepthCm` behind the desk's front edge, so one photo
+ * pixel covers exactly M screen pixels (no perspective distortion). It does NOT depend on the view: the view is a window of the
+ * camera (`plateCameraRig`). `view` is accepted so callers written for Patch 02 keep working.
  */
-export function plateTransform(view: PlateView, match: PlateMatch = PLACEHOLDER_MATCH): PlateTransform {
-  const visibleH = 2 * match.plateDistanceCm * Math.tan((match.fovDeg * Math.PI) / 360); // cm seen by the camera at the plate
-  const cmPerScreenPx = visibleH / HEIGHT;
-  const cmPerPx = cmPerScreenPx * view.M;
-  return {
-    cmPerPx,
-    width: PLATE_W * cmPerPx,
-    height: PLATE_H * cmPerPx,
-    position: [(PLATE_W / 2 - view.cx) * cmPerPx, (view.cy - PLATE_H / 2) * cmPerPx, -match.plateDistanceCm],
-  };
+export function plateTransform(_view: PlateView, match: PlateMatch = PLATE_MATCH): PlateTransform {
+  return cardTransform(match);
+}
+
+/** The three.js camera for a view: fov, aspect, position, pitch and the view offset (see `matchCameraRig`). */
+export function plateCameraRig(view: PlateView, match: PlateMatch = PLATE_MATCH): MatchCameraRig {
+  return matchCameraRig(match, view);
 }
 
 /** Where a photo pixel lands on screen (output px, origin top-left) for a view. */

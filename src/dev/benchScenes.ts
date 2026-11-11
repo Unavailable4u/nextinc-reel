@@ -137,7 +137,9 @@ export function sceneDepthRange(s: BenchScene): { near: number; far: number } {
   let near = Infinity;
   let far = 0;
   for (const b of s.boxes) {
-    const half = Math.max(b.w, b.d) / 2;
+    // half the box's extent along the camera axis: its footprint is w across X and d along Zd, turned by yaw
+    const yaw = (b.yawDeg * Math.PI) / 180;
+    const half = (Math.abs(b.w * Math.sin(yaw)) + Math.abs(b.d * Math.cos(yaw))) / 2;
     near = Math.min(near, PLATE_MATCH.camDistCm + b.Zd - half);
     far = Math.max(far, PLATE_MATCH.camDistCm + b.Zd + half);
   }

@@ -23,8 +23,8 @@ export interface Rgba8 {
 }
 
 export interface ProbeFace {
-  /** linear RGBA, half float */
-  data: Uint16Array;
+  /** linear RGBA, half float. Backed by a plain ArrayBuffer (never a SharedArrayBuffer), which is what DataTexture accepts. */
+  data: Uint16Array<ArrayBuffer>;
   size: number;
 }
 
@@ -83,8 +83,8 @@ function frontFace(front: Rgba8, size: number): Float32Array {
   return out;
 }
 
-const half = (f: Float32Array): Uint16Array => {
-  const o = new Uint16Array(f.length);
+const half = (f: Float32Array): Uint16Array<ArrayBuffer> => {
+  const o = new Uint16Array(new ArrayBuffer(f.length * Uint16Array.BYTES_PER_ELEMENT));
   for (let i = 0; i < f.length; i++) o[i] = THREE.DataUtils.toHalfFloat(f[i]);
   return o;
 }

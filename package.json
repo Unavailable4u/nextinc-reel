@@ -16,7 +16,8 @@
     "plate:verify": "node scripts/verify-plate.mjs",
     "plate:measure": "node tools/measure-plate.mjs",
     "prompt": "node tools/make-prompt.mjs",
-    "bench": "node scripts/stub.mjs bench 04",
+    "probe": "node scripts/make-probe.mjs",
+    "bench": "node scripts/bench.mjs",
     "motion": "node scripts/stub.mjs motion 05",
     "stills": "node scripts/stub.mjs stills 13",
     "qr:check": "node scripts/stub.mjs qr:check 09",
@@ -38,7 +39,7 @@
     "remotion": "4.0.540",
     "sharp": "0.35.5",
     "three": "0.170.0",
-    "zod": "3.22.3"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@types/node": "20.19.43",

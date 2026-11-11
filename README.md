@@ -11,6 +11,8 @@ A code-driven, deterministic 3D motion film for the Next Inc. website: the **com
 | 00 Scaffold | `npm install`, `npm run studio` (the film opens on your photo with a frame/shot readout), `npm test`, `npm run timeline`, `npm run prompt -- <n>` |
 | 01 Site data | `npm run sync` (writes `src/data/site-snapshot.json`; `-- --check` before every render; `-- --copy-media` for covers, logo, fonts), `node scripts/test-select.mjs` |
 | 02 Plate rig | `npm run plate:verify` (the gate G0 proof that your photo is untouched), the **DevPlate** composition in the Studio (sliders for magnification and position, green/amber/red resolution band) |
+| 03 Match lab | the **DevMatch** composition in the Studio (camera sliders, grid, zones, test box); `src/config/plateMatch.json` holds the match |
+| 04 Lights, shadows, depth of field | the **DevLighting** composition (a toggle for every light, shadows, probe, blur, false-colour exposure), `npm run probe`, `npm run bench` (seconds per frame and the whole-film estimate, `out/bench.json`) |
 
 First run on your own machine: `npm install`, then `npm run sync -- --copy-media` (needs the website repo next to this one, or `SITE_REPO=<path>`), then `npm run plate:verify` (the first run downloads Remotion's browser), then `npm run studio`. Details and every check that was run are in `docs/PATCH_NOTES.md`.
 
@@ -56,7 +58,8 @@ Maintenance lives in `docs/guide/11-maintenance.md` and `docs/ops/RUNBOOK.md`.
 | `npm run select:test` | Print the four books, QR targets and run the truth checks [01, done] |
 | `npm run plate:verify` | Prove the original photo is untouched [02, done] |
 | `npm run plate:measure` | Print the plate's edge colours and the lamp/LED test regions [02, done] |
-| `npm run bench` | Measure seconds per frame on this machine [04] |
+| `npm run probe` | Make `public/plates/derived/probe-front.png`, the blurred plate for the reflections (the plate is only read) [04] |
+| `npm run bench` | Measure seconds per frame on this machine and estimate the whole film [04] |
 | `npm run motion` | Audit the camera path (speed, holds, depth of field) [05] |
 | `npm run stills` | Render the check stills to `out/stills/` [13] |
 | `npm run qr:check` | Decode every QR in a rendered still and compare with the data [09] |

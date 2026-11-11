@@ -6,6 +6,7 @@ import { PLATE_MATCH, plateCameraRig, plateTransform, type PlateMatch, type Plat
 import { Plate } from "./plate/Plate";
 import { Pillarbox } from "./plate/Pillarbox";
 import { CameraSpace, MatchCamera } from "./plate/MatchCamera";
+import { plateBlurPx, type Lens } from "./camera/focus";
 
 /**
  * The one 3D canvas of the film: renderer settings fixed here for every composition (guide 02, "Colour pipeline"):
@@ -14,9 +15,14 @@ import { CameraSpace, MatchCamera } from "./plate/MatchCamera";
  * The camera is the MATCH camera (Patch 03): the desk plane y = 0 lies on the plate's desk strip, and `view` is a window of its
  * sensor. Children are in WORLD space (cm; the desk front edge at the pile centre is the origin, the desk runs away along -Z), so a
  * box at (0, 1, -16) stands on the pile anchor at every view. The plate card and the pillarbox are in camera space.
+ *
+ * `lens` (Patch 04) sets the plate's defocus: the larger of the thin lens and the magnification table (src/camera/focus.ts). Without
+ * a lens the plate is not blurred at all, which is what the opening view and `npm run plate:verify` use. Shadow maps are enabled
+ * (PCF, fixed size); they cost nothing until a light casts a shadow.
  */
-export const Stage: React.FC<{ view: PlateView; feather?: number; match?: PlateMatch; children?: React.ReactNode }> = ({ view, feather, match = PLATE_MATCH, children }) => {
+export const Stage: React.FC<{ view: PlateView; feather?: number; match?: PlateMatch; lens?: Lens; children?: React.ReactNode }> = ({ view, feather, match = PLATE_MATCH, lens, children }) => {
   const transform = plateTransform(view, match);
+  const blurPx = lens ? plateBlurPx(view.M, lens, match) : 0;
   // a stable options object: R3F builds a new camera whenever it changes, so it is made once per match (the real pose is set by <MatchCamera> every frame)
   const camera = React.useMemo(() => {
     const rig = plateCameraRig({ M: 1, cx: 0, cy: 0 }, match);
@@ -32,12 +38,14 @@ export const Stage: React.FC<{ view: PlateView; feather?: number; match?: PlateM
       onCreated={({ gl, scene }) => {
         gl.toneMapping = THREE.NoToneMapping;
         gl.outputColorSpace = THREE.SRGBColorSpace;
+        gl.shadowMap.enabled = true;
+        gl.shadowMap.type = THREE.PCFShadowMap;
         scene.background = new THREE.Color("#000000");
       }}
     >
       <MatchCamera view={view} match={match} />
       <CameraSpace match={match}>
-        <Plate view={view} match={match} transform={transform} />
+        <Plate view={view} match={match} transform={transform} blurPx={blurPx} />
         <Pillarbox transform={transform} feather={feather} />
       </CameraSpace>
       {children}

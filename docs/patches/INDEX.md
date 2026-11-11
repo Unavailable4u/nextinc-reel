@@ -1,6 +1,6 @@
 # Patch index (27 patches, 00-26)
 
-**Progress: Patches 00, 01, 02 and 03 are done, plus Patch 02a (the plate was replaced by a 1536 x 864 image; see `docs/PATCH_NOTES.md`).** Patch 03's gate G0b (a box looks planted) and the horizon choice D-25 are yours to confirm in the lab before Patch 04.
+**Progress: Patches 00, 01, 02, 03 and 04 are done, plus Patch 02a (the plate was replaced by a 1536 x 864 image; see `docs/PATCH_NOTES.md`).** Patch 03's gate G0b (a box looks planted) and the horizon choice D-25 are yours to confirm in the lab. Patch 04's stills, `npm run plate:verify` and `npm run bench` are yours to run on a machine with a browser (see "Known issues" in the Patch 04 notes) before Patch 05.
 
 Use `node tools/make-prompt.mjs <n>` (created in Patch 00) to assemble the five parts of each prompt. Do them in order; patches marked parallel-safe may swap with each other.
 

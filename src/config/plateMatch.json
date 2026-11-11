@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "status": "seed",
+  "units": "cm in the world, photo px (1536 x 864) in the image",
+  "origin": "front edge of the desk top, at the centre of the pile zone; X to the right, Y up from the desk top, Zd from the front edge towards the wall; world z = -Zd; the camera looks down -z",
+  "camera": {
+    "xCm": 35,
+    "heightCm": 45.57,
+    "distanceCm": 507.88,
+    "fovDeg": 25.675,
+    "pitchDeg": 0,
+    "horizonY": 395.6,
+    "principalX": 544.7
+  },
+  "desk": {
+    "xMinCm": -53.52,
+    "xMaxCm": 179.48,
+    "depthCm": 65
+  },
+  "plate": {
+    "depthFromFrontEdgeCm": 32.5,
+    "distanceFromCameraCm": 540.38,
+    "widthCm": 437.84,
+    "heightCm": 246.29
+  },
+  "scale": {
+    "pxPerCmAtFront": 3.733,
+    "deskWidthCm": 233,
+    "basis": "design assumption: the desk is taken as deskWidthCm wide, which sets the px per cm; the plate has no known real size"
+  },
+  "derived": {
+    "focalPx": 1895.71,
+    "principalY": 395.6,
+    "hfovDeg": 44.108,
+    "deskEdgesPx": {
+      "front": {
+        "y": 565.7,
+        "xLeft": 214.3,
+        "xRight": 1084
+      },
+      "back": {
+        "y": 546.4,
+        "xLeft": 251.79,
+        "xRight": 1022.81
+      }
+    }
+  },
+  "horizon": {
+    "chosenY": 395.6,
+    "deskEdgesY": 395.6,
+    "roomLinesY": 464,
+    "choice": "desk-edges"
+  },
+  "landmarks": {
+    "lampBulb": {
+      "X": -35.33,
+      "Y": 12.26,
+      "Zd": 58.99,
+      "photoBaseBottom": {
+        "x": 309.5,
+        "y": 548
+      },
+      "photoBulbY": 507,
+      "note": "estimated by eye from the plate (about +-3 px); X and Zd from the base, Y from the glow; follows the match"
+    }
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "units": "cm on the desk plane; origin = front edge of the desk top at the centre of the pile zone; X to the right; Zd = distance from the front edge towards the wall",
+  "basis": "Rectangles chosen inside the free strips measured on the plate (docs/reference/desk-plate-analysis.md). The extents of the objects are estimated by eye from the plate, about +-10 px. They are tied to the desk's size (233 x 65 cm, the scale) and to the pile origin. Changing the horizon in the match lab moves the desk's interior by about 12 px or less near the front edge (the back corners move more), which these margins absorb; changing the desk's size or the origin does not fit them, re-measure then.",
+  "deskMarginCm": 3,
+  "zones": {
+    "L": {
+      "name": "pile",
+      "for": "the three-book pile (S00-S21); the lamp, to its left and behind, is the key light",
+      "x0": -24,
+      "x1": 24,
+      "zd0": 3,
+      "zd1": 34,
+      "anchor": { "X": 0, "Zd": 16 }
+    },
+    "R": {
+      "name": "riser",
+      "for": "the two-tier riser at the desk's right end, at the front edge, in front of the speaker and the headset stand",
+      "x0": 133,
+      "x1": 176,
+      "zd0": 3,
+      "zd1": 34,
+      "anchor": { "X": 153, "Zd": 16 }
+    }
+  },
+  "footprintsCm": {
+    "book": { "w": 15.2, "d": 22.9 },
+    "riser": { "w": 36, "d": 24 }
+  },
+  "exclusions": [
+    {
+      "id": "lamp",
+      "what": "Edison-bulb globe lamp at the left end, at the back of the desk; the key light",
+      "photoBox": { "x0": 279, "y0": 475, "x1": 341, "y1": 548 },
+      "desk": { "x0": -41, "x1": -29.5, "zd0": 53, "zd1": 65 },
+      "heightCm": 22
+    },
+    {
+      "id": "keyboard_and_mat",
+      "what": "keyboard, mouse and desk mat; the mat's right end is hidden behind the chair, so its x1 is where the chair begins",
+      "photoBox": { "x0": 520, "y0": 538, "x1": 745, "y1": 563 },
+      "desk": { "x0": 27.5, "x1": 92, "zd0": 8, "zd1": 58 },
+      "heightCm": 3
+    },
+    {
+      "id": "chair",
+      "what": "gaming chair, back to the camera, standing in front of the desk; its backrest covers the desk top between these x values, so books must stay clear of it in the picture",
+      "photoBox": { "x0": 740, "y0": 408, "x1": 872, "y1": 566 },
+      "desk": null,
+      "clearancePx": 8
+    },
+    {
+      "id": "speaker",
+      "what": "speaker box at the back of the desk, right",
+      "photoBox": { "x0": 893, "y0": 468, "x1": 957, "y1": 548 },
+      "desk": { "x0": 140, "x1": 159.5, "zd0": 50, "zd1": 65 },
+      "heightCm": 24
+    },
+    {
+      "id": "headset_stand",
+      "what": "headset on its stand at the right end of the desk (earlier notes called it a webcam; at high zoom it is a headset)",
+      "photoBox": { "x0": 967, "y0": 508, "x1": 1012, "y1": 554 },
+      "desk": { "x0": 156.5, "x1": 169, "zd0": 37.5, "zd1": 48 },
+      "heightCm": 13
+    }
+  ]
+}

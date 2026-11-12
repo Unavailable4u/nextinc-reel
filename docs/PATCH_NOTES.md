@@ -325,3 +325,50 @@ MOTION AUDIT: PASSED (1 documented exception).
 ```
 
 `npm run motion -- --break` (a still beat after frame 960, then a 20-frame move) reports FAST (`a camera move of 20 frames`), LATE at f1040 and f1130, DEEP (M 4.935 above the R2 budget 4.7) and two more STILLs, and exits 1. The plate file is unchanged (`git status`).
+
+---
+
+## Patch 06 - Book geometry  (2026-11-12; the Studio is yours to run, see "Known issues")
+
+**Files created / changed:**
+`src/config/books.ts`, `src/book/geometry.ts`, `src/book/Book.tsx`, `src/book/PageBlock.tsx`, `src/book/Ribbon.tsx`, `src/dev/DevBook.tsx`, `tests/book.test.ts`, `src/Root.tsx` (registers the `DevBook` still), `docs/DECISIONS.md` (D-36), this file.
+
+**PUBLIC API:**
+- `config/books.ts` (Node can import it): `BookId`, `BOOK_IDS` (site order, Vol. I to IV), `interface BookSpec { id, volume, trimW, trimH, board, square, spine, weightG, pages, colors, seeds }`, `BOOKS`, `getBookSpec(id)`, `BOOK_GEOMETRY` (bevel 0.8 mm, corner radius, cloth, spine radius 3 cm, hinge position and minimum groove, endpaper, bands, bow and fore-edge dent, ribbon), `closedThickness(spec)`, `sheetCount(spec)`, `interface BookPose { position, yawDeg?, pitchDeg?, rollDeg? }`, `SPINE_TO_CAMERA_YAW_DEG` (90), `PILE` (bottom to top: SPHEREx +3 deg, MiniLocker -2, Mini Me +1, offsets 3 to 8 mm), `pilePoses(anchor)`.
+- `book/geometry.ts` (pure, no React): `layoutOf(spec)`, `splitOf(spec, turned)`, `coverMatrix(spec, coverAngle)`, `staticGeometries(spec)`, `blockSlabGeometry`, `blockGeometries(spec, turned)`, `bowAmplitude(split)`, `bandGeometries(spec, turned)`, `ribbonPath` / `ribbonGeometry(spec, { yTop, swing?, sag? })`, `bookBounds(spec, state, { ribbon? })`, `anchorFrames` / `anchorsInBookFrame(spec, state, opts?)`, `ANCHOR_NAMES`, `poseEuler(pose)`.
+- `book/Book.tsx`: `<Book id coverAngle? turned? pose? ribbonSwing? ribbonSag? castShadow? receiveShadow? slots? ref?>children</Book>`; `BookHandle { spec, anchors }` through `ref` (live three.js objects named `anchor-spine`, `anchor-front-board`, `anchor-back-board`, `anchor-block-top`, `anchor-ribbon`). `PageBlock` and `Ribbon` are the two parts it is built from.
+- `DevBook` (a `Still`): props `view` (`single` or `pile`), `id`, `coverAngle`, `turned`, `yawDeg`, `pitchDeg`, `rollDeg`, orbit and zoom, `ribbonSwing`, `bounds`, `grid`, `lamp`. It prints the bounding box in cm (closed, now, and with the ribbon tail) and, for the pile, each book's thickness, base height, yaw and offset.
+
+**Decisions and conventions later patches must follow:**
+- **The book frame (guide 02 and `geometry.ts`):** cm; X from the spine (-W/2) to the fore-edge (+W/2), Y up from the underside of the back board, Z from head to tail. Closed, a book is W x H x (spine + 2 x board): Mini Me 15.2 x 22.9 x 3.0, SPHEREx 2.4, MiniLocker 2.6, Immersive 2.2.
+- **Trim is the outer size of the boards (D-36).** The page block is smaller by the 3 mm square on the head, tail and fore-edge.
+- **The cover is one group.** The front board, its half of the spine, its hinge strip, its endpaper, the turned sheets and their bands rotate together about the hinge axis (x = -W/2 + cloth/2, y = T/2). `coverAngle` 1 is 180 degrees; a spring may overshoot a little past 1 and the geometry follows. Patch 11 drives `coverAngle`; it never moves a board by hand.
+- **`turned` only changes block heights.** The page block is two slabs that tile it exactly (right stack on the back board, left stack on the cover) and the bands and the ribbon follow the split. Patch 10 puts the moving sheet between the two stacks.
+- **Every deformation goes inward and is seeded** (`seeds.block`, `seeds.ribbon`): the block bows by at most 0.5 mm (never more than half the thinner stack, so a thin stack cannot fold over) and its fore-edge is uneven by up to 0.3 mm, so nothing pokes through a board and the same book gives the same vertices on every render.
+- **Texture slots are the five named anchors.** Local +Z is the outward normal, +X reads left to right, +Y is up on the face as a reader holds it, so a plane with no rotation lies on the surface. Patch 08 fills `frontBoard`, `backBoard` and `spine`; Patch 10 fills `blockTop`. `frontBoard` lives on the cover group, the others on the base.
+- **Pose order is Y, X, Z** (`poseEuler`). A yaw of 90 degrees turns the spine to the camera; the pile uses 90 plus the slot's offset.
+- **Geometry is read back from float32 buffers**, so a bound is only good to about 1e-6 cm. Tests that compare a bound with a nominal number use 1e-5, not 1e-9.
+
+**Known issues:**
+- **Not run on the build machine:** the Studio and `DevBook` drawn in it (no browser was available). The acceptance test ("from any angle it reads as a hardback, with bevelled edges catching the lamp") is yours: open `DevBook`, try both views, turn the orbit, set `coverAngle` 0.5 and 1 and `turned` 40, and look at the spine, the hinge groove and the ribbon tail.
+- Everything visual is a starting value: flat colours, flat roughness, the lamp in `DevBook` is not the film's rig. Materials are Patch 07, covers Patch 08.
+- The board plate is the same shape for every book (only the thickness of the spine differs), as intended.
+- The pile's footprint test uses the book's trim footprint turned by the pile yaw; the three books fit zone L with the offsets in `books.ts`.
+- `DevBook`'s `turned` slider goes to 128, which is Mini Me's sheet count; the other books have fewer sheets and the value is clamped to the book's own count.
+
+**Warnings for the next patch (07):**
+- Replace the flat `meshStandardMaterial`s in `Book.tsx` and `PageBlock.tsx` through `spec.colors`; do not add a second set of colours elsewhere.
+- Patch 11 should read the anchors from the `ref` (`BookHandle.anchors`) rather than recompute them, and call `anchorFrames` only in tests.
+
+**Checks run and results** (build machine: Linux, Node 22, no browser):
+`npx tsc --noEmit` 0 errors. `npm test` 143 of 143 (126 before, 17 added in `tests/book.test.ts`). The whole Remotion entry bundles with esbuild.
+
+Closed bounding boxes (width x height x thickness, cm), measured from the real geometry:
+
+```
+mini-me             15.20 x 22.90 x 3.00   with ribbon tail 15.20 x 25.84   open flat 30.30 x 22.90 x 2.68
+spherex-blink       15.20 x 22.90 x 2.40   with ribbon tail 15.20 x 25.84   open flat 30.30 x 22.90 x 2.08
+minilocker          15.20 x 22.90 x 2.60   with ribbon tail 15.20 x 25.85   open flat 30.30 x 22.90 x 2.28
+next-inc-immersive  15.20 x 22.90 x 2.20   with ribbon tail 15.20 x 25.85   open flat 30.30 x 22.90 x 1.88
+pile of three: 2.4 + 2.6 + 3.0 = 8.0 cm
+```

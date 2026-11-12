@@ -5,6 +5,7 @@ import { DevPlate, defaultDevPlateProps, devPlateSchema } from "./dev/DevPlate";
 import { DevMatch, defaultDevMatchProps, devMatchSchema } from "./dev/DevMatch";
 import { DevLighting, defaultDevLightingProps, devLightingSchema } from "./dev/DevLighting";
 import { DevCamera, defaultDevCameraProps, devCameraSchema } from "./dev/DevCamera";
+import { DevBook, defaultDevBookProps, devBookSchema } from "./dev/DevBook";
 import { DevBench } from "./dev/DevBench";
 import { BENCH_FRAMES } from "./dev/benchScenes";
 import { FPS, HEIGHT, TOTAL, WIDTH } from "./config/timeline";
@@ -20,6 +21,7 @@ export const RemotionRoot: React.FC = () => (
     <Still id="DevMatch" component={DevMatch} width={WIDTH} height={HEIGHT} schema={devMatchSchema} defaultProps={defaultDevMatchProps} />
     <Still id="DevLighting" component={DevLighting} width={WIDTH} height={HEIGHT} schema={devLightingSchema} defaultProps={defaultDevLightingProps} />
     <Still id="DevCamera" component={DevCamera} width={WIDTH} height={HEIGHT} schema={devCameraSchema} defaultProps={defaultDevCameraProps} />
+    <Still id="DevBook" component={DevBook} width={WIDTH} height={HEIGHT} schema={devBookSchema} defaultProps={defaultDevBookProps} />
     <Composition id="DevBench" component={DevBench} durationInFrames={BENCH_FRAMES.length} fps={FPS} width={WIDTH} height={HEIGHT} />
   </>
 );

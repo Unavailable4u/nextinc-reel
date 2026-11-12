@@ -41,7 +41,7 @@ The photograph is the **plate**. The books are 3D. They meet at the desk surface
 
 1. **Plate plane.** The photo is a textured, unlit, un-tonemapped plane inside the 3D scene, at the depth of the desk's middle, facing the camera. Because it is inside the scene, the depth-of-field effect blurs it automatically as a function of its distance from the focus. (A separate 2D layer behind the canvas would need its own fake blur and would not blend with the book's blur.)
 2. **Match camera.** At the first frame, the 3D camera is set so that a virtual desk plane (`y = 0`) lands exactly on the photo's desk strip (front edge, back edge, left and right ends), and the virtual lens has the photo's field of view. Patch 03 builds a lab for this (overlay + sliders) and saves `plateMatch.json`. Everything is measured against that match.
-3. **Plate-follow.** When the camera moves, the plate plane moves with it by a single function, `plateTransform(cameraPose)`, so that the point on the plate where the pile sits stays registered with the 3D desk. For a dolly toward the pile this reduces to a scale; for a slide it reduces to a shift. Because the plate is flat, a large change of viewpoint cannot be faked: moves are budgeted (guide 05).
+3. **Plate-follow.** The camera never moves: a view is a window of the match camera's sensor, and the card and the 3D scene share that one camera, so the point on the plate where the pile sits stays registered with the 3D desk at every view (Patch 03, `PlateFollow.ts`). A dolly toward the pile is a scale of the window, a slide is a shift, a tilt is a shift of `focalPx x tan(angle)`, a roll turns the window about the centre of the frame. The camera path (keyframes plus the operator model, `src/camera/path.ts`, Patch 05) produces the window for every frame. Because the plate is flat, a large change of viewpoint cannot be faked: moves are budgeted (guide 05).
 4. **Shadow catcher.** An invisible plane at `y = 0` with a shadow-only material receives the books' shadows and a faint warm reflection. It draws no desk colour of its own, so the photo's wood is what the viewer sees, darkened under each book.
 5. **Occlusion.** Books must never be covered by the chair, keyboard or lamp unless physically right. The placement zones keep books where nothing in the photo is in front of them. The one exception, the chair wipe in S22, is a deliberate full-frame occluder.
 6. **No pillarbox.** The plate is 1536 x 864, exactly 16:9, so in S00 it fills the 1920 x 1080 frame at M = 1.25: no bars and no feather (`PILLARBOX.feather = 0`). `Pillarbox.tsx` stays in the code for any view that shows less than the whole plate, which cannot happen at M of 1.25 or more. The margin rule (guide 05) only starts to restrict the camera at M = 1.319, where the window is 1456 px wide (the plate minus 40 px on each side); below that the view is simply centred. D-04 and D-21 are obsolete (D-24).
@@ -97,7 +97,7 @@ src/
   lib/    ease.ts spring.ts prng.ts noise.ts hash.ts fonts.ts units.ts
   plate/  Plate.tsx PlateFollow.ts ShadowCatcher.tsx Pillarbox.tsx
   light/  Rig.tsx PlateProbe.ts (environment probe from the plate)
-  camera/ CameraRig.tsx operator.ts focus.ts
+  camera/ CameraRig.tsx path.ts operator.ts audit.ts focus.ts   (path.ts: one pure cameraAt(frame); audit.ts: the checks of npm run motion)
   book/   Book.tsx Cover.tsx PageBlock.tsx Sheet.tsx Ribbon.tsx rig/*.ts   geometry and motion
   paint/  covers/*.ts pages/*.ts qr.ts typography.ts   Canvas2D painters (pure functions -> canvas)
   scene/  Desk.tsx Pile.tsx Riser.tsx Dust.tsx
@@ -105,7 +105,7 @@ src/
   fx/     Grain.tsx Vignette.tsx Dim.tsx Labels.tsx Wordmark.tsx
   audio/  ReelAudio.tsx sfx.ts
   dev/    DevPlate.tsx DevMatch.tsx DevLighting.tsx DevBook.tsx DevPages.tsx DevPageTurn.tsx DevRiser.tsx ...
-scripts/  sync-site.mjs  verify-plate.mjs  bench.mjs  make-stills.mjs  check-qr.mjs  audit-truth.mjs  render.mjs  make-poster.mjs
+scripts/  sync-site.mjs  verify-plate.mjs  bench.mjs  make-sheets.mjs  make-stills.mjs  check-qr.mjs  audit-truth.mjs  render.mjs  make-poster.mjs
 tools/    audit-motion.mjs  make-prompt.mjs  measure-plate.mjs
 ```
 
@@ -141,5 +141,5 @@ If the bench result is far worse, the fixes in order: lower page texture size on
 | Stills of the patch's new range | every patch | You looked at them |
 | **Gate G1: stills realism** | after Patch 11 | Rubric score at least 4/5 on 10 stills (guide 13) |
 | **Gate G2: motion test** | after Patch 16 | S05-S13 plays at 60 fps without pops, flicker or plate tears |
-| `npm run motion` | patches 05, 14-20 | No STILL over 120 f, no FAST, no DEEP, no plate-magnification violation |
+| `npm run motion` | patches 05, 14-20 | No STILL over 60 f, no FAST, no DEEP, no EDGE, no POP, no LATE (a documented exception is listed in `config/camera.ts`) |
 | `npm run audit` | patch 23 | Every on-screen fact traced to the snapshot |

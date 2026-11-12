@@ -16,11 +16,13 @@ import { plateBlurPx, type Lens } from "./camera/focus";
  * sensor. Children are in WORLD space (cm; the desk front edge at the pile centre is the origin, the desk runs away along -Z), so a
  * box at (0, 1, -16) stands on the pile anchor at every view. The plate card and the pillarbox are in camera space.
  *
+ * `rollDeg` (Patch 05) rolls the picture about the centre of the frame; the plate and everything on the desk roll together.
+ *
  * `lens` (Patch 04) sets the plate's defocus: the larger of the thin lens and the magnification table (src/camera/focus.ts). Without
  * a lens the plate is not blurred at all, which is what the opening view and `npm run plate:verify` use. Shadow maps are enabled
  * (PCF, fixed size); they cost nothing until a light casts a shadow.
  */
-export const Stage: React.FC<{ view: PlateView; feather?: number; match?: PlateMatch; lens?: Lens; children?: React.ReactNode }> = ({ view, feather, match = PLATE_MATCH, lens, children }) => {
+export const Stage: React.FC<{ view: PlateView; feather?: number; match?: PlateMatch; lens?: Lens; rollDeg?: number; children?: React.ReactNode }> = ({ view, feather, match = PLATE_MATCH, lens, rollDeg = 0, children }) => {
   const transform = plateTransform(view, match);
   const blurPx = lens ? plateBlurPx(view.M, lens, match) : 0;
   // a stable options object: R3F builds a new camera whenever it changes, so it is made once per match (the real pose is set by <MatchCamera> every frame)
@@ -43,7 +45,7 @@ export const Stage: React.FC<{ view: PlateView; feather?: number; match?: PlateM
         scene.background = new THREE.Color("#000000");
       }}
     >
-      <MatchCamera view={view} match={match} />
+      <MatchCamera view={view} match={match} rollDeg={rollDeg} />
       <CameraSpace match={match}>
         <Plate view={view} match={match} transform={transform} blurPx={blurPx} />
         <Pillarbox transform={transform} feather={feather} />

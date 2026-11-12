@@ -219,4 +219,109 @@ Replaces the 736 x 672 photo with a larger image. Patches 00 to 02 stay as they 
 **Checks run and results:**
 The patch applies cleanly (`git apply --check`) to a fresh clone of the repository at the commit it was made on. The tests added (`tests/lights.test.ts`, 10 cases; `tests/focus.test.ts`, 10 cases) are written to pass but have not been executed; their expected values were verified by hand and by script as listed under "Known issues". The plate file is unchanged.
 
-**Benchmark table:** not run yet. After `npm run bench`, paste its "Sample frames", "Seconds per frame, by scene" and "Shot-by-shot estimate" tables here, and say what `REMOTION_GL` was.
+**Benchmark table:** see "Patch 04a" below (the first run on your machine).
+
+---
+
+## Patch 04a - Results of the first run on your machine, and the two fixes  (2026-11-12)
+
+You ran Patch 04 on Windows (Node 24.18, AMD Ryzen 7 7730U, 16 threads, `REMOTION_GL=angle`). Two things failed; both are fixed in the fix patch that was applied before Patch 05:
+
+- **`npx tsc --noEmit`: one error** in `src/light/PlateProbe.ts` (TS2345): `new Uint16Array(n)` is typed `Uint16Array<ArrayBufferLike>`, which could be a `SharedArrayBuffer`, and `THREE.DataTexture` only takes an `ArrayBuffer`. `half()` and `ProbeFace.data` are now `Uint16Array<ArrayBuffer>`, built from an explicit `new ArrayBuffer(...)`. Same numbers.
+- **`npm test`: 89 of 90**, the case "the boxes of the pile and the riser stand inside their zones ..." (`S23 depth range 506..542`). The test was right: `sceneDepthRange` in `src/dev/benchScenes.ts` took `max(w, d) / 2` as every box's half depth, so the riser (36 x 24 cm) counted as 36 cm deep and reached in front of the camera's distance. It now uses the real extent along the camera axis, `(|w sin yaw| + |d cos yaw|) / 2`. S23 is now about 512 to 536 cm.
+
+**Checks that passed on your machine:** `npm run plate:verify` PASSED (5 checks): SHA-256 `3aa7af92...44af0`; bare plate SSIM 0.99979 over 1914 x 1074 px (largest channel difference 1 level); strict pixel test in 11 lamp / LED regions, largest difference 1 level (limit 3); the photo spans x 0 to 1920. `npm run probe` made the probe image; `npm run bench` ran.
+
+**Benchmark** (`npm run bench`, one worker, `REMOTION_GL=angle`; written to `out/bench.json`; estimates only, shots lighter than their stand-in are over-counted):
+
+```
+Sample frames
+  frame  scene  seconds        frame  scene  seconds
+      0  S02      0.88             6  S10      0.98
+      1  S02      1.02             7  S11      2.02
+      2  S02      0.34             8  S11      1.03
+      3  S05      1.02             9  S23      2.02
+      4  S05      1.00            10  S23      0.97
+      5  S10      1.03            11  S23      1.00
+
+Seconds per frame, by scene
+  S02 0.75   S05 1.01   S10 1.00   S11 1.53   S23 1.33
+
+Shot-by-shot estimate (minutes): S00 3.0, S01 3.0, S02 4.5, S03 1.5, S04 2.0, S05 6.1, S06-S09 2.0 each,
+  S10 2.0, S11-S13 6.1 each, S14-S16 2.0 each, S17 4.0, S18 2.0, S19 4.0, S20 3.1, S21 2.0,
+  S22 8.0, S23 10.6, S24 10.6, S25 2.7
+
+WHOLE FILM: 5400 frames, about 1.7 hours with one worker (1.13 s per frame on average).
+```
+
+Reading it: the first frame of S11 and of S23 cost 2.0 s each (the first use of a scene, a texture or a shader on that frame) and the second and third cost 1.0 s, so the averages for S11 and S23 are probably 0.3 to 0.5 s too high; the real figure will come from Patch 13's master composition. The film is about 1.7 hours of rendering on one worker; with several concurrent workers (Remotion's `--concurrency`) it is shorter, but each browser tab needs its own GPU context, so test 2 and 4 before assuming it scales. The warning `X3595: gradient instruction used in a loop with varying iteration` printed once while frame 3 loaded; it comes from a shader in a bench scene, is only a warning and was not investigated.
+
+**Known issues carried over from Patch 04, still open:** the stills of `DevLighting` (the pile at M 2.46 and 4.49) have not been looked at; the lamp's look is a starting value. `D-25` (horizon) and `D-27` (rights of the plate) still need your answer. `docs/DECISIONS.md` has two rows numbered D-30 (Patch 03's scale and Patch 04's plate card); they are different decisions, the Patch 05 rows start at D-33.
+
+---
+
+## Patch 05 - Camera rig, operator model, audits  (2026-11-12; the Studio and `npm run sheets -- --render` are yours to run, see "Known issues")
+
+**Files created / changed:**
+`src/config/camera.ts` (new), `src/camera/operator.ts` (new), `src/camera/path.ts` (new), `src/camera/audit.ts` (new), `src/camera/CameraRig.tsx` (new), `src/dev/DevCamera.tsx` (new), `tools/audit-motion.mjs` (new), `scripts/make-sheets.mjs` (new), `tests/camera.test.ts` (new, 36 cases), `src/lib/ease.ts` (`signatureIn`, `signatureOut`, `SIGNATURE_PEAK_SLOPE`), `src/plate/plateCamera.ts` (roll), `src/plate/PlateFollow.ts` (roll in `plateCameraRig`, `photoToScreen`, `clampView`; new `windowBox`), `src/plate/MatchCamera.tsx` (roll), `src/stage.tsx` (`rollDeg`), `src/ReelFilm.tsx` (the film now uses `CameraRig`), `src/Root.tsx` (registers `DevCamera`), `package.json` (`motion` is real, new `sheets`), `README.md`, `docs/DECISIONS.md` (D-33 to D-35), `docs/patches/INDEX.md`, `docs/guide/02-architecture.md` and `docs/guide/05-camera-and-motion.md` (text brought in line with the code).
+
+**PUBLIC API:**
+- `config/camera.ts` (Node can import it): `interface CameraKeyframe { frame, M, panX, panY, tiltDeg, rollDeg, focusCm, aperture, focalMm, ease, regime }` (a keyframe is the camera's state at its frame; `ease` and `regime` describe the segment that STARTS there); `CAMERA_KEYFRAMES` (S00-S03, frames 0 to 960); `holdShot(from, to, base, opts)` (ease in over 60 frames, then a 2 to 5 percent linear push, optional slide and focus pull; returns 3 or 4 keys); `glideShot(from, to, a, b, opts)` (ease in, straight run, ease out; the speeds meet exactly; returns 4 keys); `mixState(a, b, p)` (the one place that says how two keys mix: M and focus in 1 / x, the rest linearly); `checkKeyframes`; the limits `MIN_MOVE_FRAMES` 48, `MIN_GAP_FRAMES` 20, `STILL_FRAMES` 60, `STILL_MOVEMENT` 0.005, `MAX_M_RATE_PER_SEC` 1.5, `POP_FRACTION` 0.02, `REGIME_LIMITS`, `limitFor(regime)`; `FOCAL_MM`, `FOCUS_PILE_GUIDE_CM` (36), `PILE_DISTANCE_CM`; `KNOWN_EXCEPTIONS`; `VIEW_ARRIVED`, `VIEW_PILE`.
+- `camera/path.ts`: `cameraAt(frame, { keys?, match?, operator? }): CameraFrame { frame, regime, authored, authoredView, operator, view, clamped, rollDeg, lens, slidePx }` (the one function the film, the dev sheet and the audit all read), `authoredAt(frame, keys?)`, `lensOf(guideFocusCm, aperture, focalMm, match?)`, `turnShiftPx(deg, match?)`.
+- `camera/operator.ts`: `operatorAt(frame, regime): { rightCm, upCm, forwardCm, tiltDownDeg }`, `OPERATOR` (the table of guide 05 section 3), `LEAN_INS`, `REACH`, `STEADY_RANGES`, `OPERATOR_EVENT_FRAMES`, `OPERATOR_SEEDS`, `walkEnvelope(frame)`, `steadyGain(frame)`, `MIN_LAYER_FRAMES` (6).
+- `camera/audit.ts`: `auditMotion({ keys?, from?, to?, match?, exceptions? }): { range, findings, counts, unexplained, stats, timeline }`; findings are `{ code, from, to, detail, value?, limit?, known? }` with `code` one of `STILL FAST DEEP EDGE POP LATE`.
+- `camera/CameraRig.tsx`: `<CameraRig feather? match? keys? operator? frame?>children</CameraRig>`, a `<Stage>` driven by `cameraAt` (children are in world space, as in `Stage`).
+- `stage.tsx`: `<Stage ... rollDeg? />`. `plateCameraRig(view, match?, rollDeg?)`, `matchCameraRig(p, view, rollDeg?)` (new field `rotationZ`), `photoToOutput` / `photoToScreen(view, x, y, rollDeg?)`, `clampView(view, rollDeg?)`, `windowBox(M, rollDeg?)`. With `rollDeg` 0 everything is as before.
+- `ReelFilm` still takes `view?`: an explicit view bypasses the rig (no lens, no operator).
+- `DevCamera` (a `Still`): props `from`, `to`, `every`, `operator`. It prints the path (frame, shot, regime, M, window centre, clamp, focus, f-number, plate blur against the table, operator offsets), three plots and the audit's verdict for the range.
+- `npm run motion [-- --from=N --to=N --all --break]`; `npm run sheets -- --from=0 --to=959 --every=30 [--dir --render --scale --cols --rows --out]` (stills are `out/stills/f0000.png` ..., the names Patch 13's `npm run stills` will also use).
+
+**Decisions and conventions later patches must follow:**
+- **The camera is data plus one pure function.** Add shots by appending keyframes to `CAMERA_KEYFRAMES` (Patches 14-20); never move the camera from inside a shot component. Every keyframe is on a multiple of 30. Use `holdShot` for a hold, `glideShot` for a long move, or plain keys. A single `signature` ease over a long move peaks at 2.86 x its mean speed and breaks the limits (the S01 walk did); `glideShot` keeps the peak at 2.3 x for S01.
+- **A camera movement is a movement of the window (D-34).** Slides and the operator's cm become `cm x 3.508 photo px` at the plate; turns become `focalPx x tan(angle)`; the lean-in multiplies M by `D / (D - z)`; roll turns the picture about the centre of the frame and the margin rule counts the rolled corners. The plate and everything on the desk share the one camera, so a box on the desk stays on the desk at every zoom, slide, tilt and roll (tested with three.js's own camera).
+- **The guide's focus column is rescaled (D-33):** 36 is the pile at 524 cm; 260 is far behind it, 38 is just behind it. Keyframes keep the guide's numbers; `lensOf` turns them into the lens of `focus.ts`. Without this the pile would be 185 px out of focus at the end of S02.
+- **The operator is added to the authored path, never instead of it.** STILL and EDGE are judged on the authored path; FAST, POP and DEEP on what the viewer sees. The sideways speed is the speed of the slide (authored pan plus the operator's cm) and does not count turns (the 0.25 degree bob alone is 8 photo px, which is 2.4 cm of "speed" at the plate).
+- **Operator events in the table are placed now, for later shots:** lean-ins at 480 to 840 and 960 to 1080, the reach at 990 (settle 1020), steady ranges on S13 and S20. Patch 14 moves the S04 ones if its shot needs it. A lean-in is `from` (rises over 60 frames), `until` (eases back over 60).
+- **Frame 0 is the bare plate.** The camera at frame 0 is M 1.25, centred, f/8 on the pile: the margin rule leaves the operator no room below M 1.319, and the lens draws no blur. `plate:verify` renders through `CameraRig` now and must still pass.
+
+**Deviations from guide 05's table (all found with `npm run motion`, all recorded in `config/camera.ts` and in guide 05):**
+- S00's push is 3% (M 1.2875 at frame 240), not 2.5% (1.28): with 2.5% the walking bob reached the margin just as the window opened and the sideways speed hit 48 cm/s (limit 40).
+- S02 does not come to rest at frame 810. It glides into S03's push, so the camera never stops dead at the pile (it was a 66 frame STILL). The table's end values (M 4.49 at 840, 4.63 at 960, focus 38 then 36) are met exactly.
+- S01 and S02 are `glideShot`s (90 + 120 and 60 + 120 frames of easing) instead of one `signature` each; S01's peak change of M is 1.48 x per second (limit 1.5) and its peak sideways speed 36.7 cm/s (limit 40), so there is little room left: if you lengthen the walk's amplitude or shorten S01, expect FAST.
+- The focus in the last second of S00 pulls from the opening lens to the S01 lens (260, f/4), so the focus does not jump at the cut; the plate is untouched until frame 180 and at most about 2 px soft at frame 240.
+- Pan is where the window is centred (photo px), not a turn in degrees: the margin rule is the real limit on it. Tilt and roll are limited per regime (`REGIME_LIMITS`).
+
+**ONE deliberate exception, `STILL` at frames 0-65:** the film opens from rest. The ease-in of a hold is 60 frames (a multiple of 30, at least 48) and R1 may only change M, so the picture moves less than 0.5% for the first 66 frames. It is listed in `KNOWN_EXCEPTIONS` with its reason; `npm run motion` prints it as a known exception and passes, `npm run motion -- --all` shows it as a failure.
+
+**Known issues:**
+- **Not run on the build machine:** the Studio, `npm run plate:verify` through the new `CameraRig`, `DevCamera` drawn in the Studio, and `npm run sheets -- --render` (no browser was available, Remotion's browser download host was not reachable). What was checked instead: `tsc` clean; `npm test` 126 of 126; the whole Remotion entry bundles with esbuild (no import cycle or missing export); `npm run motion` runs; `scripts/make-sheets.mjs` was run on synthetic stills and on windows cut from the real plate with the exact views `cameraAt` returns (the sheet shows the walk to the lamp side, the pile at the end of S02, and the push of S03 as planned, without blur).
+- **Run `npm run plate:verify` first.** Frame 0 now goes through `CameraRig`: view `VIEW_FIT` exactly (a test asserts it), lens f/8 on the pile (a test asserts that no blur is drawn), roll 0, so the render should be identical to Patch 04's. If it fails, look at `CameraRig` and `Stage` first.
+- **Everything visual is a starting value.** Measured over S01 (frames 270-440): the walking bob moves the window up to 13.6 photo px vertically (about 33 output px at M 2.4) and the sway 1.9 photo px. That is strong: in `walking()` the camera tilts UP as it rises (`tiltDownDeg: -w.deg * bob`), so the 0.9 cm (3.2 px) and the 0.25 degrees (8.3 px) add. If it reads as too much in the Studio, flip the sign of that one term (the head nods down as the body rises): the two then partly cancel and the peak falls to about 5 photo px (`tests/camera.test.ts` does not depend on the sign; `npm run motion` is unaffected because turns do not count toward the sideways speed). The operator's cm amplitudes follow the crop model of D-29 (a slide of x cm is `x x 3.508` photo px at any M), so they feel larger at higher M, as on a real lens.
+- The rolled view (`rollDeg`) is tested but no keyframe uses roll yet (S00-S03 have none); the R3 shots will. The tremor and the R3 limits are only exercised by the tests, because no R3 keyframes exist yet.
+- `DevCamera` runs the audit for its frame range on every render (it takes a moment on a long range).
+- `docs/guide/03-realism-bible.md` says "35 mm for R2"; the match camera is 44 mm. Left as the realism guide's intent (a different "look"); nothing reads it.
+
+**Warnings for the next patch (06, or 13):**
+- Patch 13 (master composition) must put the scene INSIDE `<CameraRig>` as children; do not nest another `Stage`.
+- `ObjectDefocus` mounts only when `objectsNeedDefocus(lens, M, near, far)` is true; `cameraAt(frame).lens` is the lens to pass it. Measured through S02-S03 with the rescaled focus (D-33): the pile (524 cm) is 3.5 px soft at frame 510, 0.7 px at the end of S02 (frame 840) and sharp (0.01 px) at the end of S03; the plate gets the table's blur from M 2.6 (21 px at M 4.5).
+- The S04 handover (M from 4.63 to about 6.51, hidden behind the book) is not authored yet; the audit's POP check (2% per frame) is what will catch a visible pop. Author it as a keyframe pair whose second key lands while the book covers the frame, and check `npm run motion`.
+- Patches 14-20 add keyframes to the same array; run `npm run motion -- --from=A --to=B` for the new shots and paste the summary into their notes.
+
+**Checks run and results** (build machine: Linux, Node 22.23, no browser):
+`npx tsc --noEmit` 0 errors. `npm test` 126 of 126 (90 before, 36 added: easings, keyframes and builders, the path, the operator, roll with three.js's own camera, and the audit with deliberately broken keyframes for every code). The new tests include: the guide's table values at the shot boundaries; `glideShot` has no jump in speed at its joins; frame 0 equals `VIEW_FIT`; the view never leaves the 40 px margin from frame 0 to 1200; `cameraAt` is a pure function of the frame; the walk is S01 only, fades in over 30 frames and out over 440-480, and bobs at 1.8 Hz (power at 1.8 Hz against its neighbours); tremor is R3 only and off in the steady ranges; the lean-in is 3 cm and 0.6 degrees over 60 frames; the reach dips 2 cm and settles with 0.7 cm of overshoot; a rolled camera projects desk points and plate pixels exactly like `photoToOutput` (0.02 px) and a positive roll is clockwise; a 20-frame move, two moves 10 frames apart, M changing faster than 1.5 x per second, a slide above 40 (R2) or 10 (R3) cm/s, a hold over 60 frames without a drift, an off-beat key, M above the regime budget, a window outside the margin (also pan below M 1.319), tilt and roll above the budget, and a one-frame jump are each reported as FAST, STILL, LATE, DEEP, EDGE or POP.
+
+`npm run motion` (frames 0-959, S00-S03):
+
+```
+camera moves: 0-480 (480 f), 510-960 (450 f)
+Findings
+  STILL f0000-f0065  the camera holds for 66 frames and moves less than 0.5% (a hold over 60 needs a drift)
+        known exception: the film opens from rest: ...
+Summary
+  STILL 1   FAST 0   DEEP 0   EDGE 0   POP 0   LATE 0
+  peak sideways speed 36.7 cm/s (R2 limit 40), peak change of M 1.477 x per second (limit 1.5), largest jump 0.65% (limit 2%), largest M 4.628
+  shot table: 26 shots, 5400 frames
+MOTION AUDIT: PASSED (1 documented exception).
+```
+
+`npm run motion -- --break` (a still beat after frame 960, then a 20-frame move) reports FAST (`a camera move of 20 frames`), LATE at f1040 and f1130, DEEP (M 4.935 above the R2 budget 4.7) and two more STILLs, and exits 1. The plate file is unchanged (`git status`).

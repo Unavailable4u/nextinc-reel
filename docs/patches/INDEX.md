@@ -1,6 +1,6 @@
 # Patch index (27 patches, 00-26)
 
-**Progress: Patches 00, 01, 02, 03 and 04 are done, plus Patch 02a (the plate was replaced by a 1536 x 864 image; see `docs/PATCH_NOTES.md`).** Patch 03's gate G0b (a box looks planted) and the horizon choice D-25 are yours to confirm in the lab. Patch 04's stills, `npm run plate:verify` and `npm run bench` are yours to run on a machine with a browser (see "Known issues" in the Patch 04 notes) before Patch 05.
+**Progress: Patches 00, 01, 02, 03, 04 and 05 are done, plus Patch 02a (the plate was replaced by a 1536 x 864 image; see `docs/PATCH_NOTES.md`).** Patch 03's gate G0b (a box looks planted) and the horizon choice D-25 are yours to confirm in the lab. Patch 04 ran on your machine (`plate:verify` passed, the benchmark says about 1.7 hours for the film on one worker; see "Patch 04a" in the notes); its stills are still to look at. Patch 05's Studio check, `npm run plate:verify` through the new camera rig and `npm run sheets -- --render` are yours to run (see "Known issues" in the Patch 05 notes) before Patch 06.
 
 Use `node tools/make-prompt.mjs <n>` (created in Patch 00) to assemble the five parts of each prompt. Do them in order; patches marked parallel-safe may swap with each other.
 

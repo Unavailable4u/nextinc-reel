@@ -45,6 +45,16 @@ export const arrive = cubicBezier(0.22, 0.8, 0.2, 1);
 export const lift = cubicBezier(0.3, 0, 0.2, 1);
 export const linear = (t: number): number => t;
 
+/**
+ * The steepest slope of `signature` (at t = 0.5): dy/dx = 1.5 / 0.525 = 20 / 7. A move eased with `signature` alone peaks at this many
+ * times its mean speed, which is why long moves are built from the two halves below (`glideShot` in config/camera.ts).
+ */
+export const SIGNATURE_PEAK_SLOPE = 20 / 7;
+/** The first half of `signature`, stretched to 0..1: an ease-in that ends at SIGNATURE_PEAK_SLOPE (not at rest), to be followed by a straight run. */
+export const signatureIn = (t: number): number => 2 * signature(0.5 * clamp01(t));
+/** The second half of `signature`, stretched to 0..1: it starts at SIGNATURE_PEAK_SLOPE and comes to rest, to follow a straight run. */
+export const signatureOut = (t: number): number => 2 * signature(0.5 + 0.5 * clamp01(t)) - 1;
+
 export const clamp = (v: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, v));
 export const clamp01 = (v: number): number => clamp(v, 0, 1);
 export const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
@@ -57,5 +67,5 @@ export function remap(value: number, inA: number, inB: number, outA: number, out
   return lerp(outA, outB, ease(progress(value, inA, inB)));
 }
 
-export type EaseName = "signature" | "arrive" | "lift" | "linear";
-export const EASES: Record<EaseName, (t: number) => number> = { signature, arrive, lift, linear };
+export type EaseName = "signature" | "signatureIn" | "signatureOut" | "arrive" | "lift" | "linear";
+export const EASES: Record<EaseName, (t: number) => number> = { signature, signatureIn, signatureOut, arrive, lift, linear };

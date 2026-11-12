@@ -23,7 +23,7 @@ export const DevBench: React.FC = () => {
   const range = sceneDepthRange(scene);
   const needObjects = objectsNeedDefocus(lens, scene.view.M, range.near, range.far);
   return (
-    <AbsoluteFill style={{ background: "#000" }}>
+    <AbsoluteFill style={{ background: "#000" }} from={1}>
       <Stage view={scene.view} lens={lens} match={PLATE_MATCH}>
         <LightRig frame={frame} />
         <ProbeEnvironment />

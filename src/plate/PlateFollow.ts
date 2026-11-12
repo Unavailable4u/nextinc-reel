@@ -1,13 +1,13 @@
 // How the flat photo follows the camera. The scene camera is the MATCH camera of Patch 03 (src/config/plateMatch.json): a pinhole
 // camera whose desk plane lies on the plate's desk strip. The photo is a flat card square to its axis, and a `PlateView` is a
 // WINDOW of that camera's sensor (a scale and a shift, guide 02, "Plate-follow"). The camera and the card do not move when the
-// view changes, so a 3D object standing on the desk stays on the desk at every zoom and pan. Patch 05 drives `PlateView` from the
-// camera rig.
+// view changes, so a 3D object standing on the desk stays on the desk at every zoom and pan. The camera rig (`src/camera/path.ts`,
+// `src/camera/CameraRig.tsx`, Patch 05) drives `PlateView` and the roll from the keyframes and the operator model.
 
 import plateMatchJson from "../config/plateMatch.json";
 import { EDGE_MARGIN, M_FIT_HEIGHT, PLATE_H, PLATE_W } from "../config/plate";
 import { HEIGHT, WIDTH } from "../config/timeline";
-import { cardTransform, matchCameraRig, parsePlateMatch, type MatchCameraRig, type MatchParams } from "./plateCamera";
+import { cardTransform, matchCameraRig, parsePlateMatch, photoToOutput, type MatchCameraRig, type MatchParams } from "./plateCamera";
 
 /** Which part of the photo is on screen: magnification M and the photo pixel at the centre of the frame. */
 export interface PlateView {
@@ -44,14 +44,15 @@ export function plateTransform(_view: PlateView, match: PlateMatch = PLATE_MATCH
   return cardTransform(match);
 }
 
-/** The three.js camera for a view: fov, aspect, position, pitch and the view offset (see `matchCameraRig`). */
-export function plateCameraRig(view: PlateView, match: PlateMatch = PLATE_MATCH): MatchCameraRig {
-  return matchCameraRig(match, view);
+/** The three.js camera for a view: fov, aspect, position, pitch, roll and the view offset (see `matchCameraRig`). */
+export function plateCameraRig(view: PlateView, match: PlateMatch = PLATE_MATCH, rollDeg = 0): MatchCameraRig {
+  return matchCameraRig(match, view, rollDeg);
 }
 
-/** Where a photo pixel lands on screen (output px, origin top-left) for a view. */
-export function photoToScreen(view: PlateView, x: number, y: number): { x: number; y: number } {
-  return { x: WIDTH / 2 + (x - view.cx) * view.M, y: HEIGHT / 2 + (y - view.cy) * view.M };
+/** Where a photo pixel lands on screen (output px, origin top-left) for a view. `rollDeg` turns the picture clockwise about the frame's centre. */
+export function photoToScreen(view: PlateView, x: number, y: number, rollDeg = 0): { x: number; y: number } {
+  if (rollDeg === 0) return { x: WIDTH / 2 + (x - view.cx) * view.M, y: HEIGHT / 2 + (y - view.cy) * view.M };
+  return photoToOutput(view, x, y, rollDeg);
 }
 
 /** Which photo pixel is at a screen position. */
@@ -74,13 +75,21 @@ export interface ViewCheck {
   pillarbox: boolean;
 }
 
+/** Size, in photo px, of the axis-aligned box that holds the (rolled) frame when it is laid on the photo. With no roll it is the frame's own size / M. */
+export function windowBox(M: number, rollDeg = 0): { w: number; h: number } {
+  const th = (rollDeg * Math.PI) / 180;
+  const c = Math.abs(Math.cos(th));
+  const s = Math.abs(Math.sin(th));
+  return { w: (WIDTH * c + HEIGHT * s) / M, h: (WIDTH * s + HEIGHT * c) / M };
+}
+
 /**
  * Applies the camera's margin rule: while the photo is larger than the frame, the window keeps EDGE_MARGIN photo px from the
- * photo's edge. A view that shows the whole photo (or more) is left alone, only centred.
+ * photo's edge. A view that shows the whole photo (or more) is left alone, only centred. With a roll the window is the rolled
+ * frame's bounding box, so the corners of a rolled picture keep the margin too.
  */
-export function clampView(v: PlateView): ViewCheck {
-  const visW = WIDTH / v.M;
-  const visH = HEIGHT / v.M;
+export function clampView(v: PlateView, rollDeg = 0): ViewCheck {
+  const { w: visW, h: visH } = windowBox(v.M, rollDeg);
   let { cx, cy } = v;
   if (visW <= PLATE_W - 2 * EDGE_MARGIN) cx = Math.min(Math.max(cx, EDGE_MARGIN + visW / 2), PLATE_W - EDGE_MARGIN - visW / 2);
   else cx = PLATE_W / 2;

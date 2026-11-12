@@ -40,7 +40,7 @@ Maintenance lives in `docs/guide/11-maintenance.md` and `docs/ops/RUNBOOK.md`.
 ## The whole flow (what you will do, in order)
 
 1. Read the guides above and answer the open questions in `docs/DECISIONS.md` (all have defaults, so you can accept them).
-2. Run **Patches 00-05** (scaffold, site data sync, the plate rig, camera match, lighting and render baseline, camera system). After Patch 05 you can see your desk photo with a test cube sitting on it convincingly.
+2. Run **Patches 00-05** (scaffold, site data sync, the plate rig, camera match, lighting and render baseline, camera system). After Patch 05 the camera walks to the desk and settles on the pile (open `ReelFilm` in the Studio; `DevCamera` prints the path), and the motion audit checks it.
 3. Run **Patches 06-11** (the book: geometry, materials, covers, pages, page turning, book motion). **Gate G1** (stills) happens here.
 4. Run **Patches 12-20** (desk dressing, timeline, and the nine acts). **Gate G2** (motion test) happens after Patch 16.
 5. Run **Patches 21-24** (audio, finishing, QA, render and delivery).
@@ -60,7 +60,8 @@ Maintenance lives in `docs/guide/11-maintenance.md` and `docs/ops/RUNBOOK.md`.
 | `npm run plate:measure` | Print the plate's edge colours and the lamp/LED test regions [02, done] |
 | `npm run probe` | Make `public/plates/derived/probe-front.png`, the blurred plate for the reflections (the plate is only read) [04] |
 | `npm run bench` | Measure seconds per frame on this machine and estimate the whole film [04] |
-| `npm run motion` | Audit the camera path (speed, holds, depth of field) [05] |
+| `npm run motion` | Audit the camera path: STILL, FAST, DEEP, EDGE, POP, LATE, with frame numbers; `-- --all` ignores the documented exceptions, `-- --break` shows the audit catching a deliberate 20-frame move [05, done] |
+| `npm run sheets -- --from=0 --to=959 --every=30` | Contact sheets from stills in `out/stills/` (`--render` makes the missing stills with Remotion) [05, done] |
 | `npm run stills` | Render the check stills to `out/stills/` [13] |
 | `npm run qr:check` | Decode every QR in a rendered still and compare with the data [09] |
 | `npm run audit` | Truth audit: every on-screen fact traced to the snapshot [23] |

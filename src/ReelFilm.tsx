@@ -2,8 +2,9 @@ import React from "react";
 import { AbsoluteFill, useCurrentFrame } from "remotion";
 import { BAR, BEAT, FPS, TOTAL, clockAt, shotAt, timecode } from "./config/timeline";
 import { PILLARBOX } from "./config/plate";
-import { VIEW_FIT, type PlateView } from "./plate/PlateFollow";
+import type { PlateView } from "./plate/PlateFollow";
 import { Stage } from "./stage";
+import { CameraRig } from "./camera/CameraRig";
 import { loadFonts, stacks } from "./lib/fonts";
 
 void loadFonts();
@@ -13,7 +14,7 @@ export type ReelFilmProps = {
   hud: boolean;
   /** the feather that joins the photo to the pillarbox (0 px for the 16:9 plate, so this switch changes nothing at the opening view). Off = the bare photo (used by `plate:verify`). */
   feather: boolean;
-  /** an explicit view of the photo; when absent the film uses the opening view (the whole photo, filling the frame) */
+  /** an explicit view of the photo (no camera rig, no lens); when absent the camera rig drives the view, the roll and the lens from the keyframes */
   view?: PlateView;
 };
 
@@ -37,13 +38,15 @@ const Readout: React.FC = () => {
 };
 
 /**
- * THE FILM (patches 00-02: the photograph, plus the readout). Shots are added from Patch 13 on; this file is then
- * the only place that concatenates them.
+ * THE FILM. Patches 00-04: the photograph, the readout. Patch 05: the camera rig drives the view, the roll and the lens from the
+ * keyframes of `src/config/camera.ts` plus the operator model (S00-S03 for now; the camera holds its last state after frame 960).
+ * Shots are added from Patch 13 on; this file is then the only place that concatenates them.
  */
 export const ReelFilm: React.FC<ReelFilmProps> = ({ hud, feather, view }) => {
+  const bar = feather ? PILLARBOX.feather : 0;
   return (
     <AbsoluteFill style={{ background: "#000" }}>
-      <Stage view={view ?? VIEW_FIT} feather={feather ? PILLARBOX.feather : 0} />
+      {view ? <Stage view={view} feather={bar} /> : <CameraRig feather={bar} />}
       {hud ? <Readout /> : null}
     </AbsoluteFill>
   );

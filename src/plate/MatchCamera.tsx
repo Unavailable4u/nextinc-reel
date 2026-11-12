@@ -10,7 +10,7 @@ export function applyRig(camera: THREE.PerspectiveCamera, rig: MatchCameraRig): 
   camera.fov = rig.fovDeg;
   camera.aspect = rig.aspect;
   camera.position.set(...rig.position);
-  camera.rotation.set(rig.rotationX, 0, 0);
+  camera.rotation.set(rig.rotationX, 0, rig.rotationZ);
   const v = rig.viewOffset;
   camera.setViewOffset(v.fullW, v.fullH, v.x, v.y, v.w, v.h);
   camera.updateProjectionMatrix();
@@ -20,11 +20,13 @@ export function applyRig(camera: THREE.PerspectiveCamera, rig: MatchCameraRig): 
 /**
  * Puts the scene camera on the match and cuts the view's window out of its sensor. It runs in a layout effect on every render, so it
  * is in place before Remotion advances the renderer for the frame. A pure function of the props: nothing here reads a clock.
+ * `rollDeg` (Patch 05) rolls the camera about its optical axis; the plate card does not roll with it, so the plate and everything
+ * standing on the desk roll together.
  */
-export const MatchCamera: React.FC<{ view: PlateView; match: PlateMatch }> = ({ view, match }) => {
+export const MatchCamera: React.FC<{ view: PlateView; match: PlateMatch; rollDeg?: number }> = ({ view, match, rollDeg = 0 }) => {
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
   const invalidate = useThree((s) => s.invalidate);
-  const rig = plateCameraRig(view, match);
+  const rig = plateCameraRig(view, match, rollDeg);
   useLayoutEffect(() => {
     applyRig(camera, rig);
     invalidate();

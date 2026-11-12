@@ -164,6 +164,8 @@ export interface MatchCameraRig {
   position: [number, number, number];
   /** rotation about X, radians (negative = looking down) */
   rotationX: number;
+  /** roll about the optical axis, radians, applied after the pitch (positive turns the picture clockwise on screen); 0 for a level camera */
+  rotationZ: number;
   /** for camera.setViewOffset(fullW, fullH, x, y, w, h): the window of the sensor that fills the 1920 x 1080 frame */
   viewOffset: { fullW: number; fullH: number; x: number; y: number; w: number; h: number };
 }
@@ -172,8 +174,12 @@ export interface MatchCameraRig {
  * The calibrated camera as a three.js PerspectiveCamera: a sensor centred on the principal point that holds the whole plate,
  * and a view offset that cuts the window `view` out of it. The scene camera never moves when the view changes, so a 3D object
  * standing on the desk stays on the desk at every zoom and pan (the plate and the objects share one camera).
+ *
+ * `rollDeg` turns the picture clockwise on screen about the CENTRE OF THE FRAME (the camera itself rolls about the principal point;
+ * the window is moved so that the photo pixel `view.cx, view.cy` still lands in the middle of the frame). The plate card and the
+ * objects roll together because they share the camera, so a box on the desk stays on the desk at any roll.
  */
-export function matchCameraRig(p: MatchParams, view: PlateWindowView): MatchCameraRig {
+export function matchCameraRig(p: MatchParams, view: PlateWindowView, rollDeg = 0): MatchCameraRig {
   const f = focalPx(p);
   const cx = p.principalX;
   const cy = principalY(p);
@@ -181,12 +187,19 @@ export function matchCameraRig(p: MatchParams, view: PlateWindowView): MatchCame
   const sensorH = 2 * Math.max(cy, PLATE_H - cy);
   const w = WIDTH / view.M;
   const h = HEIGHT / view.M;
+  // where the wanted centre sits on the sensor once the camera is rolled: the photo pixel is turned about the principal point
+  const th = rad(rollDeg);
+  const dx = view.cx - cx;
+  const dy = view.cy - cy;
+  const wx = cx + dx * Math.cos(th) - dy * Math.sin(th);
+  const wy = cy + dx * Math.sin(th) + dy * Math.cos(th);
   return {
     fovDeg: deg(2 * Math.atan(sensorH / 2 / f)),
     aspect: sensorW / sensorH,
     position: [p.camXCm, p.camHeightCm, p.camDistCm],
     rotationX: -rad(p.pitchDeg),
-    viewOffset: { fullW: sensorW, fullH: sensorH, x: view.cx - w / 2 + (sensorW / 2 - cx), y: view.cy - h / 2 + (sensorH / 2 - cy), w, h },
+    rotationZ: th,
+    viewOffset: { fullW: sensorW, fullH: sensorH, x: wx - w / 2 + (sensorW / 2 - cx), y: wy - h / 2 + (sensorH / 2 - cy), w, h },
   };
 }
 
@@ -215,8 +228,16 @@ export function cardTransform(p: MatchParams): CardTransform {
   };
 }
 
-/** Plate px to output px for a view (the same mapping as PlateFollow.photoToScreen, repeated here so this file stands alone). */
-export const photoToOutput = (v: PlateWindowView, x: number, y: number): { x: number; y: number } => ({ x: WIDTH / 2 + (x - v.cx) * v.M, y: HEIGHT / 2 + (y - v.cy) * v.M });
+/**
+ * Plate px to output px for a view (the same mapping as PlateFollow.photoToScreen, repeated here so this file stands alone).
+ * `rollDeg` turns the result clockwise about the centre of the frame.
+ */
+export const photoToOutput = (v: PlateWindowView, x: number, y: number, rollDeg = 0): { x: number; y: number } => {
+  const a = ((x - v.cx) * v.M);
+  const b = ((y - v.cy) * v.M);
+  const th = rad(rollDeg);
+  return { x: WIDTH / 2 + a * Math.cos(th) - b * Math.sin(th), y: HEIGHT / 2 + a * Math.sin(th) + b * Math.cos(th) };
+};
 
 // ---------- landmarks read off the plate ----------
 

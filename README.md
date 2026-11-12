@@ -13,6 +13,7 @@ A code-driven, deterministic 3D motion film for the Next Inc. website: the **com
 | 02 Plate rig | `npm run plate:verify` (the gate G0 proof that your photo is untouched), the **DevPlate** composition in the Studio (sliders for magnification and position, green/amber/red resolution band) |
 | 03 Match lab | the **DevMatch** composition in the Studio (camera sliders, grid, zones, test box); `src/config/plateMatch.json` holds the match |
 | 04 Lights, shadows, depth of field | the **DevLighting** composition (a toggle for every light, shadows, probe, blur, false-colour exposure), `npm run probe`, `npm run bench` (seconds per frame and the whole-film estimate, `out/bench.json`) |
+| 07 Materials | the **DevMaterials** composition (lighting presets, a turn and a lift of the book to make foil flare, close-ups of the weave, the page edges and the dyed head, the four endpaper patterns), `npm run textures` |
 
 First run on your own machine: `npm install`, then `npm run sync -- --copy-media` (needs the website repo next to this one, or `SITE_REPO=<path>`), then `npm run plate:verify` (the first run downloads Remotion's browser), then `npm run studio`. Details and every check that was run are in `docs/PATCH_NOTES.md`.
 
@@ -59,6 +60,7 @@ Maintenance lives in `docs/guide/11-maintenance.md` and `docs/ops/RUNBOOK.md`.
 | `npm run plate:verify` | Prove the original photo is untouched [02, done] |
 | `npm run plate:measure` | Print the plate's edge colours and the lamp/LED test regions [02, done] |
 | `npm run probe` | Make `public/plates/derived/probe-front.png`, the blurred plate for the reflections (the plate is only read) [04] |
+| `npm run textures` | Make the seven procedural pictures in `public/textures/` and their manifest; `-- --check` compares without writing [07] |
 | `npm run bench` | Measure seconds per frame on this machine and estimate the whole film [04] |
 | `npm run motion` | Audit the camera path: STILL, FAST, DEEP, EDGE, POP, LATE, with frame numbers; `-- --all` ignores the documented exceptions, `-- --break` shows the audit catching a deliberate 20-frame move [05, done] |
 | `npm run sheets -- --from=0 --to=959 --every=30` | Contact sheets from stills in `out/stills/` (`--render` makes the missing stills with Remotion) [05, done] |

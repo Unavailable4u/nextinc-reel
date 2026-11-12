@@ -33,7 +33,7 @@ export interface BookSpec {
   weightG: number;
   /** implied page count (never shown on screen); half of it is the number of sheets that can be turned */
   pages: number;
-  /** flat colours until Patch 07 (materials) and Patch 08 (covers) */
+  /** the colour of every part (Patch 07 treats them: `src/book/materials.ts`, values in `config/materials.ts`); Patch 08 samples the real ones from the cover art */
   colors: {
     /** the bookcloth */
     cloth: string;
@@ -44,6 +44,10 @@ export interface BookSpec {
     /** head and tail band, the two stripes */
     band: readonly [string, string];
     ribbon: string;
+    /** the foil stamping: `primary` is the mark or the rings, `secondary` the title (guide 04 section 3). Foil is metal, so this is its reflectance. */
+    foil: { primary: string; secondary: string };
+    /** a dye on the head (top) edge of the page block, if the book has one: Mini Me's rose-red top edge */
+    headStain?: string;
   };
   /** the seeded imperfections (guide 03 section 6): the same seed always gives the same book */
   seeds: { block: number; ribbon: number };
@@ -95,7 +99,7 @@ export const BOOKS: Record<BookId, BookSpec> = {
     spine: 2.4,
     weightG: 560,
     pages: 256,
-    colors: { cloth: "#0D0D0D", endpaper: ENDPAPER, paper: PAPER, band: ["#FF2351", "#E9E2D4"], ribbon: CRIMSON },
+    colors: { cloth: "#0D0D0D", endpaper: ENDPAPER, paper: PAPER, band: ["#FF2351", "#E9E2D4"], ribbon: CRIMSON, foil: { primary: "#FF2351", secondary: "#E9E2D4" }, headStain: "#FF2351" },
     seeds: { block: 6101, ribbon: 6102 },
   },
   "spherex-blink": {
@@ -105,7 +109,7 @@ export const BOOKS: Record<BookId, BookSpec> = {
     spine: 1.8,
     weightG: 440,
     pages: 192,
-    colors: { cloth: "#24307A", endpaper: ENDPAPER, paper: PAPER, band: ["#E8B04A", "#E9E2D4"], ribbon: CRIMSON },
+    colors: { cloth: "#24307A", endpaper: ENDPAPER, paper: PAPER, band: ["#E8B04A", "#E9E2D4"], ribbon: CRIMSON, foil: { primary: "#E8B04A", secondary: "#E8B04A" } },
     seeds: { block: 6201, ribbon: 6202 },
   },
   minilocker: {
@@ -115,7 +119,7 @@ export const BOOKS: Record<BookId, BookSpec> = {
     spine: 2.0,
     weightG: 490,
     pages: 224,
-    colors: { cloth: "#D4B692", endpaper: ENDPAPER, paper: PAPER, band: [CRIMSON, "#16120E"], ribbon: CRIMSON },
+    colors: { cloth: "#D4B692", endpaper: ENDPAPER, paper: PAPER, band: [CRIMSON, "#16120E"], ribbon: CRIMSON, foil: { primary: "#3F6FC4", secondary: "#16120E" } },
     seeds: { block: 6301, ribbon: 6302 },
   },
   "next-inc-immersive": {
@@ -126,7 +130,7 @@ export const BOOKS: Record<BookId, BookSpec> = {
     weightG: 400,
     pages: 160,
     // the site's crimson darkened 35 percent
-    colors: { cloth: "#7D0A1D", endpaper: ENDPAPER, paper: PAPER, band: ["#F5F0E6", "#16120E"], ribbon: CRIMSON },
+    colors: { cloth: "#7D0A1D", endpaper: ENDPAPER, paper: PAPER, band: ["#F5F0E6", "#16120E"], ribbon: CRIMSON, foil: { primary: "#2A0710", secondary: "#F5F0E6" } },
     seeds: { block: 6401, ribbon: 6402 },
   },
 };

@@ -372,3 +372,32 @@ minilocker          15.20 x 22.90 x 2.60   with ribbon tail 15.20 x 25.85   open
 next-inc-immersive  15.20 x 22.90 x 2.20   with ribbon tail 15.20 x 25.85   open flat 30.30 x 22.90 x 1.88
 pile of three: 2.4 + 2.6 + 3.0 = 8.0 cm
 ```
+
+## Patch 07 - Materials: cloth, foil, paper, edges  (2026-11-12; the Studio is yours to run, see "Known issues")
+
+**What was built:**
+- `src/config/materials.ts`: every number of how a surface looks (guide 03 section 3), the seven textures and their budget, `CLOTH_VARIANTS` (MiniLocker's stronger weave), `PALETTE_TOKENS`.
+- `src/paint/textures.ts`: the seven pictures as pure functions of integer hashes (no `Math.random`, no trigonometry). `scripts/make-textures.mjs` (`npm run textures`) writes them to `public/textures/` as PNG (greyscale for one channel, no colour chunks) and `manifest.json` (SHA-256 of the pixels). `-- --check` compares only.
+- `src/book/materials.ts`: `clothMaterial`, `foilMaterial`, `paperMaterial`, `edgeMaterial`, `stainedEdge`, `ribbonMaterial`, `bandMaterial`, `wearMaterial`, `dustMaterial`, and `bookMaterials(spec, textures, { wear, dust })` with `disposeBookMaterials`. Without textures every one still returns a correct material.
+- `src/book/surfaceUV.ts`: UV in centimetres (a box projection per triangle for boards, spine, hinge strips and pastedowns; by face for the page block, with the sheet lines at v = y), and the yellowing of the page edges as a vertex colour that fades over `edge.reachCm` from a corner.
+- `src/book/useBookTextures.ts` loads the seven pictures inside `<ThreeCanvas>`. `Book` takes `textured` (default true), `wear` (default 1) and `dust` (default 0); `PageBlock` and `Ribbon` take their material. The wear and dust decals lie on the front board a few steps above the cloth, inside the bevel.
+- `src/config/books.ts`: `colors.foil` and `colors.headStain` (Mini Me's rose-red top edge). `src/lib/color.ts`: `mixHex`, `desaturateHex`.
+- `src/paint/patterns.ts`: the endpaper patterns from a project's slug, motif (`rings`, `orbits`, `nodes`, `waves`, `bars`, `tiles`) and palette token, and `paintPattern` for a 2D canvas (Patch 09 paints the real endpaper page with it).
+- `src/dev/DevMaterials.tsx` (a Still): lighting presets (lamp only, strips only, all), probe on/off, textures on/off, wear and dust, a book turn (`yawDeg`) and a cover lift (`rollDeg`), five camera targets, foil test shapes (a ring, a dot, rules and a block, no text or logos) and the four books' endpaper patterns.
+
+**Decisions:** D-37 and D-38 in `docs/DECISIONS.md`.
+
+**Things worth knowing:**
+- **A flat book cannot flare under a yaw.** Turning a book that lies flat about the vertical axis leaves its normal, and so the mirror direction, unchanged. The lab therefore has `rollDeg` (the cover lifted towards the camera, as in S05); yaw only means something once the cover is lifted.
+- The page edges' yellowing is a per-vertex value, so it spreads over a cell: about 0.5 cm along the head and tail and 1.8 cm across the top, wider than `reachCm` (0.5).
+- The head is face 5 (-z) of the slab; Mini Me's dye goes there.
+- `surfaceUV` returns a non-indexed copy of an indexed geometry (it disposes the old one), so `staticGeometries` now returns non-indexed hinge strips and pastedowns.
+
+**Known issues:**
+- **Foil does not visibly flare yet.** Rendered on the build machine with a Chrome and software GL: for `lighting` all, `look` foil, the brightest 1 percent of the foil region measured 17, 18, 18, 18, 19 for yaw -12, -6, 0, 6, 12 with the cover lifted 35 degrees, and 4, 4, 4, 6, 7 at 65 degrees. The probe's lamp spot is just below the horizon in its front face, so only a steeply raised cover can mirror it. The probe's values are marked as starting values for Patch 10; the acceptance test "foil flares across a 5 degree yaw" is open until then.
+- Foil colours of MiniLocker, SPHEREx and Immersive and the forest palette token are guesses (D-38).
+- The weave, wear and dust were looked at in `DevMaterials` renders but not tuned; use the sliders.
+- The benchmark (`npm run bench`) was not re-run, so "within 15 percent of Patch 06" is unchecked.
+
+**Checks run and results** (build machine: Linux, Node 22, a Chrome with software GL):
+`npx tsc --noEmit` 0 errors. `npm test` 185 of 185 (143 before, 42 added: `tests/textures.test.ts`, `tests/materials.test.ts`, `tests/patterns.test.ts`). `npm run textures -- --check` matches. The whole Remotion entry bundles with esbuild. `DevMaterials` rendered with `remotion still` (textures load, 3.92 MB on the GPU, no errors).

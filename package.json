@@ -17,6 +17,7 @@
     "plate:measure": "node tools/measure-plate.mjs",
     "prompt": "node tools/make-prompt.mjs",
     "probe": "node scripts/make-probe.mjs",
+    "textures": "node scripts/make-textures.mjs",
     "bench": "node scripts/bench.mjs",
     "motion": "node tools/audit-motion.mjs",
     "sheets": "node scripts/make-sheets.mjs",

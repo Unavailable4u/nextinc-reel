@@ -1,0 +1,70 @@
+{
+  "generator": 1,
+  "gpuBytes": 4106921,
+  "budgetBytes": 8388608,
+  "textures": {
+    "cloth-normal": {
+      "file": "textures/cloth-normal.png",
+      "width": 256,
+      "height": 256,
+      "channels": 3,
+      "colorSpace": "linear",
+      "seed": 7101,
+      "sha256": "a1fb5af169ab5c4f6b93dea9501cc09936a4d0899d29049bfb5d97c846081919"
+    },
+    "cloth-rough": {
+      "file": "textures/cloth-rough.png",
+      "width": 256,
+      "height": 256,
+      "channels": 1,
+      "colorSpace": "linear",
+      "seed": 7102,
+      "sha256": "ac932f5f1739cb796b8f013fe3a5c19d024ee8afce33a57df0305cb9bb51c72a"
+    },
+    "cloth-tone": {
+      "file": "textures/cloth-tone.png",
+      "width": 256,
+      "height": 256,
+      "channels": 1,
+      "colorSpace": "srgb",
+      "seed": 7103,
+      "sha256": "cd5d5b137d91d46806db48accb0edc19e6d9cf4bd79492546bdc6d5567b05e96"
+    },
+    "paper-grain": {
+      "file": "textures/paper-grain.png",
+      "width": 256,
+      "height": 256,
+      "channels": 1,
+      "colorSpace": "srgb",
+      "seed": 7104,
+      "sha256": "732a0dedae91a76915bab58a9e09ff96b67c80850fb134cd01c5d8b109a5856e"
+    },
+    "edge-lines": {
+      "file": "textures/edge-lines.png",
+      "width": 64,
+      "height": 256,
+      "channels": 1,
+      "colorSpace": "srgb",
+      "seed": 7105,
+      "sha256": "93b0deec77a7829e02b65cba8bea59b31c9c1e9f79cc57a3160cb47b6f45f088"
+    },
+    "corner-wear": {
+      "file": "textures/corner-wear.png",
+      "width": 256,
+      "height": 384,
+      "channels": 1,
+      "colorSpace": "linear",
+      "seed": 7106,
+      "sha256": "4260a01f479a0ab48660f6e9a497d461accbe4821234690d070de4a6c9d51734"
+    },
+    "dust": {
+      "file": "textures/dust.png",
+      "width": 512,
+      "height": 768,
+      "channels": 1,
+      "colorSpace": "linear",
+      "seed": 7107,
+      "sha256": "e57f7eb020d44318398f12caf03b678f653e8b7a47671e0bb9f29b299c789960"
+    }
+  }
+}

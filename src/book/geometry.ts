@@ -19,9 +19,11 @@
 import * as THREE from "three";
 import { toCreasedNormals } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { BOOK_GEOMETRY as G, closedThickness, sheetCount, type BookPose, type BookSpec } from "../config/books";
+import { MATERIALS } from "../config/materials";
 import { makeNoise } from "../lib/noise";
 import { prng, range } from "../lib/prng";
 import { deg } from "../lib/units";
+import { cornerTint, slabUV, surfaceUV } from "./surfaceUV";
 
 export type Vec3 = [number, number, number];
 
@@ -167,7 +169,7 @@ function boardPlate(L: BookLayout): THREE.BufferGeometry {
   const geo = new THREE.ExtrudeGeometry(shape, { depth: L.b - 2 * bt, bevelEnabled: true, bevelThickness: bt, bevelSize: bt, bevelOffset: -bt, bevelSegments: 3, curveSegments: 4 });
   geo.rotateX(-Math.PI / 2); // (x, y, z) -> (x, z, -y): the extrusion axis becomes up, the plan's y becomes -Z
   geo.translate(0, bt, 0);
-  return toCreasedNormals(geo, deg(40));
+  return surfaceUV(toCreasedNormals(geo, deg(40)));
 }
 
 /** One half of the rounded back as a thin shell, extruded along Z over the full height. `y0..y1` selects the back (0..ym) or front (ym..T) half. */
@@ -184,7 +186,7 @@ function spineHalf(L: BookLayout, y0: number, y1: number): THREE.BufferGeometry 
   const sb = Math.min(G.bevelCm, L.cloth * 0.3);
   const geo = new THREE.ExtrudeGeometry(shape, { depth: L.H - 2 * sb, bevelEnabled: true, bevelThickness: sb, bevelSize: sb, bevelOffset: -sb, bevelSegments: 2, curveSegments: 1 });
   geo.translate(0, 0, -L.H / 2 + sb);
-  return toCreasedNormals(geo, deg(50));
+  return surfaceUV(toCreasedNormals(geo, deg(50)));
 }
 
 /** The floor of the hinge groove: a thin strip of cloth at the board's inner level, from the spine shell to under the board's edge. */
@@ -193,7 +195,7 @@ function hingeStrip(L: BookLayout, yCentre: number): THREE.BufferGeometry {
   const x1 = L.hingeX + 0.1;
   const geo = new THREE.BoxGeometry(x1 - x0, L.cloth, L.H);
   geo.translate((x0 + x1) / 2, yCentre, 0);
-  return geo;
+  return surfaceUV(geo);
 }
 
 /** The pasted-down endpaper on a board's inner face, inset by the cloth turn-in. */
@@ -203,7 +205,7 @@ function pastedown(L: BookLayout, y0: number): THREE.BufferGeometry {
   const z = L.H - 2 * G.pastedownInsetCm;
   const geo = new THREE.BoxGeometry(x1 - x0, G.pastedownCm, z);
   geo.translate((x0 + x1) / 2, y0 + G.pastedownCm / 2, 0);
-  return geo;
+  return surfaceUV(geo);
 }
 
 /** One stripe of the head and tail band over the heights y0..y1: it follows the rounded back, `off0..off1` cm from it, 0.25 cm deep. z runs 0 .. bandDepth. */
@@ -307,6 +309,12 @@ export function blockSlabGeometry(spec: BookSpec, opts: SlabOptions): THREE.Buff
   }
   pos.needsUpdate = true;
   geo.computeVertexNormals();
+  // the surface: UV in cm, and the yellowing of the page edges at the slab's corners (the fore-edge, head and tail faces)
+  slabUV(geo);
+  const E = MATERIALS.edge;
+  const corners: [number, number, number][] = [];
+  for (const y of [yLo, yHi]) for (const x of [blockBackX(L, y), L.xFore]) for (const z of [L.zHead, L.zTail]) corners.push([x, y, z]);
+  cornerTint(geo, corners, { tint: E.tint, amount: E.tintAmount, reach: E.reachCm });
   return geo;
 }
 

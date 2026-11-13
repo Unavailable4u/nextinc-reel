@@ -32,6 +32,16 @@ export interface BookText {
   colophonLimit: boolean;
   /** screenshots in reading order (the files must exist before Patch 09) */
   screenshots: ScreenshotSpec[];
+  /**
+   * P-FIG: the picture of the figure page. When it is absent the page takes the first screenshot that no gallery page uses
+   * (`figureFor` in `src/paint/pages/data.ts`), so SPHEREx needs nothing here.
+   */
+  figure?: ScreenshotSpec;
+  /**
+   * P-FILM: a file under public/ that stands in for the film's own poster. Set only when the poster must not be used: Mini Me's poster
+   * shows "Try MiniMe" and `minime.app` (D-17, D-20), and `npm run sync` does not copy it.
+   */
+  filmFrame?: string;
 }
 
 export const BOOK_TEXT: Record<string, BookText> = {
@@ -42,8 +52,18 @@ export const BOOK_TEXT: Record<string, BookText> = {
     // public on the project's cover art; the product URL that art also shows is deliberately NOT used (D-17)
     coverLine: "Describe a task. Get a team.",
     colophonLimit: false,
-    // you supply 3-6 real app screenshots (only features marked Available); captions are written when they exist
-    screenshots: [],
+    // cropped to the app content by `npm run screens` (guide 07); the figure is the Chat tab, the gallery follows the product's tabs.
+    // All six captions are DRAFTS (they say only what the picture shows); check that each tab is a feature the project's guide marks Available.
+    figure: { file: "screens/mini-me/01-chat.png", caption: "A task in Chat, with agents at work", draft: true },
+    // the film is "The Chat tab" and its own poster is not usable (D-20): the Chat screenshot stands in for it
+    filmFrame: "screens/mini-me/01-chat.png",
+    screenshots: [
+      { file: "screens/mini-me/02-notebooks.png", caption: "Notebooks: a mind map of one topic", draft: true },
+      { file: "screens/mini-me/03-research.png", caption: "Research: sources found for a question", draft: true },
+      { file: "screens/mini-me/04-plan-architecture.png", caption: "Plan: an architecture diagram of a project", draft: true },
+      { file: "screens/mini-me/05-plan-blueprint.png", caption: "Plan: a rough 3D layout of the parts", draft: true },
+      { file: "screens/mini-me/06-build.png", caption: "Build: a code editor beside the chat", draft: true },
+    ],
   },
   "spherex-blink": {
     slug: "spherex-blink",
@@ -87,7 +107,12 @@ export const BOOK_TEXT: Record<string, BookText> = {
     coverLine: "A showcase build",
     backLine: "A showcase build of our website. Not our production site.",
     colophonLimit: false,
-    // cover.webp is the figure; you supply 2-3 stills of the hero, the globe and the founders section
-    screenshots: [],
+    // cover.webp is the figure; the three stills are cropped by `npm run screens` (the hero, the globe, the opening text). Drafts.
+    figure: { file: "site/img/projects/next-inc-immersive/cover.webp", caption: "The showcase build's hero scene", draft: true },
+    screenshots: [
+      { file: "screens/next-inc-immersive/01-hero.webp", caption: "The hero scene: four project cubes", draft: true },
+      { file: "screens/next-inc-immersive/02-globe.webp", caption: "The globe scene of the build", draft: true },
+      { file: "screens/next-inc-immersive/03-intro.webp", caption: "The opening headline and intro text", draft: true },
+    ],
   },
 };

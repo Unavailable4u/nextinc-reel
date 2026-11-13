@@ -450,3 +450,47 @@ pile of three: 2.4 + 2.6 + 3.0 = 8.0 cm
 `npx tsc --noEmit` 0 errors. `npm test` 217 of 217 (185 before, 32 added in `tests/covers.test.ts`: the SVG parser, typography, the dial and the Mark against the source's numbers, the x and its colour on every cloth, the plan of every cover (sizes, the guide's placements, nothing outside the safe area, the spine's order, the QR slot, layers), the cache key, the drawing through a recorder, the normal map, the memory budget, the curved spine). The whole Remotion entry bundles with esbuild.
 
 Measured: textures per book 87.2 MB (Mini Me), 85.2 (SPHEREx), 85.9 (MiniLocker), 84.4 (Immersive), 343 MB for the four, budget 400 MB (the first estimate in `config/covers.ts` said 91 and 365; the board face is a little narrower than the trim). Contrast of the crimson x against the cloth: Mini Me 3.10, MiniLocker 3.25, SPHEREx 1.88, Immersive 1.73.
+
+---
+
+## Patch 09 - Interior page painters, QR codes, spreads  (2026-11-13; the Studio and a phone scan are yours to run, see "Known issues")
+
+**What was built:**
+- `src/config/pages.ts`, `src/config/pageSpecs.ts`, `src/paint/qr.ts` (from your sample files, extended): every number of the pages (`PAGE`: margins, the type scale, each page type's layout, the print, the film frame, the codes), the page list of each book (`BOOK_PAGES`: Mini Me 13 pages, MiniLocker 7, SPHEREx 11 and Immersive 10 for the riser and `DevPages`), the acts in which each book's pages are alive, and the QR rules (level M, 4-module quiet zone, 3.4 cm minimum, vector squares). `PAGE_BACK_TEXT` says which editorial lines the back page prints (the same choice as each back cover).
+- `src/paint/pages/`: `types.ts` (`PagePlan` and its operations), `data.ts` (`pageDataFor`: selectors and `bookText.ts`, the film frame, the figure), `common.ts` (frame, text lines, tracked and small-cap lines, justified paragraphs with a drop cap, whole-sentence flow, shapes), `print.ts` (the mounted print: shadow, white border, hairline, picture, four corner mounts, a turn of 0.4 to 0.8 degrees from a hash), `planners.ts` (the eleven page types and `planPageOf`), `render.ts` (`paintPage`: paper, grain, endpaper pattern, text, shapes, pictures; recorder-friendly), `index.ts` (`planPage`, `planBook`, `pageKey`, `loadBookPages`, `releaseBook`, `spreadOf`).
+- `src/paint/spread.ts`: `paintSpread(bookId, leftIndex)`, `prepareAct(act)` and `disposeAct(act)` (one book's pages alive at once, by `BOOKS_OPEN_IN_ACT`).
+- `src/paint/covers/`: the back cover now prints its QR and its light quiet zone in the reserved slot (`qrOps` in `common.ts`; the plan carries `surfaces.back.qr`; `CoverData.qr` is target 1).
+- `src/dev/DevPages.tsx` (a Still, registered in `Root.tsx`): `spread`, `sheet`, `types` (one of every page type the book uses) and `page` (one page, for the QR check), a margin overlay, the codes' light squares, a "readable only" toggle (green box: passes the 8-word and 7 to 1 rules; red: breaks one), and the painters' notes in red.
+- `scripts/check-qr.mjs` (`npm run qr:check`): renders each page that carries a code through `DevPages` at 40 px per cm, decodes each code with jsQR and compares with `getQrTargets`; exit code 1 on any failure.
+- `scripts/crop-screens.mjs` (`npm run screens`): crops your raw captures to the app content (guide 07). It writes `public/screens/mini-me/01-chat.png ... 06-build.png` and `public/screens/next-inc-immersive/01-hero.webp, 02-globe.webp, 03-intro.webp`; your originals are not touched.
+- `src/config/bookText.ts`: `figure` and `filmFrame`, and the screenshots and draft captions of Mini Me and Immersive.
+- New dependencies: `qrcode-generator` 2.0.4, `jsqr` 1.4.0 (dev).
+
+**PUBLIC API:**
+- `pagesData(id): PageData`; `planPage(id, index, tokens, data?): PagePlan`; `planBook(id, tokens, data?): PagePlan[]` (pure); `pageKey(plan, data, tokens): string`; `loadBookPages(id): Promise<BookPages>` (`{ id, data, pages: { plan, key, canvas }[], bytes }`, cached, refuses a book over the budget); `paintBook(id, tokens, pictures, make?)`; `releaseBook(id)`; `spreadOf(book, leftIndex)`; `paintPage(plan, make, images)`.
+- `PageTokens = { spec, measure, imageSize(file) }`. `paintSpread(id, leftIndex)`, `prepareAct(act)`, `disposeAct(act)`.
+- `qrMatrix(text)`, `qrBox(m, cx, cy, codeSide)`, `qrCmds(m, x, y, module)`.
+
+**Decisions:** D-43 to D-46 in `docs/DECISIONS.md`.
+
+**Decisions and conventions later patches must follow:**
+- **A page is planned, then drawn** (as a cover is). Read the plan in Node, draw it in the browser. `PAGE.version` is in every cache key.
+- **Left and right pages**: the index decides the side (even is left); the inner margin (2.0 cm) is on the right of a left page. A leaf's front is an odd index and its back the next even one, so P-BLANK (index 2) is the back of P-HALF (index 1): it shows the half-title through, mirrored, at 5 percent.
+- **Read strings and texture** (D-44). A string at most 8 words long is read and has 7 to 1 contrast; anything longer is texture of real sentences. Add a string to a page and the tests check both.
+- **Pictures**: a print is never cropped (the film frame, 16:9, is); a picture that is missing is drawn as an empty frame and the plan carries a note (red in `DevPages`). Pictures come from the `ImageLookup` given to `paintPage`.
+- **Codes** are drawn only by `qrCmds` with `qrBox`'s quiet zone, and tagged `qr-quiet` and `qr-modules`, so `qr:check` and the tests can find them. Never draw a code from a picture.
+- **Texture memory**: 13 pages of Mini Me are 13 x 32 MB = 416 MB, under the 512 MB budget of one book. MiniLocker's 7 pages are 224 MB. Patch 11 must drop one book before it loads another (`disposeAct`).
+
+**Known issues:**
+- **Your pictures are missing for MiniLocker and SPHEREx.** `public/screens/minilocker/` and `public/screens/spherex-blink/` hold nothing yet (the MiniLocker files come from `minilocker-film/public/deck/*.png`). Until then those books' gallery pages show empty mounted frames and `DevPages` prints a red note for each. SPHEREx's figure and the Immersive figure read from `public/site/img/...` (run `npm run sync -- --copy-media`).
+- **All captions are drafts** (`draft: true` in `bookText.ts`). They say only what the picture shows. Check each Mini Me tab is a feature the project's guide marks Available before you approve them; `content/books.md` has the approved wording to compare.
+- **The Studio and a phone scan were not done by hand.** `qr:check` and the stills were rendered with Remotion in headless Chromium on the build machine (software GL): all 12 codes decode and the 11 page types look right by eye. Point a real phone at `DevPages` (`page` view, any QR page) on your monitor, as the patch asks.
+- Small type is small: body text is 11 pt on a 15.2 cm page (4.75 px per point at 2048 px). The abstract, colophon and gallery text are texture; the captions, names, labels and addresses are the read strings. If the sheet at 100 percent is hard to read, raise `PAGE.type` and `PAGE.colo` numbers; every number is in `config/pages.ts`.
+- Patch 10 bends these canvases; they are flat 2048 x 3072 RGBA with no mip maps made yet (the budget counts them).
+
+**Warnings for the next patch (10):**
+- A page texture is `PaintedPage.canvas` (HTMLCanvasElement) in the book's `loadBookPages` result; do not repaint it per frame. A spread's two canvases come from `spreadOf` or `paintSpread`.
+- The texture covers the whole leaf face, 2048 x 3072 for 15.2 x 22.8 cm of the 22.9 cm trim (D-36 and `PAGE_PX_PER_CM`): map the page's UV to the leaf so the text does not swim.
+
+**Checks run and results** (build machine: Linux, Node 22, headless Chromium):
+`npx tsc --noEmit` 0 errors. `npm test` 241 of 241 (217 before, 24 added in `tests/pages.test.ts`: the page lists and parity, the margins and nothing outside them, no notes on any page, the read rules, real words only, whole sentences, D-17 and D-20, each page type, every code decoded from its own squares with jsQR, its size and quiet zone, the budget, determinism, and the drawing through a recorder). `npm run qr:check` 12 of 12 codes decode from rendered stills at 40 px per cm. `DevPages` rendered and looked at: `types`, `spread` and `sheet`.

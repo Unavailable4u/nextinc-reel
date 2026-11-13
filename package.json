@@ -22,7 +22,8 @@
     "motion": "node tools/audit-motion.mjs",
     "sheets": "node scripts/make-sheets.mjs",
     "stills": "node scripts/stub.mjs stills 13",
-    "qr:check": "node scripts/stub.mjs qr:check 09",
+    "screens": "node scripts/crop-screens.mjs",
+    "qr:check": "node scripts/check-qr.mjs",
     "audit": "node scripts/stub.mjs audit 23",
     "render": "node scripts/stub.mjs render 24"
   },
@@ -36,6 +37,7 @@
     "@remotion/three": "4.0.540",
     "@remotion/zod-types": "4.0.540",
     "postprocessing": "6.39.6",
+    "qrcode-generator": "2.0.4",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "remotion": "4.0.540",
@@ -49,6 +51,7 @@
     "@types/react-dom": "18.3.7",
     "@types/three": "0.170.0",
     "esbuild": "0.25.12",
+    "jsqr": "1.4.0",
     "typescript": "5.9.3"
   }
 }

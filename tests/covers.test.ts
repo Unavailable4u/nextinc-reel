@@ -385,7 +385,8 @@ test("covers: the back keeps a 4.4 cm square free for the QR, 3.9 cm above the b
     near(sp.height - (q.y + q.h), COVER.back.qrFromBottomCm * sp.pxPerCm, 1e-6);
     near(q.x + q.w / 2, sp.width / 2, 1e-6);
     for (const o of texts(sp)) truthy(o.y < q.y, `${id}: "${o.text}" is above the slot`);
-    for (const o of sp.ops) if (o.kind === "shape") truthy(pathBounds(o.cmds).y0 > q.y + q.h, `${id}: the x is under the slot`);
+    // the code of Patch 09 stands IN the slot (its two operations carry a tag); everything else is the x, which is under it
+    for (const o of sp.ops) if (o.kind === "shape" && !o.tag) truthy(pathBounds(o.cmds).y0 > q.y + q.h, `${id}: the x is under the slot`);
     eq(plan(id).surfaces.front.qrSlot, undefined);
   }
 });

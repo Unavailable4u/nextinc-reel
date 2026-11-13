@@ -31,6 +31,8 @@ export interface Paint {
 
 export interface ShapeOp extends Paint {
   kind: "shape";
+  /** what a QR check looks for: the light square and the dark modules of a code (Patch 09) */
+  tag?: "qr-quiet" | "qr-modules";
   cmds: readonly PathCmd[];
   mode: "fill" | "stroke";
   stroke?: { width: number; cap?: CanvasLineCap; dash?: readonly number[] };
@@ -71,8 +73,10 @@ export interface SurfacePlan {
   /** nothing that must be read goes outside it */
   safe: Rect;
   ops: Op[];
-  /** the square kept free for the QR of Patch 09 (back cover only) */
+  /** the square kept free for the QR (back cover only) */
   qrSlot?: Rect;
+  /** the code printed in the slot (Patch 09): what it encodes, the modules' area and the light square around it, in px of the surface */
+  qr?: { url: string; version: number; code: Rect; quiet: Rect };
 }
 
 export interface CoverPlan {
@@ -97,6 +101,8 @@ export interface CoverData {
   summary: string;
   /** names only, in the site's order */
   authors: string[];
+  /** the address the back cover's QR encodes: QR 1 of the book (`getQrTargets`, guide 07 section 3) */
+  qr: string;
 }
 
 /** What a planner needs besides the data: the book's colours, a way to measure text and the one picture that is a file. */

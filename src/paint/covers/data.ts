@@ -4,7 +4,7 @@
 
 import { BOOK_TEXT } from "../../config/bookText";
 import type { BookId } from "../../config/books";
-import { getAuthors, getBook, MissingDataError } from "../../data/select";
+import { getAuthors, getBook, getQrTargets, MissingDataError } from "../../data/select";
 import type { CoverData } from "./types";
 
 export function coverDataFor(id: BookId): CoverData {
@@ -20,5 +20,6 @@ export function coverDataFor(id: BookId): CoverData {
     backLine: text.backLine,
     summary: book.summary,
     authors: getAuthors().map((a) => a.name),
+    qr: getQrTargets(id)[0].url,
   };
 }

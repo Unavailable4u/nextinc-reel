@@ -8,6 +8,7 @@ import { DevCamera, defaultDevCameraProps, devCameraSchema } from "./dev/DevCame
 import { DevBook, defaultDevBookProps, devBookSchema } from "./dev/DevBook";
 import { DevMaterials, defaultDevMaterialsProps, devMaterialsSchema } from "./dev/DevMaterials";
 import { DevCovers, defaultDevCoversProps, devCoversSchema } from "./dev/DevCovers";
+import { DevPages, defaultDevPagesProps, devPagesSchema } from "./dev/DevPages";
 import { DevBench } from "./dev/DevBench";
 import { BENCH_FRAMES } from "./dev/benchScenes";
 import { FPS, HEIGHT, TOTAL, WIDTH } from "./config/timeline";
@@ -26,6 +27,7 @@ export const RemotionRoot: React.FC = () => (
     <Still id="DevBook" component={DevBook} width={WIDTH} height={HEIGHT} schema={devBookSchema} defaultProps={defaultDevBookProps} />
     <Still id="DevMaterials" component={DevMaterials} width={WIDTH} height={HEIGHT} schema={devMaterialsSchema} defaultProps={defaultDevMaterialsProps} />
     <Still id="DevCovers" component={DevCovers} width={WIDTH} height={HEIGHT} schema={devCoversSchema} defaultProps={defaultDevCoversProps} />
+    <Still id="DevPages" component={DevPages} width={WIDTH} height={HEIGHT} schema={devPagesSchema} defaultProps={defaultDevPagesProps} />
     <Composition id="DevBench" component={DevBench} durationInFrames={BENCH_FRAMES.length} fps={FPS} width={WIDTH} height={HEIGHT} />
   </>
 );

@@ -12,10 +12,11 @@
 import { BOOK_GEOMETRY } from "../../config/books";
 import type { BookSpec } from "../../config/books";
 import { COVER, COVER_STYLE, CRIMSON, INK, OFF_WHITE, PT_CM, type ColorRole, type Fill, type CoverStyle } from "../../config/covers";
+import { QR_DARK, QR_LIGHT, QR_MIN_CODE_CM, QR_QUIET_MODULES, qrCmds, qrMatrix } from "../qr";
 import { contrastRatio } from "../../lib/color";
 import { layoutOf } from "../../book/geometry";
 import glyphX from "../../../public/site/brand/glyph-x.json";
-import { circleCmds, fitToWidth, multiply, parsePath, parseSvgPaths, pathBounds, rotation, scaling, transformPath, translation, type PathCmd } from "../svgPath";
+import { circleCmds, fitToWidth, multiply, parsePath, parseSvgPaths, pathBounds, rectCmds, rotation, scaling, transformPath, translation, type PathCmd } from "../svgPath";
 import { balancedWrap, fitSize, layoutTitle, smallCapsLayout, type FontSpec, type Measure, type TypeFace } from "../typography";
 import type { CoverData, CoverPlan, CoverTokens, Layer, Op, Paint, Rect, ShapeOp, SurfacePlan, TextOp } from "./types";
 import type { Surface } from "../../config/covers";
@@ -146,7 +147,7 @@ interface Glyph {
 
 let xCache: PathCmd[] | null = null;
 /** The x of the site as path commands, centred on the origin and `1` wide, y down (a font's outline has y up, so it is turned over). */
-function unitX(): PathCmd[] {
+export function unitX(): PathCmd[] {
   if (xCache) return xCache;
   const up = parsePath((glyphX as Glyph).d);
   const down = transformPath(up, scaling(1, -1));
@@ -350,9 +351,11 @@ function planBack(ctx: Ctx, art: CoverArt): SurfacePlan {
   const cx = f.w / 2;
   const ops: Op[] = [];
 
-  // the QR slot of Patch 09 is kept free; the x stands at the foot
+  // the QR slot is kept free for the code of the book's first QR target; the x stands at the foot
   const slot = f.cm(B.qrSlotCm);
   const qrSlot: Rect = { x: cx - slot / 2, y: f.h - f.cm(B.qrFromBottomCm) - slot, w: slot, h: slot };
+  const qrPrint = qrOps(ctx, f, qrSlot);
+  ops.push(...qrPrint.ops);
   const xW = f.cm(B.xCm);
   // the x is 0.87 of its width tall, so its centre is 0.435 of the width above the bottom of the safe area
   ops.push(...publisherXOps(ctx, cx, f.safe.y + f.safe.h - xW * (X_ASPECT / 2), xW));
@@ -392,15 +395,39 @@ function planBack(ctx: Ctx, art: CoverArt): SurfacePlan {
     ops.push(textOp(paint, r.text, cx - w / 2, y + (lh(r) - r.size) / 2 + ASCENT * r.size, r.face, r.size));
     y += lh(r);
   });
-  return surfacePlan(f, ops, qrSlot);
+  return surfacePlan(f, ops, qrSlot, qrPrint.qr);
+}
+
+/**
+ * The code of the back cover (Patch 09): the largest code that fits the slot with its light quiet zone of `QR_QUIET_MODULES` modules on
+ * every side, centred in it. Vector squares in print (ink), dark on a light square, so it scans from the dark cloth too. The plan says so
+ * in a note when the code would be under `QR_MIN_CODE_CM` on the paper (a very short address makes a small code).
+ */
+function qrOps(ctx: Ctx, f: Frame, slot: Rect): { ops: ShapeOp[]; qr?: NonNullable<SurfacePlan["qr"]> } {
+  const url = ctx.data.qr;
+  if (!url) return { ops: [] };
+  const m = qrMatrix(url);
+  const module = slot.w / (m.size + 2 * QR_QUIET_MODULES);
+  const side = module * m.size;
+  const quietSide = slot.w;
+  const cx = slot.x + slot.w / 2;
+  const cy = slot.y + slot.h / 2;
+  const code: Rect = { x: cx - side / 2, y: cy - side / 2, w: side, h: side };
+  const quiet: Rect = { x: cx - quietSide / 2, y: cy - quietSide / 2, w: quietSide, h: quietSide };
+  if (side / f.ppc < QR_MIN_CODE_CM - 1e-9) ctx.notes.push(`the back cover's QR is ${(side / f.ppc).toFixed(2)} cm on the paper, under the ${QR_MIN_CODE_CM} cm of guide 04: make the slot bigger`);
+  const ink = (fill: string, tag: "qr-quiet" | "qr-modules", cmds: PathCmd[]): ShapeOp => ({ ...fillOp(cmds, { layer: "ink", fill, alpha: 1, depth: 0 }), tag });
+  return {
+    ops: [ink(QR_LIGHT, "qr-quiet", rectCmds(quiet.x, quiet.y, quiet.w, quiet.h)), ink(QR_DARK, "qr-modules", qrCmds(m, code.x, code.y, module))],
+    qr: { url, version: m.version, code, quiet },
+  };
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------
 // a cover
 // ---------------------------------------------------------------------------------------------------------------------------
 
-function surfacePlan(f: Frame, ops: Op[], qrSlot?: Rect): SurfacePlan {
-  return { surface: f.surface, width: f.w, height: f.h, pxPerCm: f.ppc, widthCm: f.widthCm, heightCm: f.heightCm, safe: f.safe, ops, ...(qrSlot ? { qrSlot } : {}) };
+function surfacePlan(f: Frame, ops: Op[], qrSlot?: Rect, qr?: SurfacePlan["qr"]): SurfacePlan {
+  return { surface: f.surface, width: f.w, height: f.h, pxPerCm: f.ppc, widthCm: f.widthCm, heightCm: f.heightCm, safe: f.safe, ops, ...(qrSlot ? { qrSlot } : {}), ...(qr ? { qr } : {}) };
 }
 
 /** The plan of a whole cover. `notes` lists, once each, what the painter could not do. */

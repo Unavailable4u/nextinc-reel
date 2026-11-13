@@ -55,12 +55,13 @@ const Readout: React.FC = () => {
 /**
  * THE SET, composed the way `DevPile` composes it (Patch 12): the lights, the environment the glossy materials reflect, the shadow
  * catcher, the pile (every book the ledger puts on the left of the desk), the riser and the dust. Children of <Stage>, world space.
- * Every part is a pure function of `frame`; where a book is comes from the ledger, never from a shot.
+ * Every part is a pure function of `frame`; where a book is comes from the ledger, never from a shot. Exported so that `DevShotStrip`
+ * draws its cells with this set and not a copy of it.
  *
  * The riser is drawn from the first frame the ledger puts a book on it (the swap under the chair wipe) and not before: it is not in the
  * photograph, so a riser drawn at frame 0 would stand at the right end of the desk in the opening shot.
  */
-const FilmSet: React.FC<{ frame: number }> = ({ frame }) => (
+export const FilmSet: React.FC<{ frame: number }> = ({ frame }) => (
   <>
     <LightRig frame={frame} />
     <ProbeEnvironment />
@@ -74,9 +75,10 @@ const FilmSet: React.FC<{ frame: number }> = ({ frame }) => (
 /**
  * THE OVERLAY LAYER: the 2D layer of the active shot (the labels of S23, the wordmark of S24), drawn above the canvas. It asks the
  * registry which shot the frame belongs to and draws that shot's overlay if it has one; it never names a shot. An overlay is a component
- * without props that calls `useCurrentFrame()` for the film frame (it is not inside a <Sequence>).
+ * without props that calls `useCurrentFrame()` for the film frame (it is not inside a <Sequence>). Exported for `DevShotStrip`, which
+ * draws it inside a <Freeze> at the frame of each cell.
  */
-const OverlayLayer: React.FC<{ frame: number }> = ({ frame }) => {
+export const OverlayLayer: React.FC<{ frame: number }> = ({ frame }) => {
   const Overlay = activeShot(frame).overlay;
   if (!Overlay) return null;
   return (

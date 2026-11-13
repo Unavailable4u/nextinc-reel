@@ -13,6 +13,7 @@ import { DevPageTurn, defaultDevPageTurnProps, devPageTurnSchema } from "./dev/D
 import { DevBookMotion, defaultDevBookMotionProps, devBookMotionSchema } from "./dev/DevBookMotion";
 import { DevPile, defaultDevPileProps, devPileSchema } from "./dev/DevPile";
 import { DevRiser, defaultDevRiserProps, devRiserSchema } from "./dev/DevRiser";
+import { DevShotStrip, defaultDevShotStripProps, devShotStripSchema } from "./dev/DevShotStrip";
 import { DevBench } from "./dev/DevBench";
 import { BENCH_FRAMES } from "./dev/benchScenes";
 import { FPS, HEIGHT, TOTAL, WIDTH } from "./config/timeline";
@@ -37,5 +38,6 @@ export const RemotionRoot: React.FC = () => (
     <Still id="DevPile" component={DevPile} width={WIDTH} height={HEIGHT} schema={devPileSchema} defaultProps={defaultDevPileProps} />
     <Still id="DevRiser" component={DevRiser} width={WIDTH} height={HEIGHT} schema={devRiserSchema} defaultProps={defaultDevRiserProps} />
     <Composition id="DevBench" component={DevBench} durationInFrames={BENCH_FRAMES.length} fps={FPS} width={WIDTH} height={HEIGHT} />
+    <Still id="DevShotStrip" component={DevShotStrip} width={WIDTH} height={HEIGHT} schema={devShotStripSchema} defaultProps={defaultDevShotStripProps} />
   </>
 );

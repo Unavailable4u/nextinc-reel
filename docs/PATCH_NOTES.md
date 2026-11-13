@@ -760,3 +760,57 @@ ssim(a, b, w, h), ssimRgb(a, b, w, h), lumaOf(r, g, b)                          
 
 **To run on your machine**
 `npm run stills -- --frames 0,840`, `-- --shot S03`, `-- --every 120` and `-- --golden` (the four CHECK lines), then `npm run plate:verify` (the same SSIM as before this patch). Look at the contact sheet of `--every 120`: the photo to the last frame, each cell labelled with its shot.
+
+---
+
+## Patch 13D - Shot strip and the scrub check; closes Patch 13  (2026-11-14)
+
+Owner: reel team.
+
+**What it adds**
+- `src/dev/DevShotStrip.tsx`: a still (`DevShotStrip`, registered last in `src/Root.tsx`, after the film and every other dev composition, so `ReelFilm` stays the default) with 26 labelled cells, S00 to S25, in reading order. Each cell is the film at the first frame of its shot, drawn by the film's own camera rig on the film's own keyframes, the film's own set (`FilmSet`), the shot's own overlay (`OverlayLayer`, at the cell's frame inside a `<Freeze>`) and the vignette. Props (zod, like the other dev sheets): `offset` (0 to 479, default 0: how far into each shot the cell is; a shorter shot shows its last frame), `columns` (4 to 13, default 7: 4 rows of 7, cells 252 x 141 px), `hud` (a second and third line under each cell: time, regime, length in bars, and the shot's name) and `settleMs` (a wait before each cell is drawn, default 100, for a slow machine). Changing `offset` draws the cells again.
+- `src/dev/shotStrip.ts` (no React, no three.js, so Node reads it): which frame each cell shows (`stripCells`, `cellFrame`), the labels (`cellLabel`, `labelHeight`) and the grid (`stripLayout`). The shots come from the registry and their names and regimes from the table.
+- `src/ReelFilm.tsx`: `FilmSet` and `OverlayLayer` are now exported (the word `export` and two sentences of comment; nothing else changed), so the strip draws with them and not with a copy.
+- `tests/shotstrip.test.ts` (14 tests): the cells and their frames for every offset 0 to 479, the labels, the layout for 1 to 13 columns with and without `hud`, and **the scrub check**: on every one of the 5400 frames the timeline (`shotAt`, what the readout prints) and the registry (`activeShot`, what the overlay layer asks) name the same shot, inside its range, never going back; the shot changes on exactly the 25 frames of the table's cuts (240, 480, ... 5280); and on both sides of every boundary (239/240 to 5279/5280) the right shot is active. Plus the source rules below.
+- decisions D-57 and D-58, this entry, the progress line of `docs/patches/INDEX.md`.
+
+**What Patch 13 added, 13A to 13D together**
+- 13A, the shot registry: `src/shots/types.ts` (`Shot`, `SfxCue`), `defineShot` and the checks, the 26 shot files `S00`-`S25` (S00-S03 carry the Patch 05 camera, S04-S25 are empty), `SHOT_REGISTRY`, `activeShot`, `shotById`, `FILM_CAMERA_KEYFRAMES`, `FILM_CUES`; `npm run motion` prints `shot registry: VALID` and exits 1 when a shot file disagrees with the table; 17 tests; D-51, D-52.
+- 13B, the master composition: `ReelFilm` plays from the registry: the camera rig on `FILM_CAMERA_KEYFRAMES`, the set (`FilmSet`), the overlay layer, the grain, the vignette and the readout, with `scene`, `grain` and `vignette` switches; `plate:verify` turns the set and the two layers off; 11 tests; D-53 to D-55.
+- 13C, the stills tool: `npm run stills` with `--frames`, `--shot`, `--every` and `--golden`, a contact sheet, the golden comparison; the shared SSIM; 14 tests; D-56.
+- 13D, this patch: the shot strip and the scrub check; 14 tests; D-57, D-58.
+- The film is still 5400 frames and every shot boundary is the storyboard's; no shot has any content of its own yet. Patch 14 needs all four parts and starts from them.
+
+**PUBLIC API**
+```
+<DevShotStrip offset? columns? hud? settleMs? />        // Still, 1920 x 1080; defaults { offset: 0, columns: 7, hud: true, settleMs: 100 }
+stripCells(offset?, shots?): StripCell[]                  // { index, id, name, regime, from, to, frame, into, bars } x 26
+cellFrame({ from, to }, offset): number                   // from + offset, cut at to; throws for a negative or fractional offset
+cellLabel(cell, hud): { title, detail, name }             // title "S05 . f1080" (+ "(+30)" when offset > 0); detail and name only with hud
+labelHeight(hud): number                                  // 26 px, or 62 with hud
+stripLayout({ columns, count, width?, height?, margin?, gap?, headerH?, labelH? }): { columns, rows, cellW, cellH, labelH, cells[] }
+MAX_OFFSET 479   DEFAULT_COLUMNS 7   MIN_COLUMNS 4   MAX_COLUMNS 13   MIN_CELL_W 96       // src/dev/shotStrip.ts
+FilmSet, OverlayLayer                                      // now exported from src/ReelFilm.tsx
+```
+
+**Decisions and conventions later patches must follow**
+- **One WebGL canvas, drawn cell by cell** (D-57). Not 26 canvases, and not stills of the film. A cell is a pure function of its frame; nothing of an earlier cell stays in it. Because the strip draws the live film, it follows every shot patch with no step in between (stills would be out of date the moment a shot changed).
+- A shot patch does not touch the strip: it asks the registry for the shots and the table for their names, and names no shot (a test reads the source).
+- A cell has the film's camera, set, overlay and vignette, and not the grain (D-58). When Patch 19 gives S23 and S24 an overlay, the strip shows it with no change here.
+- The layout raises `columns` when the page is too short for the rows (fewer than 4 do not fit 26 cells), and reports the number it used.
+
+**Known issues**
+- **Not rendered and not looked at.** There was no browser or GPU, so `DevShotStrip` in the Studio, the Studio scrub of `ReelFilm`, `npm run plate:verify` and `npm run stills -- --every 120` are yours to run. What was checked is below. The drawing path (set a frame, draw once with the renderer's own `advance`, copy the canvas small) was read against the source of the installed `@react-three/fiber` (`advance` always renders and runs the `useFrame` callbacks; the root is concurrent, so the effect inside the canvas runs after the scene has the new frame) but never run. If it misbehaves, the first things to look at are: cells with plain boards instead of painted covers (raise `settleMs` to 500 or more), cells all showing the first frame (the Studio drew before the camera was set: raise `settleMs`), and a `remotion still` that times out (the strip holds the render for up to 240 s; the covers of all four books are painted before the first cell).
+- **`plate:verify` and the stills tool are unaffected in principle** (the only change to a file they use is two `export` keywords in `src/ReelFilm.tsx`), but they were not run.
+- **Cells from S04 on look alike until Patches 14 to 20.** The shots S04-S25 add no keyframe, so the camera holds the state S03 left it in; what differs from cell to cell is the ledger's: the lifted book from frame 960, the books set down, the riser from frame 4140. No shot has an overlay yet, so the 2D layer of every cell is empty.
+- **All four books' covers are painted before the first cell** (about 343 MB of canvases, D-40, as much as the film holds at its peak, but here all at once). On a small machine close other tabs; the strip has no switch for it.
+- The picture kept for each cell is 480 x 270 px, which is more than the page ever shows at 1920 x 1080. At a render scale above 1 the cells are not sharper.
+- `settleMs` defaults to 100 here and to 0 in the other sheets: a cell is drawn right after a scene change, which the other sheets are not.
+- The strip's own `performance.now()` is only the timestamp handed to the renderer's `advance` (Remotion's frame renderer does the same). Nothing in the film reads it.
+- `npm run motion` does not run the scrub check; `npm test` does.
+
+**Checks run**
+`npx tsc --noEmit` 0 errors. `npm test` 354 of 354 (340 before; 14 added in `tests/shotstrip.test.ts`: 26 cells S00-S25 at the table's frames; every offset 0 to 479 puts each cell inside its shot and both `shotAt` and `activeShot` agree; the cells are the same twice; a bad offset is refused with its value; the labels with and without `hud`; the layout fits the page, in reading order with no two cells on each other, for 1 to 13 columns with and without `hud`; the default is 4 rows of 7; too few columns are raised and never lowered, and more columns than fit by height are left alone; the scrub over all 5400 frames; both sides of all 25 boundaries; `DevShotStrip` is registered last; one camera rig and no other canvas, no clock or random, the schema's props). Two of these tests failed on the first run and were fixed in the patch: a 1-column layout hung off the bottom of the page, and the first fix for it (more columns) ran away to 26 columns when the width, not the height, was the limit. `npm run motion` unchanged: STILL 1 (the documented exception), FAST 0, DEEP 0, EDGE 0, POP 0, LATE 0, `shot registry: VALID`. `npx remotion bundle src/index.ts` compiles with `DevShotStrip` in it.
+
+**To run on your machine**
+`npm run plate:verify`, then `npm run studio`. Open `DevShotStrip`: 26 labelled cells, S00 to S25, the first frame of each shot (S00 f0000, S01 f0240, S02 f0480, S03 f0840, S04 f0960, S05 f1080, ... S25 f5280). Try `offset` 60 and 300, `columns` 5 and 9, `hud` off, and `settleMs` 500 if a cell has plain boards. Then open `ReelFilm` and scrub across every boundary (239/240, 479/480, 839/840, 959/960, ..., 5279/5280): the shot id in the readout is the earlier shot on the first frame and the later one on the second, on every one. Last, `npm run stills -- --every 120` still renders the contact sheet.

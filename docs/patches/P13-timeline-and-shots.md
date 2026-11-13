@@ -1,5 +1,9 @@
 ### PATCH 13 - Master composition, shot registry, stills tool
 
+> **Split into four patches** because one session cannot hold all of it (guide 14, section 5). Do them in this order; the prompt below stays as the whole of Patch 13 and the four files carry its parts:
+> **13A** `P13A-shot-registry.md` (shot types, stubs S00-S25, the registry and its checks, the audit line) - **13B** `P13B-master-composition.md` (the film plays from the registry, the set, the overlay layer, grain and vignette) - **13C** `P13C-stills-tool.md` (`npm run stills`) - **13D** `P13D-shot-strip.md` (`DevShotStrip` and the scrub check). 13B and 13C may swap. Patch 14 needs all four.
+> Assemble a part's prompt with `node tools/make-prompt.mjs 13a` (or 13b, 13c, 13d).
+
 **Needs:** 05, 12
 **Parallel-safe with:** none
 **Size:** M

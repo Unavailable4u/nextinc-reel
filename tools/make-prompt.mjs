@@ -1,9 +1,10 @@
 // Assembles the five parts of a patch prompt into one paste-ready file.
 //
 //   node tools/make-prompt.mjs 7
+//   node tools/make-prompt.mjs 13a                (a part of a split patch: P13A-*.md; guide 14, section 5)
 //   node tools/make-prompt.mjs 1 --repo-site ../nextinc
 //   node tools/make-prompt.mjs 8 --repo-site ../nextinc --repo-film ../minilocker-film
-//   node tools/make-prompt.mjs --all          (checks that all 27 patch files can be assembled; writes nothing)
+//   node tools/make-prompt.mjs --all          (checks that all 27 patch files, and the parts of the split ones, can be assembled; writes nothing)
 //
 // The five parts (guide 14): (1) docs/guide/context-header.md, (2) the files the patch lists under "Paste existing",
 // (3) the files under "Paste reference" (read from the other repos), (4) the guide sections under "Attach from guide",
@@ -21,10 +22,10 @@ const flag = (name) => {
 const repoSite = flag("--repo-site") || process.env.SITE_REPO || "";
 const repoFilm = flag("--repo-film") || process.env.FILM_REPO || "";
 const all = args.includes("--all");
-const num = args.find((a) => /^\d+$/.test(a));
+const num = args.find((a) => /^\d+[a-z]?$/i.test(a));
 
 if (!all && num === undefined) {
-  console.error("Usage: node tools/make-prompt.mjs <patch 0-26> [--repo-site <path to nextinc>] [--repo-film <path to minilocker-film>]\n       node tools/make-prompt.mjs --all");
+  console.error("Usage: node tools/make-prompt.mjs <patch 0-26, or a part such as 13a> [--repo-site <path to nextinc>] [--repo-film <path to minilocker-film>]\n       node tools/make-prompt.mjs --all");
   process.exit(1);
 }
 
@@ -34,11 +35,18 @@ const fence = (txt) => (txt.includes("```") ? "````" : "```");
 const LANG = { ".ts": "ts", ".tsx": "tsx", ".mjs": "js", ".js": "js", ".json": "json", ".md": "md", ".css": "css", ".html": "html", ".svg": "svg" };
 const lang = (p) => LANG[path.extname(p)] || "";
 
+/** "7" -> { nn: "07", part: "" }; "13a" -> { nn: "13", part: "A" } */
+function patchId(n) {
+  const m = String(n).match(/^(\d+)([a-z]?)$/i);
+  if (!m) throw new Error(`Not a patch number: ${n}`);
+  return { nn: m[1].padStart(2, "0"), part: m[2].toUpperCase() };
+}
+
 function findPatchFile(n) {
-  const nn = String(n).padStart(2, "0");
+  const { nn, part } = patchId(n);
   const dir = path.join(ROOT, "docs", "patches");
-  const hit = fs.readdirSync(dir).find((f) => new RegExp(`^P${nn}-.*\\.md$`).test(f));
-  if (!hit) throw new Error(`No patch file docs/patches/P${nn}-*.md`);
+  const hit = fs.readdirSync(dir).find((f) => new RegExp(`^P${nn}${part}-.*\\.md$`).test(f));
+  if (!hit) throw new Error(`No patch file docs/patches/P${nn}${part}-*.md`);
   return path.join(dir, hit);
 }
 
@@ -203,7 +211,8 @@ function resolveReference(token, state) {
 function assemble(n, { write }) {
   const file = findPatchFile(n);
   const p = patchParts(file);
-  const nn = String(n).padStart(2, "0");
+  const id = patchId(n);
+  const nn = id.nn + id.part;
   const notes = [];
   const out = [];
 
@@ -275,22 +284,30 @@ function assemble(n, { write }) {
 
 if (all) {
   let bad = 0;
-  for (let n = 0; n <= 26; n++) {
+  // the 27 patches, then the parts of the split ones (P13A-*.md and so on), in order
+  const parts = fs
+    .readdirSync(path.join(ROOT, "docs", "patches"))
+    .map((f) => f.match(/^P(\d{2})([A-Z])-.*\.md$/))
+    .filter(Boolean)
+    .map((m) => `${Number(m[1])}${m[2]}`);
+  const ids = [...Array.from({ length: 27 }, (_, n) => String(n)), ...parts];
+  for (const n of ids) {
+    const label = patchId(n);
     try {
       const r = assemble(n, { write: false });
       const miss = r.notes.filter((x) => /not found|no section/.test(x));
-      console.log(`P${r.nn}  ${String(Math.round(r.text.length / 4)).padStart(6)} tok  existing ${r.existing}  reference ${r.refs}  guide ${r.att}${miss.length ? "   ! " + miss.join("; ") : ""}`);
+      console.log(`P${r.nn.padEnd(3)} ${String(Math.round(r.text.length / 4)).padStart(6)} tok  existing ${r.existing}  reference ${r.refs}  guide ${r.att}${miss.length ? "   ! " + miss.join("; ") : ""}`);
       if (miss.length) bad++;
     } catch (e) {
       bad++;
-      console.log(`P${String(n).padStart(2, "0")}  ERROR ${e.message}`);
+      console.log(`P${(label.nn + label.part).padEnd(3)} ERROR ${e.message}`);
     }
   }
-  console.log(bad ? `\n${bad} patch file(s) have section hints the tool could not resolve (listed above).` : "\nAll 27 patch files assemble; every guide section resolved.");
+  console.log(bad ? `\n${bad} patch file(s) have section hints the tool could not resolve (listed above).` : `\nAll 27 patch files${parts.length ? ` and ${parts.length} split parts` : ""} assemble; every guide section resolved.`);
   process.exit(0);
 }
 
-const r = assemble(Number(num), { write: true });
+const r = assemble(num, { write: true });
 console.log(`\n${r.p.title}`);
 console.log(`Needs: ${r.p.needs}`);
 if (r.p.before) console.log(`Before you start (you do this): ${r.p.before}`);

@@ -282,6 +282,19 @@ const S03 = holdShot(840, 960, PILE, {
 });
 
 /**
+ * The keyframes of S00-S03, one array per shot (Patch 13A). The shot files in `src/shots/` take their `camera` from here, so a shot owns
+ * its keyframes and the registry (`src/shots/index.ts`, `FILM_CAMERA_KEYFRAMES`) can put them back together. A shot's keys lie inside its
+ * own frames, plus one closing key on the first frame of the next shot (the state the next move starts from): S03's key at frame 960 is
+ * the example. The arrays are the ones the builders above made, split where the shots split, in the order they were joined before.
+ */
+export const SHOT_KEYFRAMES: Readonly<Record<"S00" | "S01" | "S02" | "S03", readonly CameraKeyframe[]>> = {
+  S00: S00.slice(0, -1),
+  S01,
+  S02,
+  S03,
+};
+
+/**
  * PLACEHOLDERS for S00-S03 (frames 0-959), taken from the table of guide 05 section 4:
  *   S00 0-239    micro push, all in focus, f/8 (the last second pulls to the S01 lens, so the focus does not jump at the cut)
  *   S01 240-479  the walk: M to 2.46 toward the lamp side, focus 260 to 120, f/4; the camera arrives at 480 and holds one beat
@@ -296,7 +309,7 @@ const S03 = holdShot(840, 960, PILE, {
  * ONE deliberate exception, STILL at frames 0-65: the film opens from rest. The ease-in of a hold is at least 60 frames (a multiple of
  * 30, so its key is on a beat) and R1 can only change M, so the picture moves less than 0.5% for the first 66 frames. See docs/PATCH_NOTES.md.
  */
-export const CAMERA_KEYFRAMES: readonly CameraKeyframe[] = [...S00.slice(0, -1), ...S01, ...S02, ...S03];
+export const CAMERA_KEYFRAMES: readonly CameraKeyframe[] = [...SHOT_KEYFRAMES.S00, ...SHOT_KEYFRAMES.S01, ...SHOT_KEYFRAMES.S02, ...SHOT_KEYFRAMES.S03];
 checkKeyframes(CAMERA_KEYFRAMES);
 
 /**

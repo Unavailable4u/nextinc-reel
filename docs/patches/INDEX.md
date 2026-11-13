@@ -1,6 +1,6 @@
 # Patch index (27 patches, 00-26)
 
-**Progress: Patches 00, 01, 02, 03, 04, 05, 06, 07, 08 and 09 are done (Patch 08 needs your `public/brand/mini-me-mark.svg`; Patch 09 needs your MiniLocker and SPHEREx screenshots and the approval of the draft captions; see "Patch 08" and "Patch 09" in the notes), plus Patch 02a (the plate was replaced by a 1536 x 864 image; see `docs/PATCH_NOTES.md`).** Patch 03's gate G0b (a box looks planted) and the horizon choice D-25 are yours to confirm in the lab. Patch 04 ran on your machine (`plate:verify` passed, the benchmark says about 1.7 hours for the film on one worker; see "Patch 04a" in the notes); its stills are still to look at. Patch 05's Studio check, `npm run plate:verify` through the new camera rig and `npm run sheets -- --render` are yours to run (see "Known issues" in the Patch 05 notes) before Patch 06.
+**Progress: Patches 00, 01, 02, 03, 04, 05, 06, 07, 08 and 09 are done (Patch 08 needs your `public/brand/mini-me-mark.svg`; Patch 09 needs your MiniLocker and SPHEREx screenshots and the approval of the draft captions; see "Patch 08" and "Patch 09" in the notes), plus Patch 02a (the plate was replaced by a 1536 x 864 image; see `docs/PATCH_NOTES.md`).** Patch 03's gate G0b (a box looks planted) and the horizon choice D-25 are yours to confirm in the lab. Patch 04 ran on your machine (`plate:verify` passed, the benchmark says about 1.7 hours for the film on one worker; see "Patch 04a" in the notes); its stills are still to look at. Patch 05's Studio check, `npm run plate:verify` through the new camera rig and `npm run sheets -- --render` are yours to run (see "Known issues" in the Patch 05 notes) before Patch 06. **Patch 13 is split into 13A-13D (see the table); 13A, the shot registry, is done.**
 
 Use `node tools/make-prompt.mjs <n>` (created in Patch 00) to assemble the five parts of each prompt. Do them in order; patches marked parallel-safe may swap with each other.
 
@@ -19,8 +19,12 @@ Use `node tools/make-prompt.mjs <n>` (created in Patch 00) to assemble the five 
 | 10 | Sheets, bending, translucency, riffle | 06, 07 | 08, 09 | L |
 | 11 | Book motion rigs and **Gate G1** | 06, 07, 09, 10 | - | L |
 | 12 | Pile, riser, dust, continuity ledger | 03, 06, 11 | - | M |
-| 13 | Master composition, shot registry, stills tool | 05, 12 | - | M |
-| 14 | Shots S00-S04 | 13 | - | L |
+| 13 | Master composition, shot registry, stills tool (split into 13A-13D) | 05, 12 | - | M |
+| 13A | Shot registry: shot types, stubs S00-S25, checks | 05, 12 | - | S |
+| 13B | Master composition: the film plays from the registry | 13A | 13C | M |
+| 13C | Stills tool: `npm run stills` | 13A | 13B | M |
+| 13D | Shot strip and the scrub check | 13A, 13B, 13C | - | S |
+| 14 | Shots S00-S04 | 13 (A-D) | - | L |
 | 15 | Shots S05-S09 | 14 | - | L |
 | 16 | Shots S10-S13 and **Gate G2** | 15 | - | L |
 | 17 | Shots S14-S15 | 16 | - | M |

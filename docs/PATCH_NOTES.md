@@ -611,3 +611,58 @@ Owner: reel team.
 `npx tsc --noEmit` 0 errors. `npm test` 298 of 298 (274 before; 24 added in `tests/set.test.ts`: the riser's footprint, zone, exclusions and chair; its tiers, lips and slots; every book resting on its tier, behind its lip and clear of every box; the grain; the pile's order and askew offsets; the beside spots; the storyboard's table at frames 0, 960, 2880, 3000, 3840, 4139, 4200 and 5399; the swap's frames; one place per book at every frame; poses for the pile, hand, beside and riser; and the dust: a pure function of the frame, lit counts, cone and box, sources, the puff's shape, a lift's push, and no pop in total brightness). `npx remotion bundle src/index.ts` compiles with `DevPile` and `DevRiser` registered.
 
 Measured: the riser's footprint lands at photo x 898 to 1048 and the four books at x 911 to 1042, well clear of the chair (x 740 to 872) and inside the window of S23's view (M 3.98 at x 971). A standing book's lowest edge is on its tier to within 1e-6 cm.
+
+---
+
+## Patch 13A - Shot registry: shot types, stubs S00-S25, checks  (2026-11-14)
+
+Owner: reel team.
+
+Patch 13 is split into four parts because it is too big for one session (guide 14, section 5): **13A** the shot registry (this entry), **13B** the master composition (the film plays from the registry, the set, the overlay layer, grain and vignette), **13C** the stills tool, **13D** the shot strip and the scrub check. 13B and 13C may swap; 13D comes last; Patch 14 needs all four. Each part has its own file (`docs/patches/P13A-...` to `P13D-...`), `docs/patches/INDEX.md` lists them, and `node tools/make-prompt.mjs 13a` (or 13b, 13c, 13d) assembles a part's prompt.
+
+**What it adds**
+- `src/shots/types.ts`: `SfxCue` and `Shot`.
+- `src/shots/define.ts`: `defineShot`, `checkShot`, `checkShots`, `tableRow`.
+- `src/shots/S00.tsx` ... `S25.tsx`: one file per shot, each exporting its shot (`S00` ... `S25`). S00-S03 provide the camera keyframes that already existed; S04-S25 are empty and name the patch that fills them.
+- `src/shots/index.ts`: the registry (`SHOT_REGISTRY`, `shotById`, `activeShot`, `FILM_CAMERA_KEYFRAMES`, `FILM_CUES`), checked against the SHOTS table when it loads.
+- `src/config/camera.ts`: `SHOT_KEYFRAMES`, the keyframes of S00-S03 as one array per shot. `CAMERA_KEYFRAMES` is built from it and is the same 13 keyframes (the JSON of the array is byte for byte what it was before this patch).
+- `tools/audit-motion.mjs` (`npm run motion`): audits `FILM_CAMERA_KEYFRAMES`, prints the registry line, and exits 1 with `SHOT REGISTRY: INVALID` and the shot's name when a shot file disagrees with the table.
+- `tools/make-prompt.mjs`: accepts a part such as `13a`; `--all` also assembles the parts of split patches.
+- `tests/shots.test.ts` (17 tests), `docs/patches/P13A-...` to `P13D-...`, a note in `docs/patches/P13-timeline-and-shots.md`, the rows of `docs/patches/INDEX.md`, decisions D-51 and D-52.
+
+**PUBLIC API**
+```
+interface SfxCue { frame: number; name: string }            // frame is a film frame inside the shot
+interface Shot { id: string; from: number; to: number; camera: readonly CameraKeyframe[]; overlay?: FC; cues: readonly SfxCue[] }
+defineShot(id: string, parts?: { camera?, overlay?, cues? }): Shot       // from and to come from the SHOTS table
+checkShot(shot: Shot, row?: TimelineShot): void                           // throws, naming the shot
+checkShots(shots: readonly Shot[], table?: readonly TimelineShot[]): void
+tableRow(id: string, table?): TimelineShot
+SHOT_REGISTRY: readonly Shot[]                              // S00 ... S25, position i is shot i
+shotById(id: string): Shot                                  // throws naming the id
+activeShot(frame: number): Shot                             // clamps like shotAt
+FILM_CAMERA_KEYFRAMES: readonly CameraKeyframe[]            // every shot's keyframes in shot order
+FILM_CUES: readonly SfxCue[]
+SHOT_KEYFRAMES: Record<"S00" | "S01" | "S02" | "S03", readonly CameraKeyframe[]>   // config/camera.ts
+```
+`Shot` in `src/shots/types.ts` is what a shot FILE provides; `Shot` in `src/config/timeline.ts` is a row of the table (id, name, from, to, regime). `define.ts` imports the second as `TableRow`.
+
+**Decisions and conventions later patches must follow**
+- A shot file is `export const Sxx = defineShot("Sxx", { camera, overlay, cues })` and nothing else. It never types a frame range; a frame range is only ever in `config/timeline.ts` (D-52).
+- A shot's keyframes are in `src/shots/Sxx.tsx` from Patch 14 on (D-51). A key lies inside its shot or on the first frame of the next shot (the closing key, the state the next move starts from). If the next shot also wants a key on that frame, ONE of them owns it: the registry refuses two keys on one frame, so leave the closing key out of the earlier shot, as S02's glide leaves out its last key for S03.
+- Cues are on film frames inside their own shot, in frame order, with a name. A sound that starts before the cut belongs to the earlier shot at its own frame.
+- A shot patch that changes the keys of S00-S03 keeps `SHOT_KEYFRAMES` in `config/camera.ts` as the place they are built, or moves the builders into the shot files; either way `CAMERA_KEYFRAMES` and the test that compares it with the registry's first keys (`tests/shots.test.ts`, "S00 to S03 provide the camera of Patch 05") must be updated in the same patch, on purpose.
+- The overlay is a `React.FC` without props, as the patch text says; one that needs the frame calls `useCurrentFrame()`.
+
+**Known issues**
+- Nothing is drawn by this patch and nothing was rendered, so there is nothing to look at in the Studio yet. The registry is read by the audit and the tests only; `ReelFilm` still draws the camera of `config/camera.ts` until 13B.
+- `cameraAt`'s default `keys` is still `CAMERA_KEYFRAMES` (S00-S03 only). A keyframe added to a shot file after S03 is seen by `npm run motion` but not by the dev sheets until 13B changes that default.
+- `npm run stills` is still the stub (13C).
+- The progress sentence at the top of `docs/patches/INDEX.md` stops at Patch 09 (Patches 10 to 12 were done without updating it); only the sentence about Patch 13 was added.
+
+**Warnings for the next patch (13B)**
+- `scripts/verify-plate.mjs` renders `ReelFilm` with `{ hud: false, feather }`. Once the set, grain and vignette are in `ReelFilm`, that call must turn them off, or frame 0 is no longer the bare photo and gate G0 fails. The 13B prompt says so.
+- Repointing `cameraAt`'s default to `FILM_CAMERA_KEYFRAMES` is safe (no import cycle: `shots/index.ts` imports `config/camera.ts`, never `camera/path.ts`) and `tests/camera.test.ts` must pass unchanged.
+
+**Checks run**
+`npx tsc --noEmit` 0 errors. `npm test` 315 of 315 (298 before; 17 added in `tests/shots.test.ts`: 26 shots on the table's frames; every row of guide 01's master shot list against the registry (id, frames, bars, name, regime); no gap or overlap; the active shot on the first, middle and last frame of every shot and on the frames either side; clamping; `shotById`; S00-S03 give the camera of Patch 05 unchanged; every key inside its shot; stubs allowed; `defineShot`; and the error cases: unknown shot, wrong range, missing, extra or swapped shot, key outside its shot or off a whole frame or out of order, two shots owning one boundary frame, a camera that does not start on frame 0, and the four kinds of bad cue). `npm run motion`: STILL 1 (the documented exception), FAST 0, DEEP 0, EDGE 0, POP 0, LATE 0, peak sideways speed 36.7 cm/s, peak change of M 1.477 x per second, largest jump 0.65%; `shot registry: VALID, 26 shot files (S00-S25), each on its table frames; keyframes S00 3, S01 4, S02 3, S03 3 (none yet: S04-S25)`. Three deliberate breakages were each caught by name and then undone: a frame changed in the copy of the storyboard's table (the test names S11), a keyframe of S07 placed on frame 60 (`npm run motion` exits 1 and names S07), and a key of S04 on S03's closing frame 960 (refused as a second key on one frame). `node tools/make-prompt.mjs --all`: the 27 patch files and the 4 parts assemble, every guide section resolves.

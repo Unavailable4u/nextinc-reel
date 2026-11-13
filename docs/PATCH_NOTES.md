@@ -544,3 +544,33 @@ Measured: textures per book 87.2 MB (Mini Me), 85.2 (SPHEREx), 85.9 (MiniLocker)
 `npx tsc --noEmit` 0 errors. `npm test` 257 of 257 (241 before, 16 added in `tests/sheets.test.ts`: the clock, the riffle's starts and span, the sheets of a riffle in order, the length of rows at p = 0, 0.25, 0.5, 0.75 and 1 for all four books and several sheets, the columns, the mesh's rows on both layers, the ends of a turn and the lag, the landing's rebound, determinism and unit normals, the stack weight, the pivot's arc and the offsets, the blob, the variation's seed and range, the uniform order, the grid, the checker).
 
 Measured length read-out (sheet 10 of each book, open flat): worst deviation of any row or column from the paper's size is 0.0012 percent at every one of the five progress values, for all four books, against the 0.5 percent tolerance. W is 14.62 to 14.74 cm and H 22.30 cm.
+
+---
+
+## Patch 11 - Book motion rigs and Gate G1
+
+Owner: reel team.
+
+**What it adds**
+- `src/config/bookMotion.ts`: every number of the book's motion (weight scaling, the press, the lift, the hold's sway, the cover, the set-down).
+- `src/book/rig/pose.ts`: shared pure helpers (quaternion slerp, `hermiteIn`, `reboundAt` / `bounceAt`, `windowed`, `lowestPointCm`).
+- `src/book/rig/lift.ts` (press, rise, overshoot, settle), `hold.ts` (reading pose, noise sway, ribbon swing), `cover.ts` (open and close), `setDown.ts` (carry, touch, 0.3 mm rebound).
+- `src/config/ledger.ts`: the continuity ledger (`LEDGER`, `getBookLocation`, `getBookPose`, `getBookState`, `BOOK_SCRIPT`, `movesAt`). Mini Me is lifted at 960, opened at 1440, turns at 1560 and 1680, closed at 2808 and set down at 2880. MiniLocker is lifted at 3000 (speed 1.3), opened at 3360, closed at 3828 and set down at 3840 (speed 1.3).
+- `src/dev/DevBookMotion.tsx`, registered in `src/Root.tsx` as `DevBookMotion`: a lab still that shows every scripted book in context at any frame.
+- `tests/bookMotion.test.ts`: the Gate G1 checks (17 tests).
+
+**Decisions**
+- Every rig is a pure function of the frame number. Durations scale with (weight / 500) to the power 0.5, sway with 500 / weight.
+- The cover opens as a swing that hands over to the `cover` spring. The step the spring gets is solved by bisection so the overshoot is exactly 3 degrees. A quick swing arrives with so much speed that the spring alone would overshoot more, so the hand-over slope is brought down (`OpenShape.slope`).
+- A book's cover timing uses that book's weight (`coverEventsOf` in the ledger).
+- The `BESIDE` places in the ledger are provisional and overlap each other; Patch 12 replaces them. The riser and the swap give `null` from `getBookPose` until then.
+
+**Known issues**
+- Stills were looked at on software GL, with shadows off and painted covers off (`covers` false, `settleMs` 10000), because painted covers did not finish drawing in the build sandbox. Check the lab with the defaults on your machine.
+- The lab prints a red warning where `BESIDE` books overlap; that is expected until Patch 12.
+
+**Checks run**
+`npx tsc --noEmit` 0 errors. `npm test` 274 of 274 (17 added).
+
+**Not part of this patch, but asked for with it**
+- `Can't resolve 'qrcode-generator'` in `npm run studio` is a missing install on the machine, not a code error: the package is already in `package.json` and `package-lock.json`. Run `npm install` (or `npm ci`) in the repo and start the Studio again.

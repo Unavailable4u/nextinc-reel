@@ -401,3 +401,52 @@ pile of three: 2.4 + 2.6 + 3.0 = 8.0 cm
 
 **Checks run and results** (build machine: Linux, Node 22, a Chrome with software GL):
 `npx tsc --noEmit` 0 errors. `npm test` 185 of 185 (143 before, 42 added: `tests/textures.test.ts`, `tests/materials.test.ts`, `tests/patterns.test.ts`). `npm run textures -- --check` matches. The whole Remotion entry bundles with esbuild. `DevMaterials` rendered with `remotion still` (textures load, 3.92 MB on the GPU, no errors).
+
+
+---
+
+## Patch 08 - Cover painter for the four books  (2026-11-13; the Studio is yours to run, see "Known issues")
+
+**What was built:**
+- `src/config/covers.ts`: every number of the covers (guide 04 sections 2 and 3): pixels per cm, the safe areas, the clip inset, the title, line, author and spine numbers, the QR slot, per-book styles (`COVER_STYLE`: what is foil and what is print) and art (`COVER_ART`), `COVER_FILES`. Added in this patch beyond the first draft: `COVER.depth` (foil 1, blind 0.8), `spine.numeralGapCm`, `COVER_ART["spherex-blink"].lineCm` and the globe's `tiltDeg`, `turnDeg`, `blindAlpha`.
+- `src/paint/svgPath.ts`: an SVG path in, absolute M, L, C, Z out (relative commands, H, V, Q, S, T and arcs converted), exact bounds, transforms, `parseSvgPaths` for a traced file, circles, ellipses and rounded rectangles as paths.
+- `src/paint/typography.ts`: the measure (`Measure`, `measureWith`), tracking, small caps, wrapping, `balancedWrap` (the same number of lines, evened out, so a blurb never ends on one short word), justification, `fitSize`, `layoutTitle`, `fontsReady` (throws, naming the fix, when a face is missing).
+- `src/paint/covers/`: `types.ts` (the plan: operations on three surfaces, layers `ink`, `foil` and `blind`), `brand.ts` (the dial's `CX`, `CY`, `RADII`, `arcPath` copied word for word from `minilocker-film/src/ui/RadiusDial.tsx`, and the Mark's five circles from `minilocker-film/docs/bible/appendix-A.md`), `common.ts` (the shared grammar: title block, line, authors, spine top to bottom, back with the QR slot, the publisher's x, the traced mark), `miniMe.ts`, `spherex.ts` (the Patch 07 `orbits` pattern as foil), `miniLocker.ts`, `immersive.ts` (the blind-stamped globe), `render.ts` (a plan drawn on a colour, a foil and a height canvas, and `normalFromHeight`), `data.ts` (`coverDataFor`: selectors and `bookText.ts`), `index.ts` (`planFor`, `coverKey`, `paintCover` cached by content hash, `loadArtwork` for the browser).
+- `src/book/coverMaterials.ts` and `src/book/CoverSlots.tsx`: the painted covers on the Book. `Book` takes `covers` (default true; needs `textured`) and puts the print and foil overlays in the `frontBoard`, `backBoard` and `spine` slots, holding the render with `delayRender` until they are painted.
+- `src/dev/DevCovers.tsx` (a Still, registered in `Root.tsx`): `flat` (one book's back, spine and front), `fronts`, `spines`, `backs` (all four), each with an overlay of the safe area, the clip inset and the QR slot; `book` (one cover on its Book under the film's rig and probe, from the front, spine or back, with the cover liftable and openable). The painter's notes are printed in red.
+- `src/lib/color.ts`: `relativeLuminance`, `contrastRatio`. `DevMaterials` passes `covers={false}` (its foil test shapes stay as they were); `DevBook` now shows the covers (and its pile view the three spines).
+
+**PUBLIC API:**
+- `coverDataFor(id): CoverData`; `planFor(id, tokens, data?): CoverPlan` (pure); `coverKey(data, tokens): string`; `paintCover(id, data, tokens, make?): Artwork` (`{ id, key, plan, layers, normals }`, cached); `loadArtwork(id): Promise<Artwork>`; each book's `paintCover(data, tokens)` (and `plan...`) in its own file; `clearCoverCache()`.
+- `CoverTokens = { spec, measure, miniMeMarkSvg: string | null }`. `useArtwork(id, enabled)` and `useCoverSlots(id, enabled)` in `src/book/CoverSlots.tsx`.
+- `<Book covers>`; `normalFromHeight(rgba, w, h, depthPx)`; `coverTextureBytes(plan)`; `spineHalfGeometry(spec, "back" | "front", lift)`.
+
+**Decisions:** D-39 to D-42 in `docs/DECISIONS.md`.
+
+**Decisions and conventions later patches must follow:**
+- **A cover is planned, then drawn.** A planner is pure (data and tokens in, operations out); only `render.ts` touches a canvas. A test or a tool can plan in Node with a fixed-width `Measure`.
+- **Surfaces are read the way the anchor frames say** (+X right, head up): the front's hinge is on its left, the back (turned over like a reader turns a book) has it on its right, the spine reads top to bottom with the front board on its right. Sizes: the board face is `W/2 - hingeX` by `H` (14.65 x 22.9 on Mini Me), the spine is the ARC of the rounded back (3.14 cm on Mini Me), painted at 100, 100 and 70 px/cm.
+- **The cover's facts are the data's.** Titles of the data, summaries, names and numerals come through `select.ts`; how a title is set, the spine text and the lines come from `bookText.ts`. `tests/covers.test.ts` checks that every printed text is one of them and that `minime.app`, "Try" and a NASA logo appear nowhere.
+- **The QR slot is reserved, not painted.** The back plan carries `qrSlot` (4.4 cm square, 3.9 cm above the bottom, centred). Patch 09 prints its code and its light quiet zone there.
+- **The cache key carries `COVER.version`.** Bump it when a number in `config/covers.ts` is meant to change every cover; the key also hashes the data, the colours, the seeds and the mark file's text.
+- **Foil is metal and has no alpha.** Its colour comes from the canvas, so one surface can hold two foils; `foilMaterial` is built white. Translucent things (the MiniLocker Mark) are print.
+- **The front half of the spine is in the `frontBoard` slot** (it follows the cover); the back half is in `spine`. `CoverSlots.tsx` carries the spine anchor's frame into the front board's with the two closed-pose anchors.
+
+**Known issues:**
+- **Not run on the build machine: the Studio and every 3D view** (no browser was available). The flat 2D painting WAS looked at: the four covers were drawn with the same planners on a Node canvas with the site's own CMU faces and checked by eye (the layouts, the dial, the orbits, the globe, the spine top to bottom, the x colours). What is yours to do: open `DevCovers` in each view; `book` view with the cover lifted 35 degrees, face front, spine and back; and `DevBook` (single and pile). Things to look for: the foil overlay standing cleanly on the cloth (no flicker at the board's edge, no z-fighting under the corner wear), the spine overlay meeting the boards, and the foil's flare (the probe is Patch 10's).
+- **`public/brand/mini-me-mark.svg` does not exist yet (you vectorise it).** Until it does the Mini Me cover has no mark (front and spine head) and `DevCovers` prints the note. When you add it check its size, that its holes are cut with opposite winding (the nonzero rule), and that there is no background path in it (every `<path>` is drawn).
+- **The foil colours are still the starting values of D-38.** The three project cover images in `public/site/img` are dark web art, not book cloth, so sampling them gave nothing to improve on; the hexes of `config/books.ts` stand. Sample real swatches when you have them.
+- The spine's front half rides the cover when the book opens, but the page block's bow and the hinge groove are Patch 06's and were not changed; open the cover in `DevCovers` to see that the spine sheet does not tear at the hinge.
+- Wear and dust lie over the covers (the lifts are print 0.002, foil 0.003, wear 0.004, dust 0.008 cm). If a lamp raking the cloth shows the steps, tune `PRINT_LIFT_CM` and `FOIL_LIFT_CM` in `coverMaterials.ts`.
+- The print overlay is flat paint over the cloth: where ink is opaque the weave is hidden (translucent print keeps some). If that reads as plastic, lower the opacity of the print material or give it the weave normal map.
+- The dial of Vol. III reaches within 0.85 cm of the board's top edge and 1.0 cm of the fore-edge with the guide's 11.6 cm and (0.52, 0.31); it is art, not text, so it may leave the safe area, but look at it near the corner wear.
+
+**Warnings for the next patch (09):**
+- Fonts: `fontsReady()` (in `typography.ts`) is what to call before painting a page; it checks that every declared face is loaded and throws otherwise. `paintCover` is not what to reuse for pages, but `layoutTitle`, `balancedWrap`, `justify`, `smallCapsLayout` and the `Measure` are.
+- The back cover's `qrSlot` is in px of the back surface; its cm numbers are in `COVER.back`.
+- `Book` now waits for covers (`delayRender`). A scene that mounts a `Book` outside `<ThreeCanvas>` or with `textured={false}` is not affected; one that wants the bare cloth passes `covers={false}`.
+
+**Checks run and results** (build machine: Linux, Node 22, no browser):
+`npx tsc --noEmit` 0 errors. `npm test` 217 of 217 (185 before, 32 added in `tests/covers.test.ts`: the SVG parser, typography, the dial and the Mark against the source's numbers, the x and its colour on every cloth, the plan of every cover (sizes, the guide's placements, nothing outside the safe area, the spine's order, the QR slot, layers), the cache key, the drawing through a recorder, the normal map, the memory budget, the curved spine). The whole Remotion entry bundles with esbuild.
+
+Measured: textures per book 87.2 MB (Mini Me), 85.2 (SPHEREx), 85.9 (MiniLocker), 84.4 (Immersive), 343 MB for the four, budget 400 MB (the first estimate in `config/covers.ts` said 91 and 365; the board face is a little narrower than the trim). Contrast of the crimson x against the cloth: Mini Me 3.10, MiniLocker 3.25, SPHEREx 1.88, Immersive 1.73.

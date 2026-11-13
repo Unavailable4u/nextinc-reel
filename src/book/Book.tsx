@@ -6,6 +6,7 @@ import { ANCHOR_NAMES, anchorFrames, bandGeometries, bowAmplitude, layoutOf, pos
 import { bookMaterials, disposeBookMaterials, wearProfile } from "./materials";
 import { PageBlock } from "./PageBlock";
 import { Ribbon } from "./Ribbon";
+import { useCoverSlots } from "./CoverSlots";
 import { useBookTextures } from "./useBookTextures";
 
 export type BookProps = {
@@ -28,9 +29,14 @@ export type BookProps = {
   /** strength of the dust film on the front board's outer face, 0 to 1 (default 0: only the top book of a pile wears it). Needs `textured`. */
   dust?: number;
   /**
+   * true (the default): the painted covers of Patch 08 on the front board, the back board and the spine (a Book with `textured` false
+   * has none). Set false to see the bare cloth, or to put your own content in those slots.
+   */
+  covers?: boolean;
+  /**
    * Content for the texture slots, one per named anchor. Each is rendered inside that anchor's frame: local +Z is the outward normal,
    * +X reads left to right and +Y is up on the face as a reader holds it, so a plane mesh facing +Z lies on the surface with no rotation.
-   * Patch 08 puts the cover painters in `frontBoard`, `backBoard` and `spine`; Patch 10 the sheets in `blockTop`.
+   * The painted covers of Patch 08 are put in `frontBoard`, `backBoard` and `spine` by the Book itself (`covers`); Patch 10 the sheets in `blockTop`.
    */
   slots?: Partial<Record<AnchorName, React.ReactNode>>;
   /** anything else, in the book's own frame */
@@ -60,7 +66,7 @@ const ANCHOR_OBJECT_NAME: Record<AnchorName, string> = {
  * head to tail; `pose` places that frame in the world. A closed Mini Me is 15.2 x 22.9 x 3.0 cm.
  */
 export const Book = React.forwardRef<BookHandle, BookProps>(function Book(
-  { id, coverAngle = 0, turned = 0, pose = { position: [0, 0, 0] }, ribbonSwing = 0, ribbonSag = 0.25, castShadow = true, receiveShadow = true, textured = true, wear = 1, dust = 0, slots = {}, children },
+  { id, coverAngle = 0, turned = 0, pose = { position: [0, 0, 0] }, ribbonSwing = 0, ribbonSag = 0.25, castShadow = true, receiveShadow = true, textured = true, wear = 1, dust = 0, covers = true, slots = {}, children },
   ref,
 ) {
   const spec = BOOKS[id];
@@ -93,6 +99,8 @@ export const Book = React.forwardRef<BookHandle, BookProps>(function Book(
   const mats = useMemo(() => bookMaterials(spec, tex, { wear, dust }), [spec, tex, wear, dust]);
   useEffect(() => () => disposeBookMaterials(mats), [mats]);
   const wearFlip = useMemo(() => wearProfile(spec), [spec]);
+  // the painted covers (Patch 08): the render waits for them; they stand in the slots under whatever the caller puts there
+  const painted = useCoverSlots(id, covers && textured);
 
   const mesh = (key: string, g: THREE.BufferGeometry, material: THREE.Material, shadows = true): React.ReactNode => <mesh key={key} geometry={g} material={material} castShadow={castShadow && shadows} receiveShadow={receiveShadow} />;
   // four stripes per half: head 0, head 1, tail 0, tail 1; the two band colours alternate
@@ -125,6 +133,7 @@ export const Book = React.forwardRef<BookHandle, BookProps>(function Book(
         position={a.position}
         quaternion={a.quaternion}
       >
+        {painted[name]}
         {name === "frontBoard" && textured ? decals : null}
         {slots[name]}
       </group>

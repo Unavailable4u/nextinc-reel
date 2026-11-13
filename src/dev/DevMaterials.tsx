@@ -205,7 +205,7 @@ export const DevMaterials: React.FC<DevMaterialsProps> = (p) => {
           <planeGeometry args={[400, 400]} />
           <meshStandardMaterial color="#2b1b13" roughness={0.6} metalness={0} />
         </mesh>
-        <Book id={p.id} pose={pose} textured={p.textured} wear={p.wear} dust={p.dust} slots={{ frontBoard: <FoilTest id={p.id} /> }} />
+        <Book id={p.id} pose={pose} textured={p.textured} wear={p.wear} dust={p.dust} covers={false} slots={{ frontBoard: <FoilTest id={p.id} /> }} />
       </ThreeCanvas>
 
       {p.panel ? (

@@ -37,3 +37,21 @@ export function desaturateHex(hex: string, amount: number): string {
   const g = lumaOf(c);
   return toHex([c[0] + (g - c[0]) * amount, c[1] + (g - c[1]) * amount, c[2] + (g - c[2]) * amount]);
 }
+
+const linear = (v: number): number => {
+  const c = v / 255;
+  return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+};
+
+/** WCAG relative luminance of `#RRGGBB`, 0 (black) to 1 (white). */
+export function relativeLuminance(hex: string): number {
+  const [r, g, b] = parseHex(hex);
+  return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
+}
+
+/** WCAG contrast ratio of two colours, 1 (the same) to 21 (black on white). The order of the arguments does not matter. */
+export function contrastRatio(a: string, b: string): number {
+  const x = relativeLuminance(a);
+  const y = relativeLuminance(b);
+  return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+}

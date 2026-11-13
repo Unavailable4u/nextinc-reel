@@ -95,7 +95,7 @@ const fmt = (v: number): string => v.toFixed(2);
  * The book alone on a plain floor, under three plain lights, with the camera on an orbit you set: yaw, pitch and roll of the book,
  * cover angle, turned sheets. A cyan box shows the bounding box in cm; the panel prints its size. The "pile" view stands the three
  * books of the opening pile with the askew offsets of `config/books.ts`, spines to the camera, at the pile anchor of the desk.
- * Flat colours only: this is the geometry, before materials.
+ * The materials and the painted covers of Patches 07 and 08 are on the book; the lights are plain ones, not the film's rig (`DevCovers` and `DevMaterials` use that).
  */
 export const DevBook: React.FC<DevBookProps> = (p) => {
   const spec = BOOKS[p.id];

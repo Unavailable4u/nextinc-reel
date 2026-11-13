@@ -4,6 +4,7 @@ import { test, eq, near, truthy, throws } from "./harness";
 import { MOTION, durationScale, framesFor, swayScale } from "../src/config/bookMotion";
 import { BOOKS, BOOK_IDS, type BookId } from "../src/config/books";
 import { FPS, TOTAL } from "../src/config/timeline";
+import { riserPose } from "../src/config/riser";
 import { BOOK_SCRIPT, LEDGER, besidePose, checkLedger, getBookLocation, getBookPose, getBookState, keyFrames, motionSpans, pilePose } from "../src/config/ledger";
 import { closeFrames, coverAngleAt, coverCloseAt, coverDegrees, coverOpenAt, coverOpenSettleFrames, openShape } from "../src/book/rig/cover";
 import { liftPoseAt, liftTimes, stackPressCm } from "../src/book/rig/lift";
@@ -177,7 +178,7 @@ test("g1: the set-down lands with a little speed, rebounds 0.3 mm and stops", ()
 test("g1: the set-down lies the book flat on the desk where the ledger says", () => {
   for (const id of SCRIPTED) {
     const rest = besidePose(id);
-    near(rest.position[1], 0, 1e-9, "provisional spot, on the desk plane");
+    near(rest.position[1], 0, 1e-9, "the spot beside the pile is on the desk plane");
     truthy(BOOKS[id].weightG > 0);
     truthy(lowestPointCm(id, { ...rest, position: [rest.position[0], 0.3, rest.position[2]] }) > 0, "lowestPointCm is above the desk when the origin is");
   }
@@ -274,8 +275,8 @@ test("g1: the scripts agree with the ledger and the poses follow it", () => {
     truthy(k.lift.riseEnd > k.lift.riseStart && k.setDown.contact > k.setDown.start, "key frames");
   }
   eq(getBookPose("next-inc-immersive", 100), null, "not in the scene yet");
-  eq(getBookPose("mini-me", 4300), null, "on the riser: Patch 12's");
-  eq(getBookState("mini-me", 4170), null, "under the swap: Patch 12's");
+  eq(JSON.stringify(getBookPose("mini-me", 4300)), JSON.stringify(riserPose("mini-me")), "on the riser: the riser's slot");
+  eq(getBookState("mini-me", 4170), null, "under the swap: not drawn");
 });
 
 test("g1: a book's cover angle follows the script and the weight of that book", () => {

@@ -183,3 +183,61 @@ export function pilePoses(anchor: { X: number; Zd: number }): { id: BookId; pose
     return { id: slot.id, pose };
   });
 }
+
+/**
+ * THE RISER (Patch 12, guide 04 section 7): a small two-tier walnut display at the desk's right end, 36 x 24 cm. The lower tier (at the
+ * front) holds Vol. I and Vol. II, the upper tier (`riseCm` higher, set `setBackCm` back) holds Vol. III and Vol. IV. Each book stands with
+ * its cover to the camera, leaning `leanDeg` back, on a thin brass lip. `src/config/riser.ts` turns these numbers into boxes and poses.
+ *
+ * The books are not set out on a grid: `dxCm` is the sideways offset of a book's middle from the riser's middle and `yawDeg` its turn,
+ * both a little off true (3 mm and about 1 degree, guide 03 section 6), so the row is hand-placed and not machined. The lip is 0.45 cm
+ * high and a standing book's cover edge hangs only `thickness x tan(lean)` (about 2 mm) above the tier, which the lip hides.
+ */
+export type RiserTierName = "lower" | "upper";
+export interface RiserSlotSpec {
+  id: BookId;
+  tier: RiserTierName;
+  /** sideways of the riser's middle (right is positive), cm */
+  dxCm: number;
+  /** the turn about the vertical, degrees: small, so that the row is not ruler-straight */
+  yawDeg: number;
+}
+export const RISER = {
+  /** across, cm (the footprint of `placementZones.json`) */
+  widthCm: 36,
+  /** from the front edge to the back, cm */
+  depthCm: 24,
+  /** the height of the lower tier's top above the desk, cm */
+  lowerTopCm: 4,
+  /** how much higher the upper tier's top is than the lower's, cm (guide 04: 6) */
+  riseCm: 6,
+  /** how far back from the riser's front edge the step is, cm (guide 04: 8). The lower tier is this deep. */
+  setBackCm: 8,
+  /** how far the standing books lean back, degrees (guide 04: 4) */
+  leanDeg: 4,
+  /** the brass lip at the front of each tier: it stops the books from sliding forward and hides the clearance under their covers */
+  lip: {
+    /** its length is the tier's width less this on each side, cm */
+    insetCm: 1.2,
+    /** its depth from front to back, cm */
+    depthCm: 0.5,
+    heightCm: 0.45,
+    /** how far behind the lip a book's cover edge stands, cm (more than the half-width times the sine of the biggest yaw) */
+    clearanceCm: 0.2,
+  },
+  /**
+   * The wood. Its colour is the average of the desk top in the plate near the pile and near the riser (#704128 left of the pile, #4c3328
+   * at the riser's end: average #563829) brightened by the mean of the grain texture (0.88), so that the lit riser reads as the same
+   * walnut as the desk. `grain` is how much the texture varies the tone, `seed` makes it repeatable.
+   */
+  wood: { color: "#623F2E", grain: 0.16, seed: 6701, roughness: 0.4, clearcoat: 0.5, clearcoatRoughness: 0.3, bevelCm: 0.12 },
+  /** the brass of the lips */
+  brass: { color: "#B58E45", roughness: 0.32, metalness: 1 },
+  /** Vol. I to Vol. IV, in the site's order */
+  slots: [
+    { id: "mini-me", tier: "lower", dxCm: -8.6, yawDeg: 0.8 },
+    { id: "spherex-blink", tier: "lower", dxCm: 8.8, yawDeg: -0.6 },
+    { id: "minilocker", tier: "upper", dxCm: -8.9, yawDeg: -0.9 },
+    { id: "next-inc-immersive", tier: "upper", dxCm: 8.5, yawDeg: 0.5 },
+  ] as readonly RiserSlotSpec[],
+} as const;

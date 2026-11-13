@@ -574,3 +574,40 @@ Owner: reel team.
 
 **Not part of this patch, but asked for with it**
 - `Can't resolve 'qrcode-generator'` in `npm run studio` is a missing install on the machine, not a code error: the package is already in `package.json` and `package-lock.json`. Run `npm install` (or `npm ci`) in the repo and start the Studio again.
+
+---
+
+## Patch 12 - Pile, riser, dust, continuity ledger
+
+Owner: reel team.
+
+**What it adds**
+- `src/config/books.ts`: `RISER`, every number of the riser (36 x 24 cm, lower tier top 4 cm, upper 6 cm higher and 8 cm back, books leaning 4 degrees, the brass lip, the walnut colour and the four slots with their small offsets and turns).
+- `src/config/riser.ts` (pure): `riserBoxes()`, `riserFootprint()`, `getRiserSlots()` (the pose of Vol. I to Vol. IV: each standing, leaning back, its lowest edge on its tier, its cover edge just behind the lip, with the patch of its foot), `riserPose(id)`, `standingCorners()`.
+- `src/config/dust.ts` and `src/scene/dustField.ts` (pure): the dust field. `dustAt(frame, sources?)` gives every lit mote's place and brightness; `disturbance()` is the seeded puff used when a book lifts, a cover closes or a book touches down; `dustSources()` reads those moments from the ledger's scripts and the rigs' key frames (6 in the film).
+- `src/scene/Pile.tsx`: draws the books the ledger puts on the left of the desk at a frame (pile, hand, beside), the contact patch under each one that lies on the desk, the dust film on the top book of the pile. `skip` leaves out a book a shot draws itself with its pages.
+- `src/scene/Riser.tsx`: the walnut tiers (rounded boxes, a seeded grain from `src/scene/woodGrain.ts`), the brass lips, the contact patch under the whole riser, a soft patch under each standing book's foot, and the books the ledger puts on it.
+- `src/scene/Dust.tsx`: the motes as additive soft discs in one instanced mesh.
+- `src/config/ledger.ts`: `getBookPose` and `getBookState` now give the riser's slot for a book on the riser and null only under the swap or before a book is there; `booksAt(frame)` lists every book by place; `BESIDE` has real spots.
+- `src/dev/DevPile.tsx` and `src/dev/DevRiser.tsx`, registered in `src/Root.tsx` as `DevPile` and `DevRiser`.
+- `tests/set.test.ts` (24 tests). `tests/bookMotion.test.ts` has two lines changed: the riser and the swap are no longer null / the same.
+
+**Decisions**
+- **Beside the pile** (replacing the provisional spots): Mini Me at X -22.5, MiniLocker at X -40 (relative to the pile's anchor), lying face up with the spine to the left and turned -2 and +1.5 degrees. Lying that way a book is 15.2 cm across, so the pair spans X -47.9 to -14.5: 2.4 cm from the pile, 1.6 cm between the books, 5.6 cm inside the desk's left end and 25 cm in front of the lamp's base (Zd 53 and more). The pile zone is 48 cm wide and two books side by side did not fit it, so the spots are outside zone L and `tests/set.test.ts` checks them against the desk, the pile and the exclusions instead.
+- **The swap.** Frames 4140 to 4199 are one ledger row. Under it Mini Me, MiniLocker and SPHEREx are not drawn (`getBookPose` is null), Immersive is on the riser from 4140, and from 4200 all four stand on it. The chair covers the frame for that second, so nothing needs to move in the picture.
+- **The riser's layout is the guide's** (guide 04 section 7): Vol. I and II on the lower tier, III and IV on the upper tier, 6 cm higher and 8 cm back. The lip stands 4.5 mm high; the clearance under a leaning cover is 1.5 to 2.1 mm, so the lip hides it. Books are 0.2 cm behind the lip so that a 1 degree turn never puts a corner into it.
+- **The walnut's colour** is the average of two samples of the desk top in the plate (#704128 beside the pile, #4c3328 at the riser's end), brightened by the grain's mean (0.88). The riser is not in the plate, so there is no better sample.
+- **The dust** (numbers in `config/dust.ts`, how it works in its header): a seeded set of 520 motes wrapped round a box, shown only inside the lamp's cone, so about 190 are lit at any frame (174 to 201 over the whole film). No state is carried from one frame to the next. A lift's puff is the strongest (1 x 6 cm at the nearest mote), a set-down 0.6, a close 0.35.
+- Pile contact is the baked patch under the bottom book, the bevels and the lamp's shadow map where one book meets another; there is no extra seam geometry between books.
+
+**Known issues**
+- **Not looked at.** No browser or GPU was available, so nothing was rendered: the stills at M = 4.49 (`DevPile`, frame 840) and M = 3.98 (`DevRiser`, frame 4580) are yours to take, and so are the wood's tone under the lamp and the strips, the brass's reflection, and the dust's size and level (`DUST.level`, `DUST.sizeCm`; `DevPile` has a gain slider to find the motes).
+- **The upper books show little.** The lower books are 27 cm high at the top and the upper books' tops are at 33 cm, so over the lower books only the top 6 cm (about a quarter) of Vol. III and Vol. IV can be seen from the match camera, which is almost at the desk's height. Guide 04 asks for exactly this rise (6 cm) and set-back (8 cm). If S23 needs the covers, raise `RISER.riseCm` (a rise of 12 shows half), or put the upper books between the lower ones' gap; everything else follows from `config/books.ts`.
+- The riser's books and the pile's books are drawn closed. A book that is open or being turned (S06 to S21) needs the pages the shot patches give it: pass its id in `skip` to `<Pile>` and draw it with its `PageFaces` and `Sheet`s, as `DevBookMotion` does.
+- `Pile`, `Riser` and `Dust` are not yet in `ReelFilm`: placing them in the film is Patch 13's (the patch says no shots here).
+- The dust and riser were checked by their numbers only (`tests/set.test.ts`): the discs' billboard facing assumes the match camera never turns, which is true of every shot so far.
+
+**Checks run**
+`npx tsc --noEmit` 0 errors. `npm test` 298 of 298 (274 before; 24 added in `tests/set.test.ts`: the riser's footprint, zone, exclusions and chair; its tiers, lips and slots; every book resting on its tier, behind its lip and clear of every box; the grain; the pile's order and askew offsets; the beside spots; the storyboard's table at frames 0, 960, 2880, 3000, 3840, 4139, 4200 and 5399; the swap's frames; one place per book at every frame; poses for the pile, hand, beside and riser; and the dust: a pure function of the frame, lit counts, cone and box, sources, the puff's shape, a lift's push, and no pop in total brightness). `npx remotion bundle src/index.ts` compiles with `DevPile` and `DevRiser` registered.
+
+Measured: the riser's footprint lands at photo x 898 to 1048 and the four books at x 911 to 1042, well clear of the chair (x 740 to 872) and inside the window of S23's view (M 3.98 at x 971). A standing book's lowest edge is on its tier to within 1e-6 cm.

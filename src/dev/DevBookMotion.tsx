@@ -130,7 +130,7 @@ function stacksAt(frame: number, turns: readonly TurnEvent[]): { left: number; a
 
 const fmt = (v: number, d = 2): string => v.toFixed(d);
 
-/** The overlap, in cm, of the footprints of two closed books lying on the desk (0 if they do not touch): the places beside the pile are provisional. */
+/** The overlap, in cm, of the footprints of two closed books lying on the desk (0 if they do not touch): a check on the places beside the pile. */
 function overlapCm(a: { id: BookId; pose: BookPose }, b: { id: BookId; pose: BookPose }): number {
   const box = (x: { id: BookId; pose: BookPose }) => {
     const f = footprintOf(x.id, x.pose);
@@ -249,9 +249,9 @@ export const DevBookMotion: React.FC<DevBookMotionProps> = (p) => {
               </div>
             </>
           ) : (
-            <div style={{ fontSize: 18, color: "#ffb347" }}>this book is not drawn at this frame (the riser and the swap come in Patch 12)</div>
+            <div style={{ fontSize: 18, color: "#ffb347" }}>this book is not drawn at this frame (under the chair wipe's swap, or not in the scene yet)</div>
           )}
-          {overlaps.length ? <div style={{ fontSize: 18, color: "#ff5a4a" }}>places beside the pile are provisional (Patch 12): {overlaps.join("; ")}</div> : null}
+          {overlaps.length ? <div style={{ fontSize: 18, color: "#ff5a4a" }}>books beside the pile overlap: {overlaps.join("; ")}</div> : null}
           <div style={{ fontSize: 16, opacity: 0.7 }}>
             cover events {coverEventsOf(p.id).map((e) => `${e.kind} ${e.start}`).join(", ")} · shots {SHOTS.length} · pile anchor X {ZONES.L.anchor.X}, Zd {ZONES.L.anchor.Zd}
           </div>

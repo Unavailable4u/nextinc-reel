@@ -2,18 +2,19 @@
 // pile, in the hand, beside the pile, on the riser, under the chair wipe's swap, or not in the scene yet. `getBookLocation(id, frame)`
 // is the ONE function that says which, so the swap can never drift; `getBookPose(id, frame)` is where the book then is, from the rigs.
 //
-// WHAT IS HERE AND WHAT IS NOT. This patch has the table and the rigs: the pile, the lift, the hold, the cover, the turns and the
-// set-down all work from it. It does NOT have the places: the riser and the swap come in Patch 12, and the spot BESIDE the pile is a
-// provisional one (`BESIDE`, flagged `provisional`, laid out without the pile moved) that Patch 12 replaces together with the pile's
-// anchor. `getBookPose` returns null for a book that is on the riser, under the swap or not in the scene.
+// WHAT IS HERE. The table, the rigs and (Patch 12) the places: the pile, the spots beside it and the riser. `getBookPose` returns the pose
+// of a book that is in the pile, in the hand, beside the pile or on the riser, and null for a book that is under the chair wipe's swap
+// (the set is being changed out of sight) or not in the scene yet. The riser's poses come from `config/riser.ts`, the pile's from
+// `config/books.ts`; this file only says which one applies at a frame.
 //
 // The SCRIPT of a book (`BOOK_SCRIPT`) holds the frames of its moves for the shots this patch can verify (S04 to S09, S14 to S16, S18,
 // S20 to S21). The riffle and the spreads of S10 to S13 and the rest of the second book's shots are not in it yet: the shot patches
 // (14 to 19) add their moves and may change a start frame, never a rig.
 
-import { BOOKS, PILE, pilePoses, type BookId, type BookPose } from "./books";
+import { BOOKS, BOOK_IDS, PILE, pilePoses, type BookId, type BookPose } from "./books";
 import { MOTION } from "./bookMotion";
 import { ZONES } from "./placement";
+import { riserPose } from "./riser";
 import { SHEET } from "./sheets";
 import { TOTAL } from "./timeline";
 import { closeFrames, coverAngleAt, coverOpenSettleFrames, coverSpans, openShape, type CoverEvent } from "../book/rig/cover";
@@ -56,6 +57,13 @@ export function getBookLocation(id: BookId, frame: number): BookLocation {
   return r.where[id];
 }
 
+/** Every book at a frame, grouped by where it is: the table of guide 01 as one object. A book appears in exactly one list. */
+export function booksAt(frame: number): Record<BookLocation, BookId[]> {
+  const out: Record<BookLocation, BookId[]> = { pile: [], hand: [], beside: [], riser: [], swap: [], absent: [] };
+  for (const id of BOOK_IDS) out[getBookLocation(id, frame)].push(id);
+  return out;
+}
+
 /** Throws unless the rows are contiguous from 0 to the last frame. Runs when this module loads. */
 export function checkLedger(rows: readonly LedgerRow[] = LEDGER, total = TOTAL): void {
   let expect = 0;
@@ -80,13 +88,15 @@ export function pilePose(id: BookId): BookPose {
 }
 
 /**
- * Where a book lies BESIDE the pile, desk coordinates relative to the pile's anchor. PROVISIONAL: these spots do not yet fit the pile
- * zone (the pile zone is 48 cm wide, two books lying side by side are 46 cm and a third does not fit), so Patch 12, which lays out the
- * pile, the books beside it and the riser together, replaces them. They exist so the set-down has somewhere to go.
+ * Where a book lies BESIDE the pile, desk coordinates relative to the pile's anchor (Patch 12). The two books lie face up with the spine
+ * to the left (the way they were read), to the pile's left, a little apart, a little askew (guide 03 section 6): the nearer book
+ * first. Lying like this a book is 15.2 cm across, so the pair spans X -47.9 to -14.5 from the pile's middle: 2.4 cm from the pile, 1.6 cm
+ * between the books, 5.6 cm inside the desk's left end and 25 cm in front of the lamp's base (which stands at the back, Zd 53 and more).
+ * `tests/set.test.ts` checks that the books clear the pile, each other, the desk's edges and every exclusion.
  */
-export const BESIDE: Partial<Record<BookId, { dx: number; dzd: number; yawDeg: number; provisional: true }>> = {
-  "mini-me": { dx: 25, dzd: 0.4, yawDeg: 90 - 2, provisional: true },
-  minilocker: { dx: 42, dzd: -0.3, yawDeg: 90 + 1.5, provisional: true },
+export const BESIDE: Partial<Record<BookId, { dx: number; dzd: number; yawDeg: number }>> = {
+  "mini-me": { dx: -22.5, dzd: 0.4, yawDeg: -2 },
+  minilocker: { dx: -40, dzd: -0.3, yawDeg: 1.5 },
 };
 
 export function besidePose(id: BookId): BookPose {
@@ -236,7 +246,10 @@ export interface BookMotionState {
   location: BookLocation;
 }
 
-/** The pose of a book at a frame, from the rigs: null when it is on the riser, under the swap or not in the scene (Patch 12). */
+/**
+ * The pose of a book at a frame, from the rigs and the places: the pile's, the lift's, the set-down's or the riser's slot. Null when the
+ * book is under the chair wipe's swap or not in the scene yet.
+ */
 export function getBookPose(id: BookId, frame: number): BookPose | null {
   const where = getBookLocation(id, frame);
   const s = scriptOf(id);
@@ -251,6 +264,8 @@ export function getBookPose(id: BookId, frame: number): BookPose | null {
       if (!s) return null;
       return setDownPoseAt(frame, { id, start: s.setDown.start, rest: besidePose(id), speed: s.setDown.speed });
     }
+    case "riser":
+      return riserPose(id);
     default:
       return null;
   }
@@ -263,7 +278,7 @@ export function motionSpans(id: BookId): { from: number; to: number }[] {
   return [liftSpan(id, s.lift.start, s.lift.speed), ...coverSpans(coverEventsOf(id)), ...s.turns.map((e) => ({ from: e.start, to: e.start + turnLength(e) })), setDownSpan(id, s.setDown.start, s.setDown.speed)];
 }
 
-/** Everything a scene needs to draw a book at a frame, or null when it is not drawn from the first two books' script. */
+/** Everything a scene needs to draw a book at a frame, or null when it is not in the scene (under the swap, or not there yet). */
 export function getBookState(id: BookId, frame: number): BookMotionState | null {
   const pose = getBookPose(id, frame);
   if (!pose) return null;

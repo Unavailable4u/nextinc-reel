@@ -11,6 +11,8 @@ import { DevCovers, defaultDevCoversProps, devCoversSchema } from "./dev/DevCove
 import { DevPages, defaultDevPagesProps, devPagesSchema } from "./dev/DevPages";
 import { DevPageTurn, defaultDevPageTurnProps, devPageTurnSchema } from "./dev/DevPageTurn";
 import { DevBookMotion, defaultDevBookMotionProps, devBookMotionSchema } from "./dev/DevBookMotion";
+import { DevPile, defaultDevPileProps, devPileSchema } from "./dev/DevPile";
+import { DevRiser, defaultDevRiserProps, devRiserSchema } from "./dev/DevRiser";
 import { DevBench } from "./dev/DevBench";
 import { BENCH_FRAMES } from "./dev/benchScenes";
 import { FPS, HEIGHT, TOTAL, WIDTH } from "./config/timeline";
@@ -32,6 +34,8 @@ export const RemotionRoot: React.FC = () => (
     <Still id="DevPages" component={DevPages} width={WIDTH} height={HEIGHT} schema={devPagesSchema} defaultProps={defaultDevPagesProps} />
     <Still id="DevPageTurn" component={DevPageTurn} width={WIDTH} height={HEIGHT} schema={devPageTurnSchema} defaultProps={defaultDevPageTurnProps} />
     <Still id="DevBookMotion" component={DevBookMotion} width={WIDTH} height={HEIGHT} schema={devBookMotionSchema} defaultProps={defaultDevBookMotionProps} />
+    <Still id="DevPile" component={DevPile} width={WIDTH} height={HEIGHT} schema={devPileSchema} defaultProps={defaultDevPileProps} />
+    <Still id="DevRiser" component={DevRiser} width={WIDTH} height={HEIGHT} schema={devRiserSchema} defaultProps={defaultDevRiserProps} />
     <Composition id="DevBench" component={DevBench} durationInFrames={BENCH_FRAMES.length} fps={FPS} width={WIDTH} height={HEIGHT} />
   </>
 );

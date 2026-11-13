@@ -814,3 +814,50 @@ FilmSet, OverlayLayer                                      // now exported from 
 
 **To run on your machine**
 `npm run plate:verify`, then `npm run studio`. Open `DevShotStrip`: 26 labelled cells, S00 to S25, the first frame of each shot (S00 f0000, S01 f0240, S02 f0480, S03 f0840, S04 f0960, S05 f1080, ... S25 f5280). Try `offset` 60 and 300, `columns` 5 and 9, `hud` off, and `settleMs` 500 if a cell has plain boards. Then open `ReelFilm` and scrub across every boundary (239/240, 479/480, 839/840, 959/960, ..., 5279/5280): the shot id in the readout is the earlier shot on the first frame and the later one on the second, on every one. Last, `npm run stills -- --every 120` still renders the contact sheet.
+
+---
+
+## Patch 14 - Shots S00-S04: plate, approach, pile, lift  (2026-11-14)
+
+Owner: reel team.
+
+**What it adds**
+- `src/shots/S04.tsx`: the camera of the lift and its cues. One key, on frame 1080 (the closing key on the first frame of S05, D-51), built from S03's closing key and `VIEW_LIFT`: M 4.63 to 6.0, the pan of the pile hold (the plate does not slide behind the book), focus 36 to 30, f/2, regime R3. The segment from frame 960 to it is the R2 to R3 handover. The book's own moves are the ledger's and were not changed: `BOOK_SCRIPT` lifts MiniMe on frame 960 (press 6 frames, rise 78, settled by frame 1083) and the other two books stay in the pile.
+- Sound cues for S00-S02 and S04 in their shot files (`cues`, see D-61): S00 `room-tone-in` and `lamp-hum` on 0 and `clock-tick` on 120; S01 `cloth-rustle` on 240; S02 `arrival-breath` on 480; S04 `cover-board-thud` on 960, `cloth-on-cloth` on 990, `breath-held` on 1050. S03 has none (the guide gives the pile hold no sound). The comments of S00-S03 say what each file holds now.
+- `src/config/camera.ts`: `VIEW_LIFT` (`{ M: 6.0, focusCm: 30, aperture: 2 }`) and two comments. `CAMERA_KEYFRAMES` is still S00-S03 (the 13 keys), so the tests that read it did not change.
+- `src/camera/operator.ts`: the reach and the settle are slower (D-60): dip 24 to 48 frames, settle spring 2 Hz to 1 Hz, `REACH.settle` 1020 to 1050. Nothing else of the operator changed.
+- `src/camera/audit.ts`: with no `keys` the audit reads `FILM_CAMERA_KEYFRAMES` (the note of Patch 13B said Patch 14 could do this). Its default range is now frames 0-1079.
+- `tests/acts0to2.test.ts` (13 tests), `tests/camera.test.ts` and `tests/film.test.ts` (3 lines each: the camera holds after frame 1080, the audit range is 0-1079, the default-keys comparison stops at frame 959).
+- decisions D-59 to D-61, a sentence in guide 05, the progress line of `docs/patches/INDEX.md`, this entry.
+
+**PUBLIC API**
+```
+S04: Shot                                              // src/shots/S04.tsx; camera [{ frame 1080 }], cues x 3
+VIEW_LIFT = { M: 6.0, focusCm: 30, aperture: 2 }       // src/config/camera.ts: where S04 ends and S05 starts
+OPERATOR.reachDip { downCm: 2, frames: 48 }, OPERATOR.settle.spring { zeta: 0.32, hz: 1 }, REACH { dip: 990, settle: 1050 }
+auditMotion(): default keys are FILM_CAMERA_KEYFRAMES
+```
+
+**Decisions and conventions later patches must follow**
+- S04 owns the key on frame 1080. S05 (Patch 15) starts from it and puts its first key AFTER frame 1080, or leaves the key out of S04 and takes it over (the registry refuses two keys on one frame). The held book is in front of the lens from here: `VIEW_LIFT` is where Patch 17 takes M back from, and S15 should fall from it to 4.63 (the guide says 6.51; D-59).
+- The sideways limit of R3 (10 cm/s) holds for the operator too: a new reach, lean or settle in an R3 shot has to fit it, which is what moved the numbers of D-60.
+- The lens of the held book is f/2 on a focus of 30 (437 cm on the match camera). A shot that wants another focus changes `focusCm`; it does not change the book.
+- A cue lands on a beat, inside its shot, in order, with a name; `defineShot` refuses one that does not.
+
+**Not done, on purpose**
+- Frame 0 is not the bare photograph in the Studio: the ledger puts the pile on the desk from frame 0 (see the notes of Patch 12), so frame 0 is the photo plus the pile, its shadows, the dust, grain and vignette. `plate:verify` turns the set and both layers off and compares the bare photograph. The patch text's wording is kept as the rule for that command.
+- No new component, no `ObjectDefocus` mount (Patch 22 or the first shot that needs it) and nothing in `src/scene`: the dust was already in the set from frame 0 (a test now holds 100 or more lit motes on frames 0, 30, 239, 480, 960, 1000, 1079).
+- The dust puff at the lift, the contact shadow and the pile's other two books are Patch 12's and the ledger's, unchanged.
+
+**Known issues**
+- **Not rendered and not looked at.** There was no browser or GPU, so the contact sheet every 30 frames of S00-S04 and the frame-by-frame look at 940-1080 (the handover) are yours to do. What was measured is below: the handover does not pop (largest jump 0.94 percent of the frame, limit 2), M changes at most 1.477 x per second (limit 1.5), and the plate is in the bokeh band (blur 25 px or more) on every frame above M 5.
+- **M 6.0 and not 6.51** (D-59). At 6.51 the S04 ease changes M 1.62 x per second.
+- **The reach is slower than the guide's table** (D-60); a viewer will see a camera that drops 2 cm over 0.8 s and rings back about one second after it is let go, not 0.6 s. If it reads too soft, shorten the dip and raise the sideways limit of R3 in `REGIME_LIMITS` knowingly, with a note.
+- `settled` for the lift is frame 1083, three frames into S05: the last tenth of a degree of the overshoot rings out under S05's first frames. Nothing is visible at that size; Patch 15's cover hero should not start a book move before frame 1083.
+- The first 66 frames are still the documented STILL of Patch 05.
+
+**Checks run**
+`npx tsc --noEmit` 0 errors. `npm test` 367 of 367 (354 before; 13 added in `tests/acts0to2.test.ts`: S04's one key on frame 1080; the handover (M up and never down, the pan kept, focus 36 to 30, f/2); the audit clean for 0-1079 and the handover 940-1079 under 2 percent and 1.5 x per second; the blur budget above M 5; the reach fits the R3 sideways limit and the dip ends before the settle; S00 inside the R1 budget; the walk bob gone by 480; the focus pull of S02; the S03 hold (3 percent push, 1.5 cm slide, not a STILL); MiniMe in the pile until 959 and in the hand from 960 with the other two staying; the lift finishes inside S04 and the book never moves 1.2 cm in one frame; the dust lit on seven frames; the cues). `npm run motion`: STILL 1 (the documented one), FAST 0, DEEP 0, EDGE 0, POP 0, LATE 0, `shot registry: VALID`, keyframes S00 3, S01 4, S02 3, S03 3, S04 1.
+
+**To run on your machine**
+`npm run plate:verify`, `npm run motion`, `npm test`. Then `npm run sheets -- --from=0 --to=1079 --every=30 --render` and look at the contact sheet (the photo, the walk, the pile, the lift); open `ReelFilm` in the Studio and step 940 to 1080 a frame at a time: the plate should swell behind the book without a jump, the book should rise, turn and settle without a visible stop. `npm run stills -- --shot S04 --every 30` gives the five frames of the shot.

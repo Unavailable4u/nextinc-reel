@@ -42,24 +42,28 @@ export const OPERATOR = {
   /** lean-in: forward and down, eased over `frames` */
   leanIn: { forwardCm: 3, downDeg: 0.6, frames: 60, backFrames: 60 },
   /** reach dip: straight down over `frames` */
-  reachDip: { downCm: 2, frames: 24 },
+  reachDip: { downCm: 2, frames: 48 },
   /** settle after the reach: the dip is let go and the camera rings back up past its rest by `overshootCm`, damped, in about 0.6 s */
-  settle: { overshootCm: 0.7, spring: { zeta: 0.32, hz: 2 } as SpringSpec },
+  settle: { overshootCm: 0.7, spring: { zeta: 0.32, hz: 1 } as SpringSpec },
   /** frames over which a layer that is switched off (a steady range) fades out and in */
   steadyBlendFrames: 12,
 } as const;
 
 /**
  * Where the operator's events sit. A lean-in rises over 60 frames at `from`, holds, and eases back over 60 frames starting at `until`.
- * S02 and S04 are the guide's two lean-ins (the arrival at the pile and the reach for the book). The S04 events are placed from the
- * table now so the layer exists; Patch 14 may move them when it builds S04.
+ * S02 and S04 are the guide's two lean-ins (the arrival at the pile and the reach for the book). The S04 events were placed from the
+ * table in Patch 05 and kept by Patch 14.
  */
 export const LEAN_INS: readonly { from: number; until: number }[] = [
   { from: 480, until: 840 },
   { from: 960, until: 1080 },
 ];
-/** The reach for the book (S04): the dip starts at `dip`, the camera is let go at `settle`. */
-export const REACH = { dip: 990, settle: 1020 } as const;
+/**
+ * The reach for the book (S04): the dip starts at `dip` and takes `OPERATOR.reachDip.frames`, the camera is let go at `settle` and rings
+ * back up. Patch 14 moved `settle` from 1020 to 1050 and slowed the dip (24 to 48 frames) and the ring (2 Hz to 1 Hz): in R3 the camera may
+ * slide 10 cm/s at most, and the table's 0.4 s dip peaked at 13.6 cm/s and its 2 Hz ring at 16.2 cm/s (decision D-60).
+ */
+export const REACH = { dip: 990, settle: 1050 } as const;
 
 /**
  * Ranges where the camera must be steady (guide 05 section 4: "steady during QR hold, no roll, no tremor"): the links spread of the

@@ -1,7 +1,7 @@
 // The motion audit (Patch 05): STILL, FAST, DEEP, EDGE, POP and LATE over the camera path, with frame numbers and a summary.
 // Since Patch 13A the camera path is the one the shot files provide (src/shots, FILM_CAMERA_KEYFRAMES), and the audit also reports the
 // shot registry: it fails when a shot file disagrees with the shot table (the registry checks itself when it loads).
-//   npm run motion                       all frames the keyframes cover (S00-S03 for now)
+//   npm run motion                       all frames the keyframes cover (S00-S04 for now)
 //   npm run motion -- --from=480 --to=959
 //   npm run motion -- --all              ignore the documented exceptions (config/camera.ts, KNOWN_EXCEPTIONS)
 //   npm run motion -- --break            add a deliberate 20-frame move after the last keyframe and show that the audit reports it

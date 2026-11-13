@@ -177,7 +177,7 @@ test("camera path: the view never leaves the 40 px margin and is a pure function
 });
 
 test("camera path: after the last keyframe the camera holds, and the regime comes from the shot table", () => {
-  const last = authoredAt(960).state;
+  const last = authoredAt(1080).state;
   const later = authoredAt(1100);
   eq(JSON.stringify(later.state), JSON.stringify(last));
   eq(later.regime, "R3", "S04 is R3");
@@ -402,9 +402,9 @@ const key = (frame: number, over: Partial<CameraKeyframe> = {}): CameraKeyframe 
 const codes = (keys: CameraKeyframe[], from?: number, to?: number): Record<FindingCode, number> => auditMotion({ keys, from, to, exceptions: [] }).counts;
 const GOOD = [key(0), key(120, { M: 2.1, panX: 690 }), key(150, { M: 2.1, panX: 690 })];
 
-test("audit: S00 to S03 pass with the one documented exception (STILL at the opening), and the peaks are inside the limits", () => {
+test("audit: S00 to S04 (frames 0-1079) pass with the one documented exception (STILL at the opening), and the peaks are inside the limits", () => {
   const r = auditMotion();
-  eq(r.range.join("-"), "0-959");
+  eq(r.range.join("-"), "0-1079", "the default keys are the film's (S00-S04 so far)");
   eq(r.unexplained, 0, JSON.stringify(r.findings));
   eq(r.counts.FAST + r.counts.DEEP + r.counts.EDGE + r.counts.POP + r.counts.LATE, 0, "zero FAST, DEEP, EDGE, POP and LATE");
   eq(r.counts.STILL, 1);
@@ -413,7 +413,7 @@ test("audit: S00 to S03 pass with the one documented exception (STILL at the ope
   truthy(r.stats.peakLateralCmPerSec < limitFor("R2").lateralCmPerSec, `lateral ${r.stats.peakLateralCmPerSec}`);
   truthy(r.stats.peakMRatePerSec < 1.5, `M rate ${r.stats.peakMRatePerSec}`);
   truthy(r.stats.peakPopFraction < 0.02, "no pop");
-  truthy(r.stats.maxM <= limitFor("R2").maxM);
+  truthy(r.stats.maxM <= limitFor("R3").maxM, "the lift of S04 is R3");
   eq(r.timeline.frames, TOTAL);
   eq(r.timeline.shots, SHOTS.length);
   // without the exception list the opening STILL is reported

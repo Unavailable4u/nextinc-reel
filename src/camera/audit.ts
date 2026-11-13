@@ -14,10 +14,11 @@
 // STILL and EDGE look at the AUTHORED path (the operator is the floor, not a substitute); FAST, DEEP and POP look at what the
 // viewer sees: authored path plus operator model, after the margin rule.
 
-import { CAMERA_KEYFRAMES, KNOWN_EXCEPTIONS, MAX_M_RATE_PER_SEC, MIN_GAP_FRAMES, MIN_MOVE_FRAMES, POP_FRACTION, STILL_FRAMES, STILL_MOVEMENT, checkKeyframes, limitFor, type CameraKeyframe } from "../config/camera";
+import { KNOWN_EXCEPTIONS, MAX_M_RATE_PER_SEC, MIN_GAP_FRAMES, MIN_MOVE_FRAMES, POP_FRACTION, STILL_FRAMES, STILL_MOVEMENT, checkKeyframes, limitFor, type CameraKeyframe } from "../config/camera";
 import { MAGNIFICATION, minBlurPx } from "../config/plate";
 import { ZONES } from "../config/placement";
 import { BEAT, FPS, SHOTS, TOTAL, WIDTH, checkTimeline } from "../config/timeline";
+import { FILM_CAMERA_KEYFRAMES } from "../shots";
 import { PLATE_MATCH, clampView, photoToScreen, type PlateMatch } from "../plate/PlateFollow";
 import { projectDesk, pxPerCm } from "../plate/plateCamera";
 import { plateBlurPx } from "./focus";
@@ -112,7 +113,7 @@ function segmentMoves(a: CameraKeyframe, b: CameraKeyframe, match: PlateMatch): 
 }
 
 export function auditMotion(o: AuditOptions = {}): AuditResult {
-  const keys = o.keys ?? CAMERA_KEYFRAMES;
+  const keys = o.keys ?? FILM_CAMERA_KEYFRAMES;
   const match = o.match ?? PLATE_MATCH;
   checkKeyframes(keys);
   const lastKey = keys[keys.length - 1].frame;

@@ -254,6 +254,14 @@ export const VIEW_PILE = { M: 4.49, panX: 418, panY: 545 } as const;
 /** a keyframe without its frame, ease and regime: the state a glide starts from */
 const stateOf = (k: CameraKeyframe): State => ({ M: k.M, panX: k.panX, panY: k.panY, tiltDeg: k.tiltDeg, rollDeg: k.rollDeg, focusCm: k.focusCm, aperture: k.aperture, focalMm: k.focalMm });
 
+/**
+ * Where S04 ends (Patch 14): the plate magnification the lift hands over at, and the lens of the held book. The pan is the pile hold's
+ * (the handover is a dolly toward the pile, so the plate does not slide behind the book). The guide's table asks for M 6.51 "hidden";
+ * it is 6.0 here (the notes of Patch 05 wrote the first plan's 9 as 6), because the signature ease over the 120 frames of S04
+ * changes M faster than 1.5 x per second above about 6.15 (decision D-59). Patches 15 and 17 start from it.
+ */
+export const VIEW_LIFT = { M: 6.0, focusCm: 30, aperture: 2 } as const;
+
 const ARRIVED = still(VIEW_ARRIVED.M, VIEW_ARRIVED.panX, VIEW_ARRIVED.panY, 120, 4);
 const PILE = still(VIEW_PILE.M, VIEW_PILE.panX, VIEW_PILE.panY, 38, 2.8);
 
@@ -300,7 +308,7 @@ export const SHOT_KEYFRAMES: Readonly<Record<"S00" | "S01" | "S02" | "S03", read
  *   S01 240-479  the walk: M to 2.46 toward the lamp side, focus 260 to 120, f/4; the camera arrives at 480 and holds one beat
  *   S02 480-839  the lean in: M 2.46 to 4.49, focus 120 to 38, f/2.8; the move starts at 510 (the first beat is still)
  *   S03 840-959  the pile hold: a 3% push and a 1.5 cm slide, focus 36, f/2.8; it carries on from the end of S02's glide
- * From frame 960 the camera holds its last state until Patch 14 adds S04 onward.
+ * S04 (Patch 14) adds one key on frame 1080, in `src/shots/S04.tsx`, from `VIEW_LIFT`; from frame 1080 the camera holds its last state until Patch 15 adds S05 onward.
  *
  * Two numbers differ from the guide's table, both found with `npm run motion`: the S00 push is 3% (M 1.2875 at frame 240; the table says
  * 2.5%, M 1.28), because with 2.5% the walking bob lands on the margin rule just as the window opens and the sideways speed reaches 48 cm/s

@@ -24,13 +24,14 @@ test("film: cameraAt follows the registry's keyframes by default, and they are P
     const b = cameraAt(f, { keys: FILM_CAMERA_KEYFRAMES });
     eq(JSON.stringify(a), JSON.stringify(b), `frame ${f}: default keys are the film's`);
   }
-  // S00-S03 give the same 13 keys as before, so the default did not move the camera anywhere the old default reached
-  for (const f of [0, 30, 100, 240, 300, 479, 520, 700, 839, 900, 959, 960, 1500]) {
+  // S00-S03 give the same 13 keys as before, so the default did not move the camera anywhere the old default reached (from frame 960 on,
+  // the key S04 adds on frame 1080 leads the camera, Patch 14)
+  for (const f of [0, 30, 100, 240, 300, 479, 520, 700, 839, 900, 959]) {
     eq(JSON.stringify(cameraAt(f)), JSON.stringify(cameraAt(f, { keys: CAMERA_KEYFRAMES })), `frame ${f}`);
   }
 });
 
-test("film: the camera holds its last state after its last keyframe (S04-S25 add none yet)", () => {
+test("film: the camera holds its last state after its last keyframe (S05-S25 add none yet)", () => {
   const last = FILM_CAMERA_KEYFRAMES[FILM_CAMERA_KEYFRAMES.length - 1].frame;
   const held = cameraAt(last, { operator: false });
   for (const f of [last + 1, last + 600, TOTAL - 1]) {

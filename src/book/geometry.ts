@@ -103,7 +103,7 @@ export function layoutOf(spec: BookSpec): BookLayout {
 /** x of the rounded back's outer surface at height y (the spine cloth's outside). */
 const spineOuterX = (L: BookLayout, y: number): number => L.xc - Math.sqrt(L.R * L.R - (y - L.ym) * (y - L.ym));
 /** x of the page block's rounded back at height y (the inside of the spine cloth). */
-const blockBackX = (L: BookLayout, y: number): number => {
+export const blockBackX = (L: BookLayout, y: number): number => {
   const r = L.R - L.cloth;
   return L.xc - Math.sqrt(r * r - (y - L.ym) * (y - L.ym));
 };

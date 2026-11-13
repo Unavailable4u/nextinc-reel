@@ -494,3 +494,53 @@ Measured: textures per book 87.2 MB (Mini Me), 85.2 (SPHEREx), 85.9 (MiniLocker)
 
 **Checks run and results** (build machine: Linux, Node 22, headless Chromium):
 `npx tsc --noEmit` 0 errors. `npm test` 241 of 241 (217 before, 24 added in `tests/pages.test.ts`: the page lists and parity, the margins and nothing outside them, no notes on any page, the read rules, real words only, whole sentences, D-17 and D-20, each page type, every code decoded from its own squares with jsQR, its size and quiet zone, the budget, determinism, and the drawing through a recorder). `npm run qr:check` 12 of 12 codes decode from rendered stills at 40 px per cm. `DevPages` rendered and looked at: `types`, `spread` and `sheet`.
+
+---
+
+## Patch 10 - Sheets, bending, translucency, riffle  (2026-11-13; the Studio, the bench and the strip of stills are yours to run, see "Known issues")
+
+**What was built:**
+- `src/config/sheets.ts`: every number of a loose sheet (`SHEET`): the 24 x 36 mesh, the bend (curl 38 degrees, lag 0.12, edge weight power 1.6), the finger's corner, the landing's flutter, the real depth (0.012 cm) and the offset between neighbours (0.004 cm), the light through the paper, the printed-in gutter, the blob shadow, the page faces, the per-sheet variation, the turn (54 frames, 36 quick) and the riffle (13 sheets of 30 frames, starts 6 to 10 frames apart), and the length read-out's progress values and tolerance.
+- `src/book/sheetShape.ts`: the maths, pure. `sheetLayout`, `shapeOf`, `sheetVariation`, `sheetAngle`, `sheetRow` (a polyline of unit segments, so a row is exactly W long), `sheetPivot` (the gutter travels on an arc about the hinge axis), `restOffsets`, `restWeightAt`, `sheetMesh` (the CPU twin of the shader), `lengthReadout`, `sheetBlob`.
+- `src/book/sheetShader.ts`: the vertex shader (`shAngle`, `shEval`, line for line the twin of `sheetAngle` and `sheetMesh`), the fragment additions (the page, the other side's ink at 8 percent, the gutter, the light that reaches the far side of the face and passes through), and the colour, depth, distance, page-face and wire materials. `uCpu` makes the shader draw the grid's own positions so the two can be compared by eye.
+- `src/book/sheetGeometry.ts`: the grid (two layers, `aGrid` = u, v, layer), `writeSheetMesh`, the page printed on a stack's face (`pageFaceGeometry`) and the blob's alpha bytes.
+- `src/book/sheetUniforms.ts`: which number goes into which uniform, as a pure function (`sheetUniformValues`) and the copy into the real uniforms.
+- `src/book/Sheet.tsx`: `<Sheet>` (one sheet) and `<PageFaces>` (the next page on each stack's face, so a lifting sheet never shows a hole).
+- `src/book/pageTextures.ts`: a painted page's canvas as a texture (made once, sRGB, mip maps, 16x anisotropy), `releasePageTexture`, a white texture and the marked checker used by `DevPageTurn`.
+- `src/book/rig/turn.ts` (`turnProgress`, `landSeconds`, `turnState`, `turnFrames`, `turnedDuring`) and `src/book/rig/riffle.ts` (`riffleStarts`, `riffleFrames`, `riffleSheets`, `riffleTurned`).
+- `src/dev/DevPageTurn.tsx` (a Still, registered in `Root.tsx`): a scrubber (`frame`), single and riffle modes, a checker or the painted pages, three lamp setups (the "behind" one is the glow test), orbit and zoom, toggles for the mesh, the hinge, the blob, the page faces and the CPU twin, and the length read-out printed green or red against the tolerance.
+- `tests/sheets.test.ts`: 16 tests.
+- `src/book/geometry.ts`: `blockBackX` is exported (it was private; the sheets need the same rounded back as the block). Nothing else in the file changed.
+
+**PUBLIC API:**
+- `turnProgress(frame, start, durationFrames, ease?)`, `turnState(...)`, `landSeconds(...)`, `turnFrames(quick?)`, `turnedDuring(baseTurned, P)`.
+- `riffleSheets(frame, { start, count?, turnFrames?, gapFrom?, gapTo?, ease?, first?, baseTurned? })` gives each sheet's `rank`, `index`, `P`, `landSec` and `place`; `riffleTurned(frame, params)` is the number to give the Book as `turned`.
+- `<Sheet id coverAngle turned baseTurned progress landSec place index front back />` inside the `<Book>`; `<PageFaces id coverAngle turned right left />` next to it.
+- `sheetLayout(spec, state, baseTurned?)`, `shapeOf(layout, variation?)`, `sheetAngle(u, v, P, landSec, shape)`, `lengthReadout(P, layout, shape, landSec?)`.
+
+**Decisions and conventions later patches must follow:**
+- **A vertex shader, not a skinned mesh.** The bend depends on u and v (the corner lifts one corner only), so every row is its own polyline; twelve bones along x would give every row the same bend. A skinned mesh also shortens the paper at each joint where the bones blend. The shader integrates unit segments, so a row is exactly W long, and the same code runs in the lamp's depth passes, so the shadow bends with the paper.
+- **Directions are integrated, not positions.** `angle(u, v)` is clamped to `[0, restAngle]`, which is what keeps a sheet from going through its neighbour (the flutter only lifts).
+- **Progress and time**: a sheet is a pure function of `P` (0 to 1) and `landSec` (seconds since `P` reached 1). Nothing in a sheet reads the frame; the rigs turn the frame into those two numbers.
+- **The leaf's width is fixed where the turn starts** (`baseTurned`), while `turned` moves with the crossing, so the stacks tile the block exactly and the sheet does not change size in the air.
+- **Each point decides for itself whether it lies on a stack** (`restWeightAt`, from its own angle), so the part of a sheet that has settled follows the bowed face while the rest is still in the air.
+- **A sheet's variation is seeded** by the book's block seed and the sheet's number (`sheetVariation`), so the same sheet is the same in every render.
+- The page's texture is mapped to the whole leaf face (D-36), the front with u from the gutter, the back mirrored.
+- `PageBlock` needed no change: its heights already come from `splitOf(spec, turned)`, and the riffle feeds it a continuous `turned`.
+
+**Known issues:**
+- **Not looked at.** No browser or GPU was available, so nothing was rendered. Open `DevPageTurn` in the Studio and check by eye: the glow with the lamp set to `behind` and the sheet near vertical, the lag (the outer edge arriving late), the corner lift, the two or three small wiggles on landing, the page faces under a lifting sheet, and the `cpu` toggle (the two meshes must look the same).
+- **The shader was not compared with its twin by a test.** `sheetUniformValues` is pure so a JavaScript copy of the GLSL can be run on it, but that copy was not written; the `cpu` toggle is the check for now.
+- **The strip of stills** (frames 0, 4, 8 ... 44) and **`npm run bench` on a riffle frame** (the patch asks for under 4 s) are yours to run.
+- The riffle's 88 to 104 frames (first start to last start) holds for 12 to 14 sheets, as the config says; 10 and 11 sheets are allowed (`min` is 10) but their span is shorter.
+- Wiring the sheets to the shots is not part of this patch.
+
+**Warnings for the next patch (11):**
+- Give the Book `coverAngle` 1 and `turned` from `riffleTurned` or `turnedDuring`, and one `<Sheet>` per sheet in the air, with the same `coverAngle` and `turned` as the Book and `baseTurned` set to the sheets turned before the turn began.
+- Load a book's pages before the first frame that shows a sheet (`loadBookPages`), and drop one book before loading another (`disposeAct`); call `releasePageTexture` for the textures made from the canvases that were dropped.
+- `<Sheet>` and `<PageFaces>` build their own materials and uniforms per instance (the program cache keys are fixed). Whether a riffle of 14 sheets holds the 4 s bench budget has not been measured.
+
+**Checks run and results** (build machine: Linux, Node 22, no browser):
+`npx tsc --noEmit` 0 errors. `npm test` 257 of 257 (241 before, 16 added in `tests/sheets.test.ts`: the clock, the riffle's starts and span, the sheets of a riffle in order, the length of rows at p = 0, 0.25, 0.5, 0.75 and 1 for all four books and several sheets, the columns, the mesh's rows on both layers, the ends of a turn and the lag, the landing's rebound, determinism and unit normals, the stack weight, the pivot's arc and the offsets, the blob, the variation's seed and range, the uniform order, the grid, the checker).
+
+Measured length read-out (sheet 10 of each book, open flat): worst deviation of any row or column from the paper's size is 0.0012 percent at every one of the five progress values, for all four books, against the 0.5 percent tolerance. W is 14.62 to 14.74 cm and H 22.30 cm.

@@ -666,3 +666,97 @@ SHOT_KEYFRAMES: Record<"S00" | "S01" | "S02" | "S03", readonly CameraKeyframe[]>
 
 **Checks run**
 `npx tsc --noEmit` 0 errors. `npm test` 315 of 315 (298 before; 17 added in `tests/shots.test.ts`: 26 shots on the table's frames; every row of guide 01's master shot list against the registry (id, frames, bars, name, regime); no gap or overlap; the active shot on the first, middle and last frame of every shot and on the frames either side; clamping; `shotById`; S00-S03 give the camera of Patch 05 unchanged; every key inside its shot; stubs allowed; `defineShot`; and the error cases: unknown shot, wrong range, missing, extra or swapped shot, key outside its shot or off a whole frame or out of order, two shots owning one boundary frame, a camera that does not start on frame 0, and the four kinds of bad cue). `npm run motion`: STILL 1 (the documented exception), FAST 0, DEEP 0, EDGE 0, POP 0, LATE 0, peak sideways speed 36.7 cm/s, peak change of M 1.477 x per second, largest jump 0.65%; `shot registry: VALID, 26 shot files (S00-S25), each on its table frames; keyframes S00 3, S01 4, S02 3, S03 3 (none yet: S04-S25)`. Three deliberate breakages were each caught by name and then undone: a frame changed in the copy of the storyboard's table (the test names S11), a keyframe of S07 placed on frame 60 (`npm run motion` exits 1 and names S07), and a key of S04 on S03's closing frame 960 (refused as a second key on one frame). `node tools/make-prompt.mjs --all`: the 27 patch files and the 4 parts assemble, every guide section resolves.
+
+
+---
+
+## Patch 13B - Master composition: the film plays from the registry  (2026-11-14)
+
+Owner: reel team.
+
+**What it adds**
+- `src/ReelFilm.tsx`: the camera rig now follows `FILM_CAMERA_KEYFRAMES` (the keyframes of the shot files). Inside the `Stage`, `FilmSet` puts in the lights (`LightRig`), the environment probe, the shadow catcher, the pile, the riser and the dust, composed as `DevPile` composes them. Above the canvas, `OverlayLayer` draws `activeShot(frame).overlay` when the active shot has one. Then `Grain`, `Vignette`, then the readout. New props, all default true: `scene` (lights, set and dust), `grain`, `vignette`. The file never names a shot.
+- `src/fx/Grain.tsx`, `src/fx/grainField.ts`: faint monochrome grain. The pixels are a pure function of the frame number and a seed (`src/lib/prng.ts`): a 256 px tile per frame, laid over the frame at a whole-pixel offset that also changes per frame. Plain alpha blending, no blend mode.
+- `src/fx/Vignette.tsx`, `src/fx/vignetteField.ts`: a static radial gradient, a warm black, clear in the middle and 30 percent in the corners.
+- `src/config/fx.ts`: every number of the two layers (`GRAIN`, `VIGNETTE`). Placeholders; Patch 22 tunes them.
+- `src/camera/path.ts`: the default `keys` of `cameraAt` and `authoredAt` are `FILM_CAMERA_KEYFRAMES`. `CAMERA_KEYFRAMES` stays in `config/camera.ts` for the tests. `src/dev/DevCamera.tsx` reads the film's last keyframe for its range.
+- `scripts/verify-plate.mjs`: renders frame 0 with `scene`, `grain` and `vignette` off (and `hud` off), so gate G0 still compares the bare photo.
+- `tests/film.test.ts` (11 tests), decisions D-53 to D-55, the progress line of `docs/patches/INDEX.md`.
+
+**PUBLIC API**
+```
+ReelFilmProps { hud: boolean; feather: boolean; view?: PlateView; scene?: boolean; grain?: boolean; vignette?: boolean }   // the last three default true
+defaultReelFilmProps                                   // all three on
+<Grain on? seed? amount? />   <Vignette on? strength? />   // on = false (or amount / strength 0) returns null: nothing is drawn
+grainTile(frame, { seed?, tilePx?, amount? }): Uint8ClampedArray     // RGBA, pure
+grainOffset(frame, seed?, tilePx?): { x, y }                          // whole pixels, pure
+vignetteAlpha(t, opts?): number     vignetteBackground(opts?): string   // pure
+cameraAt(frame, { keys? })                              // keys default to FILM_CAMERA_KEYFRAMES
+```
+
+**Decisions and conventions later patches must follow**
+- Layer order, bottom to top: plate and scene (one canvas), overlay, grain, vignette, readout. The labels of S23 and the wordmark of S24 therefore sit under the grain and the vignette.
+- A shot's overlay is a `React.FC` without props. It is not inside a `<Sequence>`, so `useCurrentFrame()` in it is the film frame.
+- The riser is drawn only from the first frame the ledger puts a book on it (4140, under the chair wipe) and not before (D-53). Where Patch 19 needs it earlier, change that one condition in `FilmSet`.
+- `ReelFilm` stays free of shot names; a test reads its source (comments removed) and fails if one appears. The same test fails if the layers use a clock, `Math.random`, `useFrame` or a timer.
+
+**Known issues**
+- **Not rendered and not looked at.** There was no browser or GPU, so `npm run plate:verify`, the Studio scrub and every still are yours to run. What was checked is below: the types, the tests, the audit and that `remotion bundle` compiles the project with the new layers.
+- **The wording of the patch for frame 0 is not what the ledger says.** The patch text says frame 0 is "the photo plus grain, vignette and dust only"; the ledger puts the pile on the desk from frame 0, and the same patch asks for the pile in the Studio. With `scene` on, frame 0 has the pile, its shadows and the dust, plus grain and vignette. With `scene`, `grain` and `vignette` off it is the bare photo, which is what `plate:verify` needs. If you meant a plate-only first frame, the pile would have to be left out of S00 (the ledger and guide 01 say otherwise).
+- **No defocus on the books.** `ObjectDefocus` (Patch 04) is not mounted: the patch does not list it, and it needs the lens of the current frame. The plate is defocused by the camera rig as before; the books are sharp. Mount it where the focus pull of S02 needs it (Patch 14) or in Patch 22.
+- **The covers paint on the first frame that shows them.** `Pile` draws the painted covers (its default); the film has no `settleMs` as `DevPile` has, so a machine without a GPU may need one for stills. Add it if a first frame comes out with plain boards.
+- **`npm run sheets -- --render` now renders the film as it is** (set, grain, vignette on), no longer the plate alone. Pass `scene`, `grain` and `vignette` as false in `scripts/make-sheets.mjs` if you want the Patch 05 sheets back.
+- `src/camera/audit.ts` still defaults to `CAMERA_KEYFRAMES` when called with no keys. `npm run motion` and `DevCamera` pass the film's keys, so nothing reads the old default; it can follow in Patch 14.
+- The grain and vignette are untuned (Patch 22). Frame 0 of a real render has both on; the poster rule in guide 10 ("keep the poster frame different from frame 0") is unaffected.
+
+**Checks run**
+`npx tsc --noEmit` 0 errors. `npm test` 326 of 326 (315 before; 11 added in `tests/film.test.ts`: the default camera is the film's and S00-S03 give Patch 05's camera unchanged; the camera holds after its last key; the registry's shot at the boundaries; no riser before frame 4140; the grain is a pure function of frame and seed, faint, balanced and zero at amount 0; its offsets are whole and move; the vignette is clear inside its radius, smooth, and exact at the corner; `ReelFilm` names no shot and the layers use no clock; `verify-plate` turns the layers off). `npm run motion` unchanged: STILL 1 (the documented exception), FAST 0, DEEP 0, EDGE 0, POP 0, LATE 0, peak sideways speed 36.7 cm/s, peak change of M 1.477 x per second, largest jump 0.65%; `shot registry: VALID, 26 shot files`. `npx remotion bundle src/index.ts` compiles.
+
+**To run on your machine**
+`npm run plate:verify` (gate G0 must pass), then `npm run studio`: scrub 0-5399, switch `grain`, `vignette` and `scene` off in the props one at a time, and look at frames 0, 840, 960 and 4140-4200.
+
+
+---
+
+## Patch 13C - Stills tool: `npm run stills`  (2026-11-14)
+
+Owner: reel team.
+
+**What it adds**
+- `scripts/make-stills.mjs` (replaces the stub; `package.json`: `"stills": "node scripts/make-stills.mjs"`). Renders chosen frames of `ReelFilm` to `out/stills/fNNNN.png` (the names `npm run sheets` already looks for) and writes `out/stills/contact-sheet.png`, a grid of the frames, each cell labelled with the frame, the shot id and the time. The readout is off unless `--hud`. Browser and GL options are the ones of `scripts/lib/env.mjs`.
+  - `--frames 0,600,840`: those film frames.
+  - `--shot S05`: the shot's first, middle (`floor((from + to) / 2)`) and last frame; with `--every N`, every Nth frame of the shot from its first.
+  - `--every N`: every Nth frame of the film from frame 0 (`--every 120` is 45 frames, f0000 to f5280).
+  - `--golden`: the ten golden frames of guide 11 (0, 600, 840, 1250, 1500, 2100, 2640, 3250, 4580, 5100). Each is compared with `docs/reference/golden/fNNNN.png` when that file exists: it prints the SSIM, `ok` or `BELOW 0.97`; when there is no copy it prints `no golden copy yet` and still renders. Nothing is written to `docs/reference/golden/`.
+  - `--flag value` and `--flag=value` both work. The sources add up (`--shot S03 --golden`). Extras: `--scale`, `--cols`, `--thumb`, `--out` (a folder inside `out/`), `--help`.
+- `scripts/lib/stills.mjs` (+ `.d.mts`): the choice of frames, the argument splitting, the output folder rule and the sheet's column count, as pure functions. `scripts/lib/env.mjs` and `parseArgs` are NOT changed: `--every 120` is turned into `--every=120` before `parseArgs` sees it, for this script only.
+- `scripts/lib/ssim.mjs` (+ `.d.mts`): `ssim`, `lumaOf` and `ssimRgb`, moved out of `scripts/verify-plate.mjs` without a change. `verify-plate.mjs` imports them. Checked: on three random image pairs (64x48, 200x120, 320x180) the old function (taken from the file before this patch) and the new module return bit-identical numbers (0.987871460817793 and so on, equal to the last digit), and the luma function is identical, so `npm run plate:verify` gives the same SSIM as before.
+- `tests/stills.test.ts` (14 tests), the `README.md` command row, decision D-56.
+
+**PUBLIC API**
+```
+npm run stills -- [--frames a,b,c] [--shot Sxx [--every N]] [--every N] [--golden] [--hud] [--scale N] [--cols N] [--thumb N] [--out DIR]
+exit 0 done   1 a render or file problem   2 a usage error (the message says what was wrong)
+GOLDEN_FRAMES, GOLDEN_SSIM_MIN (0.97), StillsUsageError, splitArgs(argv, valueFlags), selectFrames({ frames, shot, every, golden }, shots, total),
+stillName(frame), resolveOutDir(root, requested), sheetColumns(n, requested)      // scripts/lib/stills.mjs
+ssim(a, b, w, h), ssimRgb(a, b, w, h), lumaOf(r, g, b)                              // scripts/lib/ssim.mjs
+```
+
+**Decisions and conventions later patches must follow**
+- A frame outside 0-5399, a frame that is not a whole number, an unknown shot id, a bad `--every`, a path outside `out/` and an empty request are usage errors (exit 2) that name what was wrong and render nothing.
+- `--every` counts a shot's frames (with `--shot`) or the whole film's (on its own). Next to `--frames` or `--golden` without `--shot` it is refused, because it would not be clear what it counts (D-56).
+- `--golden` prints the SSIM and flags frames below 0.97 but does not change the exit code: guide 11 calls a drop a regression only "on a frame you did not intend to change", and only a person can say that.
+- Patch 23 stores the golden copies as `docs/reference/golden/fNNNN.png` at 1920x1080. At any `--scale` other than 1 the comparison is skipped and says so. A copy of another size is not compared and says so.
+- Stills are written under `out/` only. The original plate is never touched.
+
+**Known issues**
+- **The render itself was not run.** There was no browser or GPU, so `npm run stills -- --frames 0,840` and the other CHECK lines of the patch are yours to run. What was run: every usage error through the real script (exit 2, message), `--help`, and a copy of the script with the renderer replaced by a stub that writes synthetic PNGs, to check the selection, the file names, the contact sheet (45 labelled cells for `--every 120`, 3 for `--shot S03`, a 5 x 2 block for the golden frames; I looked at the 45-cell sheet) and the golden comparison (an identical copy scores 1.00000, a noisy one is flagged BELOW, a missing copy, a copy of another size and `--scale 0.5` are each reported). The stub copy and the test golden files were deleted afterwards; nothing of it is in the patch.
+- **One browser start per frame.** The script renders through `renderPng` of `scripts/lib/env.mjs`, as `plate:verify` and `sheets --render` do, and that opens a browser for each frame. `--every 120` (45 frames) will take a while; `--every 240` or `--scale 0.5` is quicker for a first look. Keeping one browser open for the whole run would be a change to `env.mjs`, which this patch leaves alone.
+- The stills show the film as `ReelFilm` draws it with its defaults (set, grain and vignette on, as 13B left them). There is no flag yet to turn those off for a still; `ReelFilm`'s `scene`, `grain` and `vignette` props exist if that is wanted.
+- The contact sheet is one image for any number of frames (a sheet of 45 at the default width is 2650 x 1306 px); `--thumb` and `--cols` change its size.
+
+**Checks run**
+`npx tsc --noEmit` 0 errors. `npm test` 340 of 340 (326 before; 14 added in `tests/stills.test.ts`: the golden list equals guide 11's; `--frames`, `--shot` (all 26 shots), `--shot --every`, `--every` (45 frames, every frame, 0 and 5399) and `--golden` pick what the patch says and add up; every usage error names what was wrong; the `=` and space forms; the output folder rule (eight bad paths refused); the sheet's columns for 1 to 200 cells; the SSIM is 1 for the same picture, symmetric, and `ssimRgb` equals the SSIM of the luma; `package.json`, `verify-plate.mjs` and `make-stills.mjs` are wired as described). `npm run motion` unchanged (the same findings and `shot registry: VALID`). Shell checks of the script's usage errors: ten bad requests, ten exit codes of 2.
+
+**To run on your machine**
+`npm run stills -- --frames 0,840`, `-- --shot S03`, `-- --every 120` and `-- --golden` (the four CHECK lines), then `npm run plate:verify` (the same SSIM as before this patch). Look at the contact sheet of `--every 120`: the photo to the last frame, each cell labelled with its shot.

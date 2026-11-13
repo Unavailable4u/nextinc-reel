@@ -2,7 +2,7 @@
 //
 // You said the photo must not change. This proves it, in three steps (guide 02, "Plate integrity test"):
 //   1. the original file's SHA-256 equals docs/reference/.plate.sha256;
-//   2. frame 0 of the film is rendered (books hidden, no readout) and compared with what a perfect rendering of the original
+//   2. frame 0 of the film is rendered (the set, grain and vignette off, no readout) and compared with what a perfect rendering of the original
 //      must look like for that view (bilinear sampling in linear light, exactly what the GPU does when magnifying):
 //        A. feather OFF  -> the bare photo: SSIM over the whole photo area must be >= 0.98;
 //        B. feather ON   -> the real frame 0: SSIM >= 0.98 outside the feathered strips, and no pixel in the lamp / LED regions
@@ -17,6 +17,7 @@ import sharp from "sharp";
 import { build } from "esbuild";
 import { pathToFileURL } from "node:url";
 import { ROOT, OUT, ensureDir, fail, makeBundle, parseArgs, renderPng } from "./lib/env.mjs";
+import { ssim, lumaOf } from "./lib/ssim.mjs";
 
 const args = parseArgs(process.argv.slice(2), ["skip-render", "keep", "help"]);
 if (args.help) {
@@ -86,51 +87,12 @@ function sample(u, v) {
 const toPhotoX = (sx) => view.cx + (sx + 0.5 - SW / 2) / view.M;
 const toPhotoY = (sy) => view.cy + (sy + 0.5 - SH / 2) / view.M;
 
-// ---- SSIM (luma, 11x11 gaussian window, sigma 1.5, standard constants) ----
-function gaussKernel() {
-  const k = [];
-  let s = 0;
-  for (let i = -5; i <= 5; i++) { const v = Math.exp(-(i * i) / (2 * 1.5 * 1.5)); k.push(v); s += v; }
-  return k.map((v) => v / s);
-}
-const K = gaussKernel();
-function blur(src, w, h) {
-  const tmpB = new Float32Array(w * h);
-  const out = new Float32Array(w * h);
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-    let a = 0;
-    for (let i = -5; i <= 5; i++) a += K[i + 5] * src[y * w + Math.min(w - 1, Math.max(0, x + i))];
-    tmpB[y * w + x] = a;
-  }
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-    let a = 0;
-    for (let i = -5; i <= 5; i++) a += K[i + 5] * tmpB[Math.min(h - 1, Math.max(0, y + i)) * w + x];
-    out[y * w + x] = a;
-  }
-  return out;
-}
-function ssim(a, b, w, h) {
-  const C1 = (0.01 * 255) ** 2, C2 = (0.03 * 255) ** 2;
-  const mu1 = blur(a, w, h), mu2 = blur(b, w, h);
-  const aa = new Float32Array(w * h), bb = new Float32Array(w * h), ab = new Float32Array(w * h);
-  for (let i = 0; i < w * h; i++) { aa[i] = a[i] * a[i]; bb[i] = b[i] * b[i]; ab[i] = a[i] * b[i]; }
-  const s11 = blur(aa, w, h), s22 = blur(bb, w, h), s12 = blur(ab, w, h);
-  let sum = 0, n = 0;
-  for (let y = 5; y < h - 5; y++) for (let x = 5; x < w - 5; x++) {
-    const i = y * w + x;
-    const v1 = s11[i] - mu1[i] * mu1[i], v2 = s22[i] - mu2[i] * mu2[i], cv = s12[i] - mu1[i] * mu2[i];
-    sum += ((2 * mu1[i] * mu2[i] + C1) * (2 * cv + C2)) / ((mu1[i] ** 2 + mu2[i] ** 2 + C1) * (v1 + v2 + C2));
-    n++;
-  }
-  return sum / n;
-}
-const lumaOf = (r, g, b) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
-
 // ---- render and compare ----
 async function compare(label, feather) {
   const file = path.join(OUT, "plate-verify", `frame0-${feather ? "feather" : "bare"}.png`);
   ensureDir(path.dirname(file));
-  await renderPng({ serveUrl, id: "ReelFilm", frame: 0, output: file, inputProps: { hud: false, feather } });
+  // the set, the grain and the vignette are off: this test is about the photograph, and frame 0 of the film has more on it (Patch 13B)
+  await renderPng({ serveUrl, id: "ReelFilm", frame: 0, output: file, inputProps: { hud: false, feather, scene: false, grain: false, vignette: false } });
   const img = await sharp(file).removeAlpha().raw().toBuffer({ resolveWithObject: true });
   if (img.info.width !== SW || img.info.height !== SH) fail(`Rendered frame is ${img.info.width}x${img.info.height}, expected ${SW}x${SH}.`);
   const left = SW / 2 - view.cx * view.M;

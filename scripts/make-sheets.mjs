@@ -5,7 +5,7 @@
 //   --from, --to   first and last frame (default 0 and 959, the frames Patch 05 covers); the stills are at from, from + every, ...
 //   --every        one still every N frames (default 30, one per beat)
 //   --dir          where the stills are (default out/stills), named f0000.png, f0030.png ... (the same names `npm run stills`
-//                  makes from Patch 13 on)
+//                  makes)
 //   --render       render the stills that are missing with Remotion (the film, no readout) instead of stopping
 //   --scale        render scale for --render (default 1)
 //   --cols, --rows grid size of one sheet (default 4 x 5); more frames make more sheets
@@ -51,7 +51,7 @@ if (missing.length) {
   if (!args.render) {
     fail(
       `${missing.length} of ${frames.length} stills are missing in ${path.relative(ROOT, dir)} (first: ${path.basename(stillPath(missing[0]))}).`,
-      "run again with --render to make them, or put stills named f0000.png, f0030.png ... in that folder (npm run stills makes them from Patch 13 on).",
+      "run again with --render to make them, or put stills named f0000.png, f0030.png ... in that folder (npm run stills makes them).",
     );
   }
   ensureDir(dir);

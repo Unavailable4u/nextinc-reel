@@ -1,7 +1,7 @@
 import React from "react";
 import { AbsoluteFill } from "remotion";
 import { z } from "zod";
-import { CAMERA_KEYFRAMES } from "../config/camera";
+import { FILM_CAMERA_KEYFRAMES } from "../shots";
 import { MAGNIFICATION, magnificationBand, BAND_COLOR, minBlurPx } from "../config/plate";
 import { FPS, TOTAL, shotAt } from "../config/timeline";
 import { auditMotion, type AuditResult, type FindingCode } from "../camera/audit";
@@ -144,7 +144,7 @@ export const DevCamera: React.FC<DevCameraProps> = ({ from, to, every, operator 
   } catch (e) {
     error = (e as Error).message;
   }
-  const lastKey = CAMERA_KEYFRAMES[CAMERA_KEYFRAMES.length - 1].frame;
+  const lastKey = FILM_CAMERA_KEYFRAMES[FILM_CAMERA_KEYFRAMES.length - 1].frame;
   const th: React.CSSProperties = { textAlign: "right", color: DIM, fontWeight: 400, padding: "2px 8px", borderBottom: "1px solid #2a2a2e" };
   const td: React.CSSProperties = { textAlign: "right", padding: "1px 8px" };
   return (

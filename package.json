@@ -21,7 +21,7 @@
     "bench": "node scripts/bench.mjs",
     "motion": "node tools/audit-motion.mjs",
     "sheets": "node scripts/make-sheets.mjs",
-    "stills": "node scripts/stub.mjs stills 13",
+    "stills": "node scripts/make-stills.mjs",
     "screens": "node scripts/crop-screens.mjs",
     "qr:check": "node scripts/check-qr.mjs",
     "audit": "node scripts/stub.mjs audit 23",

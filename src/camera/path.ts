@@ -12,9 +12,10 @@
 //      move the opening shot at all: frame 0 is still the bare plate.
 // A TILT of the camera is a shift of the window by focalPx x tan(tilt) photo px (the photo is flat; guide 05, section 1).
 
-import { CAMERA_KEYFRAMES, FOCUS_PILE_GUIDE_CM, mixState, type CameraKeyframe } from "../config/camera";
+import { FOCUS_PILE_GUIDE_CM, mixState, type CameraKeyframe } from "../config/camera";
 import { ZONES } from "../config/placement";
 import { shotAt, type Regime } from "../config/timeline";
+import { FILM_CAMERA_KEYFRAMES } from "../shots";
 import { EASES } from "../lib/ease";
 import { PLATE_MATCH, clampView, type PlateMatch, type PlateView } from "../plate/PlateFollow";
 import { focalPx, pxPerCm } from "../plate/plateCamera";
@@ -50,6 +51,7 @@ export interface CameraFrame {
 }
 
 export interface CameraOptions {
+  /** the keyframes to follow; default is the camera of the film, the keyframes of every shot file joined in order (`FILM_CAMERA_KEYFRAMES`, src/shots) */
   keys?: readonly CameraKeyframe[];
   match?: PlateMatch;
   /** add the operator model (default true); the audit turns it off to look at the authored path alone */
@@ -74,7 +76,7 @@ export function lensOf(guideFocusCm: number, aperture: number, focalMm: number, 
 const stateOf = (k: CameraKeyframe): CameraState => ({ M: k.M, panX: k.panX, panY: k.panY, tiltDeg: k.tiltDeg, rollDeg: k.rollDeg, focusCm: k.focusCm, aperture: k.aperture, focalMm: k.focalMm });
 
 /** The authored state at a frame, and the regime of the segment it is in. Pure. */
-export function authoredAt(frame: number, keys: readonly CameraKeyframe[] = CAMERA_KEYFRAMES): { state: CameraState; regime: Regime } {
+export function authoredAt(frame: number, keys: readonly CameraKeyframe[] = FILM_CAMERA_KEYFRAMES): { state: CameraState; regime: Regime } {
   const last = keys[keys.length - 1];
   // after the last keyframe the camera holds; the shot table says which regime the frame is in (the last keyframe's own regime is ignored)
   if (frame >= last.frame) return { state: stateOf(last), regime: shotAt(frame).regime };
@@ -96,7 +98,7 @@ export function authoredAt(frame: number, keys: readonly CameraKeyframe[] = CAME
 
 /** The camera at a frame. A pure function of the frame and of the data passed in. */
 export function cameraAt(frame: number, o: CameraOptions = {}): CameraFrame {
-  const keys = o.keys ?? CAMERA_KEYFRAMES;
+  const keys = o.keys ?? FILM_CAMERA_KEYFRAMES;
   const match = o.match ?? PLATE_MATCH;
   const { state, regime } = authoredAt(frame, keys);
   const authoredView: PlateView = { M: state.M, cx: state.panX, cy: state.panY + turnShiftPx(state.tiltDeg, match) };

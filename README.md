@@ -64,7 +64,7 @@ Maintenance lives in `docs/guide/11-maintenance.md` and `docs/ops/RUNBOOK.md`.
 | `npm run bench` | Measure seconds per frame on this machine and estimate the whole film [04] |
 | `npm run motion` | Audit the camera path: STILL, FAST, DEEP, EDGE, POP, LATE, with frame numbers; `-- --all` ignores the documented exceptions, `-- --break` shows the audit catching a deliberate 20-frame move [05, done] |
 | `npm run sheets -- --from=0 --to=959 --every=30` | Contact sheets from stills in `out/stills/` (`--render` makes the missing stills with Remotion) [05, done] |
-| `npm run stills` | Render the check stills to `out/stills/` [13] |
+| `npm run stills -- --frames 0,600` / `--shot S05` / `--every 120` / `--golden` | Render chosen frames to `out/stills/fNNNN.png` and a labelled `contact-sheet.png`; `--golden` compares the ten golden frames with `docs/reference/golden/` [13C, done] |
 | `npm run qr:check` | Render every page that carries a QR in a browser, decode each code with jsQR at 40 px per cm and compare with the data; `-- --book=<id>` for one book, `-- --keep` keeps the stills in `out/qr/` [09, done] |
 | `npm run screens` | Crop the raw captures in `public/screens/` to the app content (guide 07) into new files next to them; `-- --check` compares without writing [09, done] |
 | `npm run audit` | Truth audit: every on-screen fact traced to the snapshot [23] |
@@ -94,7 +94,7 @@ public/
   fonts/ brand/ textures/ models/ screens/ films/ audio/ qr/
 src/          config/ (timeline, plate), lib/ (ease, spring, prng, noise, hash, units, fonts), data/ (snapshot + selectors),
               plate/ (the plate rig), dev/ (DevPlate), stage.tsx, ReelFilm.tsx, Root.tsx
-scripts/      sync-site, verify-plate, test-select, lib/env.mjs, stubs for later patches
+scripts/      sync-site, verify-plate, make-stills, test-select, lib/ (env, ssim, stills), stubs for later patches
 tools/        make-prompt, run-tests, print-timeline, measure-plate
 tests/        pure-logic tests (npm test)
 out/  prompts-out/                   (git-ignored)

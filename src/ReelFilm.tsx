@@ -9,6 +9,7 @@ import { LightRig } from "./light/Rig";
 import { ProbeEnvironment } from "./light/ProbeEnvironment";
 import { ShadowCatcher } from "./plate/ShadowCatcher";
 import { Pile } from "./scene/Pile";
+import { useActPages } from "./scene/useActPages";
 import { Riser, riserBooksAt } from "./scene/Riser";
 import { Dust } from "./scene/Dust";
 import { Grain } from "./fx/Grain";
@@ -55,22 +56,26 @@ const Readout: React.FC = () => {
 /**
  * THE SET, composed the way `DevPile` composes it (Patch 12): the lights, the environment the glossy materials reflect, the shadow
  * catcher, the pile (every book the ledger puts on the left of the desk), the riser and the dust. Children of <Stage>, world space.
- * Every part is a pure function of `frame`; where a book is comes from the ledger, never from a shot. Exported so that `DevShotStrip`
+ * The open book's pages come from `useActPages` (the textures of the frame's act). Every part is a pure function of `frame`; where a book is comes from the ledger, never from a shot. Exported so that `DevShotStrip`
  * draws its cells with this set and not a copy of it.
  *
  * The riser is drawn from the first frame the ledger puts a book on it (the swap under the chair wipe) and not before: it is not in the
  * photograph, so a riser drawn at frame 0 would stand at the right end of the desk in the opening shot.
  */
-export const FilmSet: React.FC<{ frame: number }> = ({ frame }) => (
-  <>
-    <LightRig frame={frame} />
-    <ProbeEnvironment />
-    <ShadowCatcher />
-    <Pile frame={frame} />
-    {riserBooksAt(frame).length > 0 ? <Riser frame={frame} /> : null}
-    <Dust frame={frame} />
-  </>
-);
+export const FilmSet: React.FC<{ frame: number }> = ({ frame }) => {
+  // the painted pages of the open book of the frame's act (Patch 15): painted on first need, the render waits for them, freed after the act
+  const pages = useActPages(frame);
+  return (
+    <>
+      <LightRig frame={frame} />
+      <ProbeEnvironment />
+      <ShadowCatcher />
+      <Pile frame={frame} pages={pages} />
+      {riserBooksAt(frame).length > 0 ? <Riser frame={frame} /> : null}
+      <Dust frame={frame} />
+    </>
+  );
+};
 
 /**
  * THE OVERLAY LAYER: the 2D layer of the active shot (the labels of S23, the wordmark of S24), drawn above the canvas. It asks the

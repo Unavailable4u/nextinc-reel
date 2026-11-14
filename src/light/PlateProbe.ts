@@ -83,6 +83,26 @@ function frontFace(front: Rgba8, size: number): Float32Array {
   return out;
 }
 
+/** the camera's side: nearly black, with the one soft window of `LIGHTS.probe.sweep` that the foil of a held cover reflects (see there) */
+function cameraSideFace(size: number): Float32Array {
+  const out = gradientFace([0.003, 0.003, 0.004], [0.003, 0.003, 0.004], size);
+  const S = LIGHTS.probe.sweep;
+  const k = size / 128;
+  for (let y = 0; y < size; y++) {
+    const row = (y + 0.5) / k;
+    const v = row <= S.rowsFull ? 1 : Math.max(0, 1 - (row - S.rowsFull) / S.rowsFade);
+    if (v <= 0) continue;
+    for (let x = 0; x < size; x++) {
+      const d = ((x + 0.5) / k - S.colPx) / S.sigmaPx;
+      const w = v * Math.exp(-0.5 * d * d);
+      if (w < 1e-4) continue;
+      const i = (y * size + x) * 4;
+      for (let c = 0; c < 3; c++) out[i + c] += S.color[c] * S.nits * w;
+    }
+  }
+  return out;
+}
+
 const half = (f: Float32Array): Uint16Array<ArrayBuffer> => {
   const o = new Uint16Array(new ArrayBuffer(f.length * Uint16Array.BYTES_PER_ELEMENT));
   for (let i = 0; i < f.length; i++) o[i] = THREE.DataUtils.toHalfFloat(f[i]);
@@ -90,7 +110,7 @@ const half = (f: Float32Array): Uint16Array<ArrayBuffer> => {
 }
 
 /**
- * The six faces. The camera's side (+Z) is nearly black; the ceiling (+Y) dim and cool; the desk (-Y) warm and dark; the sides dim.
+ * The six faces. The camera's side (+Z) is nearly black apart from the sweep window (`LIGHTS.probe.sweep`); the ceiling (+Y) dim and cool; the desk (-Y) warm and dark; the sides dim.
  * Colours are linear and are STARTING values, tuned by looking at the foil in Patch 10.
  */
 export function buildProbeFaces(front: Rgba8, size = PROBE_SIZE): Record<FaceName, ProbeFace> {
@@ -100,7 +120,7 @@ export function buildProbeFaces(front: Rgba8, size = PROBE_SIZE): Record<FaceNam
     nx: mk(gradientFace([0.012, 0.012, 0.014], [0.03, 0.02, 0.012], size)),
     py: mk(gradientFace([0.02, 0.022, 0.03], [0.02, 0.022, 0.03], size)),
     ny: mk(gradientFace([0.05, 0.027, 0.014], [0.05, 0.027, 0.014], size)),
-    pz: mk(gradientFace([0.003, 0.003, 0.004], [0.003, 0.003, 0.004], size)),
+    pz: mk(cameraSideFace(size)),
     nz: mk(frontFace(front, size)),
   };
 }

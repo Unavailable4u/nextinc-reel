@@ -117,7 +117,7 @@ export const PILE_DISTANCE_CM = PLATE_MATCH.camDistCm + ZONES.L.anchor.Zd;
 
 // ---------- building keyframes ----------
 
-type State = Omit<CameraKeyframe, "frame" | "ease" | "regime">;
+export type State = Omit<CameraKeyframe, "frame" | "ease" | "regime">;
 
 /**
  * The camera state a fraction `p` of the way from state `a` to state `b`. The ONE place that says how two keyframes are mixed (path.ts
@@ -252,7 +252,7 @@ export const VIEW_ARRIVED = { M: 2.46, panX: 600, panY: 490 } as const;
 export const VIEW_PILE = { M: 4.49, panX: 418, panY: 545 } as const;
 
 /** a keyframe without its frame, ease and regime: the state a glide starts from */
-const stateOf = (k: CameraKeyframe): State => ({ M: k.M, panX: k.panX, panY: k.panY, tiltDeg: k.tiltDeg, rollDeg: k.rollDeg, focusCm: k.focusCm, aperture: k.aperture, focalMm: k.focalMm });
+export const stateOf = (k: CameraKeyframe): State => ({ M: k.M, panX: k.panX, panY: k.panY, tiltDeg: k.tiltDeg, rollDeg: k.rollDeg, focusCm: k.focusCm, aperture: k.aperture, focalMm: k.focalMm });
 
 /**
  * Where S04 ends (Patch 14): the plate magnification the lift hands over at, and the lens of the held book. The pan is the pile hold's
@@ -290,17 +290,70 @@ const S03 = holdShot(840, 960, PILE, {
 });
 
 /**
- * The keyframes of S00-S03, one array per shot (Patch 13A). The shot files in `src/shots/` take their `camera` from here, so a shot owns
+ * Where the cover hero ends and the reading camera starts (Patch 15): S05 re-centres the held book and pushes in 4 percent
+ * (M 6.0 to 6.24, the window from the pile hold's pan to the photo pixel under the middle of the held book), with the lens of S04
+ * (focus 30, f/2). At M 6.0 the held book's top edge is 2 px above the frame and its middle 285 px above the middle of it, so the
+ * window has to slide down the photo by 48 px; the book's middle is at plate px (415, 497) (D-64). 6.24 is inside the R3 budget (6.6)
+ * with room for the operator's lean and breathing on top.
+ */
+export const VIEW_HERO = { M: 6.24, panX: 415, panY: 497, focusCm: VIEW_LIFT.focusCm, aperture: VIEW_LIFT.aperture } as const;
+
+/**
+ * Where the camera is once the cover is open, on frame 1560 (the end of S06): the window has slid 20 photo px to the left, towards the
+ * open book's middle (the spread is wider than the closed book and its middle is 7.4 cm left of it), a little further in (M 6.32) and
+ * with the reading lens of guide 05 section 4 for S06-S09 (focus 32, f/2.8). The slide is 3.5 cm/s on average and 10 cm/s at its peak,
+ * the R3 limit, which is why it takes the 120 frames of S06 and not fewer.
+ */
+export const VIEW_OPEN = { M: 6.32, panX: 395, panY: 500, focusCm: 32, aperture: 2.8 } as const;
+
+/**
+ * Where the reading camera ends, on frame 1920 (the first frame of S10, which starts from it): the window drifted a little further
+ * to the left and 12 photo px down the page, towards the caption of the right page, and in to M 6.52 (under the R3 budget of 6.6
+ * with the operator's breathing on top). From frame 1560 it is one straight run, so the camera never stands still. The "tilt down
+ * 10 degrees" of the guide's table is the book's pitch (`config/heroMotion.ts`, D-65): the match camera cannot tilt, a tilt of the
+ * window would take the book out of the frame.
+ */
+export const VIEW_READ = { M: 6.52, panX: 392, panY: 512, focusCm: 32, aperture: 2.8 } as const;
+
+/** The camera state S04 ends in (its closing key on frame 1080, `src/shots/S04.tsx`): S03's last key with the lift's view and lens. */
+const LIFT_STATE: State = { ...stateOf(S03[S03.length - 1]), M: VIEW_LIFT.M, focusCm: VIEW_LIFT.focusCm, aperture: VIEW_LIFT.aperture };
+const HERO_STATE: State = { ...LIFT_STATE, M: VIEW_HERO.M, panX: VIEW_HERO.panX, panY: VIEW_HERO.panY };
+const OPEN_STATE: State = { ...HERO_STATE, M: VIEW_OPEN.M, panX: VIEW_OPEN.panX, panY: VIEW_OPEN.panY, focusCm: VIEW_OPEN.focusCm, aperture: VIEW_OPEN.aperture };
+const READ_STATE: State = { ...OPEN_STATE, M: VIEW_READ.M, panX: VIEW_READ.panX, panY: VIEW_READ.panY };
+
+// S05: one glide from S04's key on frame 1080 to the hero view on frame 1440 (60 frames of ease-in, a straight run, 60 of ease-out). Its
+// first key is S04's and its last is S06's, so S05 owns the two keys on the way.
+const S05 = glideShot(1080, 1440, LIFT_STATE, HERO_STATE, { inFrames: 60, outFrames: 60, regime: "R3" });
+// S06: the hero view on frame 1440 to the open view on frame 1560, one `signature` ease (a stop on 1440 of less than 60 frames: the glide
+// before it eases out and this eases in); the camera slides to the open book's middle while the cover swings.
+// S07-S09: from the open view straight to the reading view on frame 1920 (S09's closing key), a run at constant speed with no stop.
+const READING: readonly CameraKeyframe[] = [
+  { frame: 1440, ...HERO_STATE, ease: "signature", regime: "R3" },
+  { frame: 1560, ...OPEN_STATE, ease: "linear", regime: "R3" },
+  { frame: 1920, ...READ_STATE, ease: "signature", regime: "R3" },
+];
+
+/**
+ * The keyframes of S00-S03, one array per shot (Patch 13A), and of S05-S09 (Patch 15). The shot files in `src/shots/` take their `camera` from here, so a shot owns
  * its keyframes and the registry (`src/shots/index.ts`, `FILM_CAMERA_KEYFRAMES`) can put them back together. A shot's keys lie inside its
  * own frames, plus one closing key on the first frame of the next shot (the state the next move starts from): S03's key at frame 960 is
  * the example. The arrays are the ones the builders above made, split where the shots split, in the order they were joined before.
+ * Patch 15 adds S05-S09 (S04's one key is in `src/shots/S04.tsx`; S08 is inside the reading run and owns no key).
  */
-export const SHOT_KEYFRAMES: Readonly<Record<"S00" | "S01" | "S02" | "S03", readonly CameraKeyframe[]>> = {
+export const SHOT_KEYFRAMES: Readonly<Record<"S00" | "S01" | "S02" | "S03" | "S05" | "S06" | "S07" | "S08" | "S09", readonly CameraKeyframe[]>> = {
   S00: S00.slice(0, -1),
   S01,
   S02,
   S03,
+  S05: S05.slice(1, -1),
+  S06: READING.filter((k) => k.frame < 1560),
+  S07: READING.filter((k) => k.frame === 1560),
+  S08: [],
+  S09: READING.filter((k) => k.frame === 1920),
 };
+
+/** The state S04 ends in and the views of Patch 15 as states (the tests compare the shot files' keys with them). */
+export const HERO_STATES = { lift: LIFT_STATE, hero: HERO_STATE, open: OPEN_STATE, read: READ_STATE } as const;
 
 /**
  * PLACEHOLDERS for S00-S03 (frames 0-959), taken from the table of guide 05 section 4:

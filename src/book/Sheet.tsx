@@ -151,7 +151,9 @@ export const PageFaces: React.FC<PageFacesProps> = ({ id, coverAngle, turned, ri
   const bowAmp = bowAmplitude(split);
   const leafW = L.xFore - blockBackX(L, split.yMid);
   const hasRight = split.rightThickness > 1e-4;
-  const hasLeft = split.leftThickness > 1e-4;
+  // the left face is drawn when the left stack has any thickness, or when a page is given for it: with no sheet turned yet that page is the
+  // endpaper pasted on the inside of the front board (Patch 15, S06)
+  const hasLeft = split.leftThickness > 1e-4 || left != null;
   const rough = MATERIALS.paper.roughness;
 
   const rightGeo = useMemo(() => pageFaceGeometry(spec, { y: split.yMid, bowAmp, at: "top" }), [spec, split.yMid, bowAmp]);

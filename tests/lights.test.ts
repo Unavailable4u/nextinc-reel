@@ -98,13 +98,24 @@ test("probe: six faces of the right size; the camera's side is nearly black; the
     eq(faces[n].data.length, PROBE_SIZE * PROBE_SIZE * 4, `${n} length`);
   }
   const g = (f: Uint16Array, i: number): number => THREE.DataUtils.fromHalfFloat(f[i]);
-  const mid = (PROBE_SIZE / 2 + PROBE_SIZE * (PROBE_SIZE / 2)) * 4;
-  truthy(g(faces.pz.data, mid) < 0.01, "the camera's side is nearly black");
+  const away = (10 + PROBE_SIZE * (PROBE_SIZE / 2)) * 4;
+  truthy(g(faces.pz.data, away) < 0.01, "the camera's side is nearly black away from the sweep window");
   let max = 0;
   for (let i = 0; i < faces.nz.data.length; i += 4) max = Math.max(max, g(faces.nz.data, i));
   truthy(max > 1.5, `the lamp's hot spot is brighter than white (${max.toFixed(2)})`);
   // away from the lamp the plate's face is the plate's colour, in linear light (sRGB 120 = 0.188)
   near(g(faces.nz.data, (PROBE_SIZE - 1 + PROBE_SIZE * (PROBE_SIZE - 1)) * 4), 0.188, 0.01, "plate colour, linear");
+});
+
+test("probe: the camera's side has one soft window for the foil's sweep (Patch 15): bright at its column, dark a few sigma away, fading out lower down", () => {
+  const faces = buildProbeFaces({ data: new Uint8ClampedArray(16 * 9 * 4).fill(100), width: 16, height: 9 });
+  const g = (col: number, row: number): number => THREE.DataUtils.fromHalfFloat(faces.pz.data[(col + PROBE_SIZE * row) * 4 + 1]);
+  const S = LIGHTS.probe.sweep;
+  truthy(g(68, 20) > 0.8 * S.nits, `the window at its column (${g(68, 20).toFixed(2)})`);
+  truthy(g(68 - 4 * S.sigmaPx, 20) < 0.01 && g(68 + 4 * S.sigmaPx, 20) < 0.01, "dark four sigma to either side");
+  truthy(g(68, 100) < 0.01, "gone below its fade");
+  truthy(g(68, 70) < g(68, 20) && g(68, 70) > 0, "fading between");
+  eq(g(67, 20), g(69, 20), "the columns on either side of the strip's middle pixel (68, centre 68.5) are equal");
 });
 
 test("benchmark scenes: 12 sample frames over the five scenes; every shot has a stand-in that exists", () => {

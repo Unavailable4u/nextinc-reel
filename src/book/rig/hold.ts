@@ -9,6 +9,7 @@
 import type { BookPose } from "../../config/books";
 import { BOOKS, type BookId } from "../../config/books";
 import { MOTION, swayScale } from "../../config/bookMotion";
+import type { HeroOffset } from "../../config/heroMotion";
 import { ZONES } from "../../config/placement";
 import { FPS } from "../../config/timeline";
 import { clamp, clamp01 } from "../../lib/ease";
@@ -82,6 +83,22 @@ export function withSway(pose: BookPose, s: Sway): BookPose {
 export function readingPose(anchor: { X: number; Zd: number } = ZONES.L.anchor): BookPose {
   const R = MOTION.reading;
   return { position: [anchor.X + R.dxCm, R.heightCm, -(anchor.Zd - R.forwardCm)], yawDeg: R.yawDeg, pitchDeg: R.pitchDeg, rollDeg: R.rollDeg };
+}
+
+/**
+ * A held pose with the hero motion added (`config/heroMotion.ts`: the cover hero's orbit and the reading tilt). The book turns about the
+ * middle of its closed self, not about its spine, so the orbit swings the cover in place instead of swinging the book round its hinge: the
+ * position is moved by exactly the difference the turn makes to where that middle point goes. With no offset the pose is returned as it is.
+ */
+export function withHero(pose: BookPose, id: BookId, o: HeroOffset): BookPose {
+  if (o.yawDeg === 0 && o.pitchDeg === 0) return pose;
+  const spec = BOOKS[id];
+  const middle = new THREE.Vector3(0, (spec.spine + 2 * spec.board) / 2, 0);
+  const turned: BookPose = { position: pose.position, yawDeg: (pose.yawDeg ?? 0) + o.yawDeg, pitchDeg: (pose.pitchDeg ?? 0) + o.pitchDeg, rollDeg: pose.rollDeg ?? 0 };
+  const before = middle.clone().applyQuaternion(quatOfPose(pose));
+  const after = middle.clone().applyQuaternion(quatOfPose(turned));
+  const d = before.sub(after);
+  return { position: [pose.position[0] + d.x, pose.position[1] + d.y, pose.position[2] + d.z], yawDeg: turned.yawDeg, pitchDeg: turned.pitchDeg, rollDeg: turned.rollDeg };
 }
 
 /** The reading pose and its sway at an absolute frame: what a held book does while the cover opens and the pages turn. */

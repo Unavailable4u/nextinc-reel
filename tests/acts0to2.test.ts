@@ -24,7 +24,7 @@ test("patch 14: S04 adds one camera key, on frame 1080 (the first frame of S05),
   eq(s4.camera.length, 1);
   eq(s4.camera[0].frame, 1080);
   eq(s4.camera[0].frame % BEAT, 0, "on a beat");
-  eq(FILM_CAMERA_KEYFRAMES[FILM_CAMERA_KEYFRAMES.length - 1].frame, 1080);
+  truthy(FILM_CAMERA_KEYFRAMES.some((k) => k.frame === 1080), "the film's camera has the key (Patch 15 carries it on from there)");
   eq(s4.camera[0].regime, "R3");
   near(s4.camera[0].M, VIEW_LIFT.M, 1e-12, "M");
   near(s4.camera[0].focusCm, 30, 1e-12, "focus 30 (guide 05, section 4)");

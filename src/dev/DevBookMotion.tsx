@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { AbsoluteFill, cancelRender, continueRender, delayRender } from "remotion";
 import { z } from "zod";
 import { BOOKS, BOOK_IDS, sheetCount, type BookId, type BookPose } from "../config/books";
-import { BOOK_SCRIPT, besidePose, coverEventsOf, getBookLocation, getBookState, movesAt, type BookMotionState, type TurnEvent } from "../config/ledger";
+import { BOOK_SCRIPT, besidePose, coverEventsOf, getBookLocation, getBookState, movesAt, stacksAt, type BookMotionState } from "../config/ledger";
 import { SHOTS, TOTAL, shotAt } from "../config/timeline";
 import { ZONES } from "../config/placement";
 import { Stage } from "../stage";
@@ -16,7 +16,6 @@ import { ContactDecal, ShadowCatcher } from "../plate/ShadowCatcher";
 import { Book } from "../book/Book";
 import { PageFaces, Sheet } from "../book/Sheet";
 import { checkerTexture, pageTexture } from "../book/pageTextures";
-import { turnFrames, turnProgress } from "../book/rig/turn";
 import { coverDegrees } from "../book/rig/cover";
 import { footprintOf } from "../book/rig/pose";
 import { SINGLE } from "../book/sheetShape";
@@ -108,24 +107,6 @@ function useBookPages(id: BookId, enabled: boolean): BookPages | null {
     };
   }, [id, enabled]);
   return enabled ? book : null;
-}
-
-/** The sheets turned to the left, and whether a sheet is in the air, at a frame, from a script's turns (`TurnEvent`s of the ledger). */
-function stacksAt(frame: number, turns: readonly TurnEvent[]): { left: number; airborne: boolean } {
-  let left = 0;
-  let airborne = false;
-  for (const e of turns) {
-    const len = turnFrames(e.quick ?? false);
-    const P = turnProgress(frame, e.start, len);
-    if (e.dir === -1) {
-      if (frame >= e.start) left -= 1;
-      if (frame >= e.start && P < 1) airborne = true;
-    } else {
-      if (P >= 1) left += 1;
-      if (frame >= e.start && P < 1) airborne = true;
-    }
-  }
-  return { left, airborne };
 }
 
 const fmt = (v: number, d = 2): string => v.toFixed(d);
@@ -221,7 +202,7 @@ export const DevBookMotion: React.FC<DevBookMotionProps> = (p) => {
           const air = isFollowed && !held ? state.airSheets : [];
           return (
             <Book key={id} id={id} covers={p.covers} pose={state.pose} coverAngle={coverAngle} turned={turned} ribbonSwing={state.ribbonSwing}>
-              {isFollowed && open ? <PageFaces id={id} coverAngle={coverAngle} turned={turned} right={frontOf(st.left + (st.airborne ? 1 : 0))} left={st.left > 0 ? backOf(st.left - 1) : null} /> : null}
+              {isFollowed && open ? <PageFaces id={id} coverAngle={coverAngle} turned={turned} right={frontOf(st.left + (st.airborne ? 1 : 0))} left={st.left > 0 ? backOf(st.left - 1) : p.texture === "page" ? pageOf(0) : null} /> : null}
               {air.map((s) => (
                 <Sheet key={`${s.index}-${s.baseTurned}`} id={id} coverAngle={coverAngle} turned={turned} baseTurned={s.baseTurned} progress={s.progress} landSec={s.landSec} place={SINGLE} index={s.index} front={frontOf(s.index)} back={backOf(s.index)} />
               ))}

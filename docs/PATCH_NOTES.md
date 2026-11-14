@@ -861,3 +861,59 @@ auditMotion(): default keys are FILM_CAMERA_KEYFRAMES
 
 **To run on your machine**
 `npm run plate:verify`, `npm run motion`, `npm test`. Then `npm run sheets -- --from=0 --to=1079 --every=30 --render` and look at the contact sheet (the photo, the walk, the pile, the lift); open `ReelFilm` in the Studio and step 940 to 1080 a frame at a time: the plate should swell behind the book without a jump, the book should rise, turn and settle without a visible stop. `npm run stills -- --shot S04 --every 30` gives the five frames of the shot.
+
+---
+
+## Patch 15 - Shots S05-S09: cover hero, open, first pages  (2026-11-14)
+
+Owner: reel team.
+
+**What it adds**
+- **The camera of S05-S09** (`src/config/camera.ts`, `src/shots/S05.tsx` to `S09.tsx`, D-62, D-63, D-64). One path from S04's key on frame 1080 (M 6.0, the pile hold's pan, focus 30, f/2): S05 is a glide (60 frames in, a straight run, 60 out) to the hero view on frame 1440, M 6.24 (a 4 percent push) with the window slid 48 photo px so the held book stands in the middle of the frame (at M 6.0 its top edge was 2 px above the frame); S06 is one `signature` ease to the open view on frame 1560 (M 6.32, 20 px to the left, towards the open spread's middle, focus 32, f/2.8); from there to S09's closing key on frame 1920 it is one straight run at constant speed to M 6.52, 12 px down the page. Keys: S05 1140 and 1380, S06 1440, S07 1560, S09 1920; S08 has none. `VIEW_HERO`, `VIEW_OPEN`, `VIEW_READ`, `HERO_STATES` are new exports; `State` and `stateOf` are now exported; `SHOT_KEYFRAMES` has S05-S09. S04's key now has the ease `signatureIn` (it is the ease of the segment that starts there, which is S05's).
+- **The hero motion as data** (`src/config/heroMotion.ts`, D-65). The slow yaw orbit of +-8 degrees (frames 1083-1437, the middle of the sweep, yaw 0, is frame 1260, beat 3 of bar 10 counted from 0; peak 8.5 degrees a second) and the reading tilt (the book's pitch 80 to 70 degrees over frames 1440-1560, held, and back to 80 over 2760-2880). Cosine eases between keys, so the book never jumps. The match camera cannot orbit or tilt, so these are the book's own yaw and pitch. `getBookPose` adds them for a book in the hand (`withHero` in `src/book/rig/hold.ts`: the book turns about the middle of its closed self), so nobody places the book by hand; both tracks are 0 from frame 2880, where Patch 17's set-down starts.
+- **The specular sweep** (`LIGHTS.probe.sweep`, `src/light/PlateProbe.ts`, D-66). A cover facing the camera reflected the camera's side of the probe, which was nearly black, so the foil could not show at any yaw. That side now has one soft tall window at the column where the held cover reflects at yaw 0 (10 nits, 5 px wide), so the foil flares as the orbit crosses yaw 0 on frame 1260.
+- **The pages of Mini Me in the film** (`src/scene/useActPages.ts`, `src/scene/OpenPages.tsx`, `Pile`, `FilmSet`, D-67). `useActPages(frame)` paints the pages of the frame's act when the film first reaches it (frame 1440, Act 3), holds the render with `delayRender` until they are ready, and frees the textures and canvases of a book the act no longer needs. `Pile` draws an open book with `PageFaces` and a `Sheet` for each sheet in the air, with the pages `faceIndices` names (`config/ledger.ts`, new, with `stacksAt`, which `DevBookMotion` now uses instead of its own copy). `PageFaces` draws the left face when a page is given for it even with no sheet turned: the endpaper (P-END) on the inside of the front board for S06.
+- Cues (D-68): S06 `cover-open` 1440, S07 `page-turn` 1560, S08 `page-turn` 1680.
+- `tests/acts3to4a.test.ts` (19 tests) and updates to five older tests that assumed the camera ends on frame 1080 (`tests/acts0to2.test.ts`, `tests/camera.test.ts` twice, `tests/shots.test.ts`, `tests/lights.test.ts` for the probe's camera side).
+- decisions D-62 to D-68, one sentence in guide 05, the progress line of `docs/patches/INDEX.md`, this entry.
+
+**PUBLIC API**
+```
+VIEW_HERO  { M 6.24, panX 415, panY 497, focusCm 30, aperture 2 }          // src/config/camera.ts
+VIEW_OPEN  { M 6.32, panX 395, panY 500, focusCm 32, aperture 2.8 }        // frame 1560
+VIEW_READ  { M 6.52, panX 392, panY 512, focusCm 32, aperture 2.8 }        // frame 1920 (S09's closing key)
+HERO_STATES { lift, hero, open, read }: State; State; stateOf(key)
+HERO { yaw: HeroTrack, pitch: HeroTrack, specularFrame: 1260 }; heroOffsetAt(frame): { yawDeg, pitchDeg }; trackAt(track, frame); checkHero()   // src/config/heroMotion.ts
+withHero(pose, id, offset): BookPose                                        // src/book/rig/hold.ts
+stacksAt(frame, turns): { left, airborne }; faceIndices(frame, turns): { left, right }   // src/config/ledger.ts
+useActPages(frame): readonly PageSet[]; PageSet { id, texture(index) }      // src/scene/useActPages.ts
+<OpenPages id frame state pages shadows /> ; isOpen(state)                  // src/scene/OpenPages.tsx
+<Pile ... pages?: readonly PageSet[] />
+LIGHTS.probe.sweep { nits, colPx, sigmaPx, rowsFull, rowsFade, color }
+```
+
+**Decisions and conventions later patches must follow**
+- The camera ends on frame 1920 with the key `VIEW_READ`, a state reached at speed (the end of a straight run). Patch 16's S10 starts from it and may change the ease of that key (it is S09's file) or add its own first move; the audit refuses a stop of over 60 frames and a move under 48.
+- A held book's orbit and tilt are `config/heroMotion.ts`, not a pose in a shot file. Patch 16 (S10-S13: pull back, square-on to the right page) changes the tracks there (for example a pitch key back towards 90 degrees); both must be 0 on frame 2880.
+- Pages come through `useActPages`: a shot never loads or disposes a page. MiniLocker's pages appear by themselves in Act 6 and Mini Me's are freed there.
+- The sweep window on the camera's side of the probe lights anything that faces the camera: a later shot that turns a cover to the camera (S17's MiniLocker hero, S23's riser) will flare the same way; tune `LIGHTS.probe.sweep` rather than the shots.
+- The sheets and page faces cast and receive the lamp's shadows with the book (`shadows` of `Pile`).
+
+**Not done, on purpose**
+- No riffle, no gallery, no QR (Patch 16), as the patch text says. The set-down, close and flip-back (S14, S15) are Patch 17's.
+- `ObjectDefocus` is still not mounted (it was not asked for). The hero focus is 30 (437 cm on the match camera), 77 cm in front of the book at 514 cm, so if a later patch mounts it the cover is blurred about 4 px: mount it with the book at the focus, or move the focus to about 36 x 514 / 524.
+- The camera does not tilt (D-65). No new `KNOWN_EXCEPTIONS`.
+
+**Known issues**
+- **NO STILL OF THIS PATCH HAS BEEN LOOKED AT.** The author's sandbox (one CPU, a software-GL Chromium) rendered frame 0 in 12 s, but every frame from 900 on, including frames 900, 1100 and 1200 of the unchanged Patch 14 code, never finished (the browser sat idle until the timeout). So the framing, the pages on the book, the endpaper and the foil sweep are verified by numbers and by reading the code, not by eye. In particular `LIGHTS.probe.sweep.nits` (10) and `sigmaPx` (5) are a first guess from the geometry (the mirror direction of the cover at yaw 0 is x/z = 0.071), the column may need a pixel or two of tuning, and the very first thing to do is render frames 1230, 1260 and 1290 and look at the foil.
+- Readability of the small print at M 6.5 is the thing to look at first: the title is big, the authors and the caption are 8 words or fewer and drawn at full alpha (D-44), but at M 6.5 the spread is only about 750 px wide, so the page's text is at most 24 px per cm. If a string does not read at 100 percent, raise `VIEW_OPEN.M` toward 6.6 or the string's size in `config/pages.ts`; do not go above 6.6 (R3 budget).
+- `DevShotStrip` cells for S06-S14 draw their set once after a short wait (`settleMs`); the first cell of Act 3 may be drawn before Mini Me's pages are painted and show the bare block. Raise `settleMs` (about 5000) or scrub the film to see the pages.
+- The first frame of Act 3 holds the render while 13 pages are painted (a few seconds with a GPU, much longer without one).
+- S08's turn lands on frame 1734 and its flutter is drawn as a Sheet until about frame 1760; both fit the shot.
+
+**Checks run**
+`npx tsc --noEmit` 0 errors. `npm test` 387 of 387 (367 before; 20 added: 19 in `tests/acts3to4a.test.ts` and 1 in `tests/lights.test.ts`; five older tests updated). `npm run motion`: frames 0-1919 (S00-S09), 19 keyframes: STILL 1 (the documented opening one), FAST 0, DEEP 0, EDGE 0, POP 0, LATE 0, peak sideways speed 36.7 cm/s (in S01, R2 limit 40; in R3 the test holds 10), peak change of M 1.477 x per second (S04, limit 1.5), largest jump 0.94 percent, largest M 6.519, `shot registry: VALID`; `auditMotion({ from: 1080, to: 1919, exceptions: [] })` has no findings at all.
+Measured with a projection of the held book through the film's camera (in the tests): from frame 1380 the closed book is within 90 px of the middle of the frame, inside it by at least 20 px at the bottom and 5 px at the top from frame 1140; the open spread is inside the frame by 60 px on every side and within 160 px of its middle on frames 1560, 1680, 1800 and 1919. The title page is readable for 120 frames (turn 1 passing vertical to turn 2 passing vertical), the abstract and caption for 190 frames of S08-S09 alone. The pose of the held book never moves 1.2 cm and, after the lift has settled, never turns 0.5 degrees in one frame, from frame 960 to 2880.
+
+**To run on your machine**
+`npm run plate:verify`, `npm run motion`, `npm test`. Then `npm run stills -- --frames 1260,1600,1720,1860` (add `--scale 1`; read each at 100 percent) and `npm run stills -- --frames 1230,1260,1290` for the sweep. Open `ReelFilm` in the Studio at frame 1440 (the pages are painted: wait for them), scrub 1440-1740 a frame at a time (the cover, the two turns), and look at 1260 for the foil: it should flare as the cover passes square and be dark at 1170 and 1350.

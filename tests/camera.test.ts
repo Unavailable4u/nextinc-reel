@@ -10,6 +10,7 @@ import { auditMotion, type FindingCode } from "../src/camera/audit";
 import { isBlurDrawn, plateBlurPx, plateDistanceCm } from "../src/camera/focus";
 import { LEAN_INS, MIN_LAYER_FRAMES, OPERATOR, OPERATOR_EVENT_FRAMES, REACH, STEADY_RANGES, operatorAt, steadyGain, walkEnvelope } from "../src/camera/operator";
 import { authoredAt, cameraAt, lensOf, turnShiftPx } from "../src/camera/path";
+import { FILM_CAMERA_KEYFRAMES } from "../src/shots";
 import { PLATE_MATCH, VIEW_FIT, clampView, photoToScreen, windowBox } from "../src/plate/PlateFollow";
 import { focalPx, matchCameraRig, photoToOutput, principalY, projectDesk, pxPerCm } from "../src/plate/plateCamera";
 import { prng } from "../src/lib/prng";
@@ -177,8 +178,9 @@ test("camera path: the view never leaves the 40 px margin and is a pure function
 });
 
 test("camera path: after the last keyframe the camera holds, and the regime comes from the shot table", () => {
-  const last = authoredAt(1080).state;
-  const later = authoredAt(1100);
+  const lastFrame = FILM_CAMERA_KEYFRAMES[FILM_CAMERA_KEYFRAMES.length - 1].frame;
+  const last = authoredAt(lastFrame).state;
+  const later = authoredAt(lastFrame + 20);
   eq(JSON.stringify(later.state), JSON.stringify(last));
   eq(later.regime, "R3", "S04 is R3");
   eq(authoredAt(0).regime, "R1");
@@ -402,9 +404,9 @@ const key = (frame: number, over: Partial<CameraKeyframe> = {}): CameraKeyframe 
 const codes = (keys: CameraKeyframe[], from?: number, to?: number): Record<FindingCode, number> => auditMotion({ keys, from, to, exceptions: [] }).counts;
 const GOOD = [key(0), key(120, { M: 2.1, panX: 690 }), key(150, { M: 2.1, panX: 690 })];
 
-test("audit: S00 to S04 (frames 0-1079) pass with the one documented exception (STILL at the opening), and the peaks are inside the limits", () => {
+test("audit: S00 to S09 (frames 0-1919) pass with the one documented exception (STILL at the opening), and the peaks are inside the limits", () => {
   const r = auditMotion();
-  eq(r.range.join("-"), "0-1079", "the default keys are the film's (S00-S04 so far)");
+  eq(r.range.join("-"), "0-1919", "the default keys are the film's (S00-S09 so far)");
   eq(r.unexplained, 0, JSON.stringify(r.findings));
   eq(r.counts.FAST + r.counts.DEEP + r.counts.EDGE + r.counts.POP + r.counts.LATE, 0, "zero FAST, DEEP, EDGE, POP and LATE");
   eq(r.counts.STILL, 1);

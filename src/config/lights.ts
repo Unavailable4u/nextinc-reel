@@ -51,7 +51,22 @@ export const LIGHTS = {
   /** The cool fill. `#28292E` is already a dark colour, so the intensity is large: about 8% of the key's irradiance at the pile. */
   fill: { color: "#28292E", intensity: 4 },
   /** The environment probe (src/light/PlateProbe.ts) for the glossy and foil materials. */
-  probe: { intensity: 0.35, lampSpotNits: 12, lampSpotRadiusPx: 2.2 },
+  probe: {
+    intensity: 0.35,
+    lampSpotNits: 12,
+    lampSpotRadiusPx: 2.2,
+    /**
+     * THE SWEEP STRIP (Patch 15, guide 03 section 4: "do the specular sweep in S05 by moving the book, not the light"). A cover that faces the
+     * camera reflects what is behind the camera, and the lamp and the amber strips are in front of it, so the foil of a held cover would stay
+     * black. The camera's side of the probe therefore has one tall soft window, out of frame behind the camera: a vertical band `sigmaPx` wide
+     * (a gaussian) at column `colPx` of the 128 px face, full from the top down to row `rowsFull`, fading out over `rowsFade` more rows.
+     * The column is where the reflection of the held cover at yaw 0 and pitch 80 lands (the camera is 35 cm right of the book, so the
+     * reflection leaves 4 degrees to the left of straight back: x/z = 0.071, mirrored by three.js for cube maps), so the foil lights up when the
+     * hero orbit passes yaw 0 on frame 1260 (`config/heroMotion.ts`) and is dark at the ends of the orbit. `nits` is the window's brightness
+     * before the 0.35 of `intensity`: tune it by looking at the foil at frames 1230-1290.
+     */
+    sweep: { nits: 10, colPx: 68.5, sigmaPx: 5, rowsFull: 60, rowsFade: 20, color: [1, 0.95, 0.85] as readonly [number, number, number] },
+  },
   /** The warm blur under the desk shadow: a decal along the front edge of each book. */
   reflection: { color: "#C98A57", opacity: 0.07, depthCm: 1.2 },
   /** The shadow catcher: warm black, never pure black (guide 03). */

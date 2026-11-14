@@ -13,13 +13,14 @@
 
 import { BOOKS, BOOK_IDS, PILE, pilePoses, type BookId, type BookPose } from "./books";
 import { MOTION } from "./bookMotion";
+import { heroOffsetAt } from "./heroMotion";
 import { ZONES } from "./placement";
 import { riserPose } from "./riser";
 import { SHEET } from "./sheets";
 import { TOTAL } from "./timeline";
 import { closeFrames, coverAngleAt, coverOpenSettleFrames, coverSpans, openShape, type CoverEvent } from "../book/rig/cover";
 import { liftPoseAt, liftSpan, liftTimes } from "../book/rig/lift";
-import { motionActivity, ribbonSwingAt, swaySeedOf } from "../book/rig/hold";
+import { motionActivity, ribbonSwingAt, swaySeedOf, withHero } from "../book/rig/hold";
 import { setDownPoseAt, setDownSpan, setDownTimes } from "../book/rig/setDown";
 import { landSeconds, turnFrames, turnProgress } from "../book/rig/turn";
 
@@ -201,6 +202,38 @@ export function turnedAt(frame: number, turns: readonly TurnEvent[]): number {
   return n;
 }
 
+/**
+ * The sheets turned to the left (counting a turn whose sheet has landed, and taking one off at the start of a turn back) and whether a
+ * sheet is in the air, at a frame. It says which pages are on the two stacks' faces (`faceIndices`) and which sheets `<Sheet>` draws.
+ */
+export function stacksAt(frame: number, turns: readonly TurnEvent[]): { left: number; airborne: boolean } {
+  let left = 0;
+  let airborne = false;
+  for (const e of turns) {
+    const len = turnLength(e);
+    const P = turnProgress(frame, e.start, len);
+    if (e.dir === -1) {
+      if (frame >= e.start) left -= 1;
+      if (frame >= e.start && P < 1) airborne = true;
+    } else {
+      if (P >= 1) left += 1;
+      if (frame >= e.start && P < 1) airborne = true;
+    }
+  }
+  return { left, airborne };
+}
+
+/**
+ * The indices (in `BOOK_PAGES`) of the page on the left face and on the right face of an open book at a frame. The leaf k has page 2k + 1
+ * on its front and 2k + 2 on its back, so with `left` sheets turned the left face shows the back of sheet left - 1 (index 2 x left; the
+ * endpaper, index 0, before any turn) and the right face the front of the next sheet (index 2 x left + 1); while a sheet is in the air the
+ * right face already shows the page under it (2 x (left + 1) + 1).
+ */
+export function faceIndices(frame: number, turns: readonly TurnEvent[]): { left: number; right: number } {
+  const st = stacksAt(frame, turns);
+  return { left: 2 * st.left, right: 2 * (st.left + (st.airborne ? 1 : 0)) + 1 };
+}
+
 /** A sheet that is in the air, or has only just landed (its flutter is still audible): what the `<Sheet>` is given. */
 export interface AirSheet {
   /** the sheet's number in the book */
@@ -258,7 +291,8 @@ export function getBookPose(id: BookId, frame: number): BookPose | null {
       return pilePose(id);
     case "hand": {
       if (!s) return null;
-      return liftPoseAt(frame, { id, start: s.lift.start, rest: pilePose(id), speed: s.lift.speed });
+      // the lift's pose (press, rise, hold with its sway) with the hero motion on top: the orbit and the reading tilt of `config/heroMotion.ts`
+      return withHero(liftPoseAt(frame, { id, start: s.lift.start, rest: pilePose(id), speed: s.lift.speed }), id, heroOffsetAt(frame));
     }
     case "beside": {
       if (!s) return null;

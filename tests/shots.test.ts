@@ -142,7 +142,7 @@ test("shots: a missing, extra or misplaced shot file is refused", () => {
 test("shots: a keyframe outside its shot, off a whole frame or out of order is refused", () => {
   throws(() => checkShots(swap("S05", { camera: [keyAt(960)] })), "S05: camera keyframe 0 is on frame 960, outside the shot (1080-1439, plus a closing key on 1440)");
   throws(() => checkShots(swap("S05", { camera: [keyAt(1441)] })), "outside the shot");
-  eq(checkShots(swap("S05", { camera: [keyAt(1440)] })), undefined, "a closing key on the first frame of the next shot is allowed");
+  eq(checkShots(swap("S10", { camera: [keyAt(2040)] })), undefined, "a closing key on the first frame of the next shot is allowed");
   throws(() => checkShots(swap("S05", { camera: [keyAt(1080.5)] })), "not a whole frame");
   throws(() => checkShots(swap("S05", { camera: [keyAt(1200), keyAt(1140)] })), "S05: camera keyframe 1 (frame 1140) is not after the one before it (frame 1200)");
   throws(() => checkShots(swap("S05", { camera: [keyAt(1200), keyAt(1200)] })), "is not after the one before it");

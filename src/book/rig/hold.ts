@@ -44,6 +44,23 @@ export interface Sway {
 export const NO_SWAY: Sway = { dx: 0, dy: 0, dz: 0, yawDeg: 0, pitchDeg: 0, rollDeg: 0 };
 
 /**
+ * How much of the hand's sway is there at a frame, 0 to 1: 1 except in the steady ranges of `MOTION.steady` (the links spread, whose QR
+ * codes must be flat and still), where it fades out over `blendFrames` before the range and back in over the same number after it.
+ */
+export function steadyGain(frame: number, ranges: readonly { from: number; to: number }[] = MOTION.steady.ranges, blend: number = MOTION.steady.blendFrames): number {
+  const ease = (t: number): number => {
+    const x = clamp01(t);
+    return x * x * (3 - 2 * x);
+  };
+  let g = 1;
+  for (const r of ranges) {
+    const inside = Math.min(ease((frame - (r.from - blend)) / blend), 1 - ease((frame - (r.to + 1)) / blend));
+    g = Math.min(g, 1 - inside);
+  }
+  return g;
+}
+
+/**
  * The sway of a held book at an absolute frame. `weightG` makes a heavy book sway less; `fade` (0 to 1) is how much of it is there:
  * the lift fades it in as the book rises and the set-down fades it out, so it is never switched on or off.
  */

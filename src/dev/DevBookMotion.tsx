@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { AbsoluteFill, cancelRender, continueRender, delayRender } from "remotion";
 import { z } from "zod";
 import { BOOKS, BOOK_IDS, sheetCount, type BookId, type BookPose } from "../config/books";
-import { BOOK_SCRIPT, besidePose, coverEventsOf, getBookLocation, getBookState, movesAt, stacksAt, type BookMotionState } from "../config/ledger";
+import { BOOK_SCRIPT, besidePose, coverEventsOf, faceIndices, getBookLocation, getBookState, movesAt, type BookMotionState } from "../config/ledger";
 import { SHOTS, TOTAL, shotAt } from "../config/timeline";
 import { ZONES } from "../config/placement";
 import { Stage } from "../stage";
@@ -18,7 +18,6 @@ import { PageFaces, Sheet } from "../book/Sheet";
 import { checkerTexture, pageTexture } from "../book/pageTextures";
 import { coverDegrees } from "../book/rig/cover";
 import { footprintOf } from "../book/rig/pose";
-import { SINGLE } from "../book/sheetShape";
 import { loadFonts, stacks } from "../lib/fonts";
 import { loadBookPages, type BookPages } from "../paint/pages";
 
@@ -160,9 +159,8 @@ export const DevBookMotion: React.FC<DevBookMotionProps> = (p) => {
     const pg = pages?.pages[index];
     return pg ? pageTexture(pg.canvas) : null;
   };
-  /** the front of leaf k is the odd page 2k + 1, its back is 2k + 2 */
-  const frontOf = (k: number): THREE.Texture | null => (p.texture === "checker" ? checker.front : pageOf(2 * k + 1));
-  const backOf = (k: number): THREE.Texture | null => (p.texture === "checker" ? checker.back : pageOf(2 * k + 2));
+  /** the texture of page `index` of the book's page list (the front of leaf k is the odd page 2k + 1, its back is 2k + 2); `front` and `back` say which side of a sheet it is for the checker */
+  const pageFor = (index: number, side: "front" | "back"): THREE.Texture | null => (p.texture === "checker" ? checker[side] : pageOf(index));
 
   const states = BOOK_IDS.map((id) => ({ id, state: getBookState(id, p.frame) })).filter((x): x is { id: BookId; state: BookMotionState } => x.state !== null);
   const followed = states.find((x) => x.id === p.id)?.state ?? null;
@@ -198,13 +196,14 @@ export const DevBookMotion: React.FC<DevBookMotionProps> = (p) => {
           const turned = isFollowed && held ? Math.min(p.turnedOverride, sheetCount(BOOKS[id])) : state.turned;
           const coverAngle = isFollowed && held ? p.coverOverrideDeg / 180 : state.coverAngle;
           const open = coverAngle > 0.02;
-          const st = isFollowed && !held ? stacksAt(p.frame, turns) : { left: Math.round(turned), airborne: false };
+          // the pages on the two faces (a riffle's body pages are blank paper, `BLANK_PAGE`); a held spread is the one the leaves turned give
+          const faces = isFollowed && !held ? faceIndices(p.frame, turns) : { left: 2 * Math.round(turned), right: 2 * Math.round(turned) + 1 };
           const air = isFollowed && !held ? state.airSheets : [];
           return (
             <Book key={id} id={id} covers={p.covers} pose={state.pose} coverAngle={coverAngle} turned={turned} ribbonSwing={state.ribbonSwing}>
-              {isFollowed && open ? <PageFaces id={id} coverAngle={coverAngle} turned={turned} right={frontOf(st.left + (st.airborne ? 1 : 0))} left={st.left > 0 ? backOf(st.left - 1) : p.texture === "page" ? pageOf(0) : null} /> : null}
+              {isFollowed && open ? <PageFaces id={id} coverAngle={coverAngle} turned={turned} right={pageFor(faces.right, "front")} left={faces.left > 0 || p.texture === "page" ? pageFor(faces.left, "back") : null} /> : null}
               {air.map((s) => (
-                <Sheet key={`${s.index}-${s.baseTurned}`} id={id} coverAngle={coverAngle} turned={turned} baseTurned={s.baseTurned} progress={s.progress} landSec={s.landSec} place={SINGLE} index={s.index} front={frontOf(s.index)} back={backOf(s.index)} />
+                <Sheet key={`${s.index}-${s.baseTurned}`} id={id} coverAngle={coverAngle} turned={turned} baseTurned={s.baseTurned} progress={s.progress} landSec={s.landSec} place={s.place} index={s.index} front={pageFor(s.front, "front")} back={pageFor(s.back, "back")} />
               ))}
             </Book>
           );

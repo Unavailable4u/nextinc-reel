@@ -63,7 +63,7 @@ test("patch 15: the camera keys of S05-S09 are where the notes say, on beats, in
     eq(k.frame % BEAT, 0, `${id} key ${k.frame} is on a beat`);
     eq(k.regime, "R3", `${id} key ${k.frame}`);
   }
-  eq(FILM_CAMERA_KEYFRAMES[FILM_CAMERA_KEYFRAMES.length - 1].frame, 1920, "the film's camera ends on the first frame of S10");
+  truthy(FILM_CAMERA_KEYFRAMES.some((k) => k.frame === 1920), "S09's key on the first frame of S10 is still in the film's camera (Patch 16 adds S10-S13 after it)");
 });
 
 test("patch 15: S04's key is the state S05 starts from, and the views are the ones in config/camera.ts", () => {
@@ -164,7 +164,7 @@ test("patch 15: the orbit starts after the lift has settled, and the hero motion
     eq(o.yawDeg, 0, `yaw at ${f}`);
     if (f !== 1083 || true) eq(o.pitchDeg, 0, `pitch at ${f}`);
   }
-  eq(trackAt(HERO.pitch, 2000), -10, "held at 10 degrees through the reading");
+  eq(trackAt(HERO.pitch, 1920), -10, "held at 10 degrees through the reading, to the end of S09 (Patch 16 raises the book from there, see tests/acts4.test.ts)");
 });
 
 test("patch 15: a bad track is refused by name", () => {
@@ -312,5 +312,5 @@ test("patch 15: the pages hook loads by act, holds the render, frees the texture
   const faces = read("src/book/Sheet.tsx");
   truthy(faces.includes("split.leftThickness > 1e-4 || left != null"), "the endpaper is drawn on the left board when it is given");
   const lab = read("src/dev/DevBookMotion.tsx");
-  truthy(lab.includes("stacksAt") && !lab.includes("function stacksAt"), "the lab uses the ledger's stacksAt, not its own copy");
+  truthy(lab.includes("faceIndices") && !lab.includes("function faceIndices") && !lab.includes("function stacksAt"), "the lab uses the ledger's faceIndices (Patch 16: it also knows the riffle's blank faces), not its own copy");
 });

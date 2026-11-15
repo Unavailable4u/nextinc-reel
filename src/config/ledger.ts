@@ -7,9 +7,9 @@
 // (the set is being changed out of sight) or not in the scene yet. The riser's poses come from `config/riser.ts`, the pile's from
 // `config/books.ts`; this file only says which one applies at a frame.
 //
-// The SCRIPT of a book (`BOOK_SCRIPT`) holds the frames of its moves for the shots this patch can verify (S04 to S09, S14 to S16, S18,
-// S20 to S21). The riffle and the spreads of S10 to S13 and the rest of the second book's shots are not in it yet: the shot patches
-// (14 to 19) add their moves and may change a start frame, never a rig.
+// The SCRIPT of a book (`BOOK_SCRIPT`) holds the frames of its moves for the shots this patch can verify (S04 to S16, S18,
+// S20 to S21). Mini Me's riffle and the turns of S12 and S13 were added by Patch 16; the rest of the second book's shots are not in it
+// yet: the shot patches (17 to 19) add their moves and may change a start frame, never a rig.
 
 import { BOOKS, BOOK_IDS, PILE, pilePoses, type BookId, type BookPose } from "./books";
 import { MOTION } from "./bookMotion";
@@ -22,7 +22,9 @@ import { closeFrames, coverAngleAt, coverOpenSettleFrames, coverSpans, openShape
 import { liftPoseAt, liftSpan, liftTimes } from "../book/rig/lift";
 import { motionActivity, ribbonSwingAt, swaySeedOf, withHero } from "../book/rig/hold";
 import { setDownPoseAt, setDownSpan, setDownTimes } from "../book/rig/setDown";
+import { riffleFrames, riffleSheets } from "../book/rig/riffle";
 import { landSeconds, turnFrames, turnProgress } from "../book/rig/turn";
+import { SINGLE, type SheetPlacement } from "../book/sheetShape";
 
 export type BookLocation = "pile" | "hand" | "beside" | "riser" | "swap" | "absent";
 
@@ -111,11 +113,32 @@ export function besidePose(id: BookId): BookPose {
 // the script of a book
 // ---------------------------------------------------------------------------------------------------------------------------
 
-/** A page turn: it starts at a frame, takes 54 frames (36 if quick) and turns the next sheet over to the left, or (dir -1) the top sheet of the left stack back. */
+/**
+ * A page turn: it starts at a frame, takes 54 frames (36 if quick) and turns the next sheet over to the left, or (dir -1) the top sheet of
+ * the left stack back.
+ *
+ * Two numbers say what a turn does to the book beyond the one sheet it draws (Patch 16). The block has many sheets (128 for Mini Me) but the
+ * painted pages are a short list (`BOOK_PAGES`, 6 leaves), so a turn can carry more than one of each:
+ *   `through`  how many sheets of the BLOCK the two stacks change by (the number the Book is given as `turned`); default 1
+ *   `leaves`   how many leaves of the PAGE LIST the faces move on by; default 1
+ * A turn that flips a chunk of pages back (S14) has both above 1; the sums over a book's script must be 0 when it is closed (`checkTurns`).
+ *
+ * With `riffle` it is not one sheet but a riffle (S10, `book/rig/riffle.ts`): that many sheets (10 to 14) whip across, one after another,
+ * and the book lands on a spread further on. `through` is then how many sheets of the block the stacks change by in all (default the
+ * number drawn): a riffle that shows 11 sheets can take the book to the middle of its 128, which is what makes the block read as thick.
+ * A riffle always goes forward. Its own sheets are blank paper, except the first (it carries the right page the riffle starts from) and
+ * the last (its back is the left page the riffle lands on).
+ */
 export interface TurnEvent {
   start: number;
   dir?: 1 | -1;
   quick?: boolean;
+  /** a riffle of this many sheets (10 to 14) instead of a single sheet */
+  riffle?: number;
+  /** sheets of the block the stacks change by (default 1; for a riffle, the number of sheets drawn) */
+  through?: number;
+  /** leaves of the page list the faces move on by (default 1) */
+  leaves?: number;
 }
 
 export interface BookScript {
@@ -141,8 +164,12 @@ export const BOOK_SCRIPT: Partial<Record<BookId, BookScript>> = {
     turns: [
       { start: 1560 }, // S07: the half-title
       { start: 1680 }, // S08: the title page
-      { start: 2760, dir: -1, quick: true }, // S14: the pages flip back to the front
-      { start: 2772, dir: -1, quick: true },
+      { start: 1920, riffle: 11, through: 62 }, // S10: the riffle, 11 sheets over frames 1920-2030, to the middle of the 128 sheets (gallery spread)
+      { start: 2280 }, // S12: the film spread (the full turn animation, guide 01)
+      { start: 2520 }, // S13: the links spread
+      // S14: the pages flip back to the front in two chunks (33 sheets and 3 leaves, then 33 sheets and 2 leaves), so the block is closed on 0 turned
+      { start: 2760, dir: -1, quick: true, through: 33, leaves: 3 },
+      { start: 2772, dir: -1, quick: true, through: 33, leaves: 2 },
     ],
     setDown: { start: 2880, speed: 1 }, // S15
   },
@@ -189,60 +216,142 @@ export function checkScripts(): void {
 }
 checkScripts();
 
+/**
+ * Throws unless a book's turns bring it back to a closed block: at no frame are fewer than 0 sheets or leaves turned, and at the end both
+ * sums are 0 (the cover closes on a block with nothing turned: S14, S21). Runs for every script when this module loads.
+ */
+export function checkTurns(id: string, turns: readonly TurnEvent[]): void {
+  let sheets = 0;
+  let leaves = 0;
+  [...turns]
+    .sort((a, b) => a.start - b.start)
+    .forEach((e, i) => {
+      const dir = e.dir ?? 1;
+      if (e.riffle && dir !== 1) throw new Error(`ledger: ${id} turn ${i}: a riffle only goes forward`);
+      if (e.riffle && (e.riffle < 10 || e.riffle > 14)) throw new Error(`ledger: ${id} turn ${i}: a riffle is 10 to 14 sheets, got ${e.riffle}`);
+      const phys = e.through ?? (e.riffle ?? 1);
+      if (!(phys >= (e.riffle ?? 1))) throw new Error(`ledger: ${id} turn ${i}: it changes the stacks by ${phys} sheets but draws ${e.riffle ?? 1}`);
+      sheets += dir * phys;
+      leaves += dir * (e.leaves ?? 1);
+      if (sheets < 0 || leaves < 0) throw new Error(`ledger: ${id} turn ${i} (frame ${e.start}) turns back more than has been turned (${sheets} sheets, ${leaves} leaves)`);
+    });
+  if (sheets !== 0 || leaves !== 0) throw new Error(`ledger: the turns of ${id} end with ${sheets} sheets and ${leaves} leaves turned, the book is closed on a block with nothing turned`);
+}
+for (const [id, s] of Object.entries(BOOK_SCRIPT)) checkTurns(id, s.turns);
+
 // ---------------------------------------------------------------------------------------------------------------------------
 // the turns
 // ---------------------------------------------------------------------------------------------------------------------------
 
-const turnLength = (e: TurnEvent): number => turnFrames(e.quick ?? false);
+/** The sheets a riffle event draws. */
+const riffleCount = (e: TurnEvent): number => e.riffle ?? 1;
+/** The sheets of the block a turn event changes the stacks by, and the leaves of the page list it moves the faces by. */
+const sheetsOf = (e: TurnEvent): number => e.through ?? riffleCount(e);
+const leavesOf = (e: TurnEvent): number => e.leaves ?? 1;
 
-/** The number to give the Book as `turned` at a frame: each turn adds (or takes away) its eased progress. */
+/** The frames a turn event takes: a sheet's 54 (36 quick), or a riffle's first start to its last landing. */
+const turnLength = (e: TurnEvent): number => (e.riffle ? riffleFrames({ start: e.start, count: e.riffle }).total : turnFrames(e.quick ?? false));
+
+/** The number to give the Book as `turned` at a frame: each turn adds (or takes away) its `through` sheets as its eased progress goes, a riffle as its sheets cross. */
 export function turnedAt(frame: number, turns: readonly TurnEvent[]): number {
   let n = 0;
-  for (const e of turns) n += (e.dir ?? 1) * turnProgress(frame, e.start, turnLength(e));
+  for (const e of turns) {
+    if (e.riffle) {
+      const crossed = riffleSheets(frame, { start: e.start, count: e.riffle }).reduce((sum, x) => sum + x.P, 0);
+      n += (sheetsOf(e) * crossed) / e.riffle;
+    } else {
+      n += (e.dir ?? 1) * sheetsOf(e) * turnProgress(frame, e.start, turnLength(e));
+    }
+  }
   return n;
 }
 
 /**
- * The sheets turned to the left (counting a turn whose sheet has landed, and taking one off at the start of a turn back) and whether a
- * sheet is in the air, at a frame. It says which pages are on the two stacks' faces (`faceIndices`) and which sheets `<Sheet>` draws.
+ * The PAGES' count of leaves turned to the left (a turn whose sheet has landed counts, a turn back is taken off at its start, a riffle
+ * counts once its last sheet has landed; each by its `leaves`) and whether a sheet is in the air, at a frame. It says which pages are on
+ * the two stacks' faces (`faceIndices`) and which sheets `<Sheet>` draws. It is not the number of sheets of the block that are turned
+ * (`turnedAt`): a riffle moves the block's stacks by many sheets and the pages by one leaf.
  */
 export function stacksAt(frame: number, turns: readonly TurnEvent[]): { left: number; airborne: boolean } {
   let left = 0;
   let airborne = false;
   for (const e of turns) {
     const len = turnLength(e);
+    if (e.riffle) {
+      if (frame >= e.start + len) left += leavesOf(e);
+      if (frame >= e.start && frame < e.start + len) airborne = true;
+      continue;
+    }
     const P = turnProgress(frame, e.start, len);
     if (e.dir === -1) {
-      if (frame >= e.start) left -= 1;
+      if (frame >= e.start) left -= leavesOf(e);
       if (frame >= e.start && P < 1) airborne = true;
     } else {
-      if (P >= 1) left += 1;
+      if (P >= 1) left += leavesOf(e);
       if (frame >= e.start && P < 1) airborne = true;
     }
   }
   return { left, airborne };
 }
 
+/** The leaves of the page list that the turn in the air (if any) moves the faces by: the page under it is that many leaves further on. */
+function leavesInAir(frame: number, turns: readonly TurnEvent[]): number {
+  for (const e of turns) {
+    if (e.riffle) continue;
+    const len = turnLength(e);
+    const P = turnProgress(frame, e.start, len);
+    if (frame >= e.start && P < 1) return leavesOf(e);
+  }
+  return 1;
+}
+
+/** The index that means "no painted page": a face of body text the book's page list does not paint, drawn as blank paper (`PageSet.texture` gives null for it). */
+export const BLANK_PAGE = -1;
+
 /**
- * The indices (in `BOOK_PAGES`) of the page on the left face and on the right face of an open book at a frame. The leaf k has page 2k + 1
- * on its front and 2k + 2 on its back, so with `left` sheets turned the left face shows the back of sheet left - 1 (index 2 x left; the
- * endpaper, index 0, before any turn) and the right face the front of the next sheet (index 2 x left + 1); while a sheet is in the air the
+ * The indices (in `BOOK_PAGES`) of the page on the left face and on the right face of an open book at a frame, or `BLANK_PAGE`. The leaf k has page 2k + 1
+ * on its front and 2k + 2 on its back, so with `left` leaves turned the left face shows the back of leaf left - 1 (index 2 x left; the
+ * endpaper, index 0, before any turn) and the right face the front of the next leaf (index 2 x left + 1); while a sheet is in the air the
  * right face already shows the page under it (2 x (left + 1) + 1).
+ *
+ * During a riffle (Patch 16) the faces are the ones the fan shows: the right face is the page the riffle starts from until the first
+ * sheet has left it, then blank paper, and the page the riffle lands on (2 x (left + 1) + 1) from the frame the last sheet starts to
+ * turn; the left face keeps its page until the first sheet has landed on it, is blank paper while the sheets pile up, and shows the
+ * page the riffle lands on (2 x (left + 1)) once the last sheet has landed. A sheet always covers the face it leaves or lands on, so
+ * none of these changes is seen.
  */
 export function faceIndices(frame: number, turns: readonly TurnEvent[]): { left: number; right: number } {
+  for (const e of turns) {
+    if (!e.riffle) continue;
+    const len = turnLength(e);
+    if (frame < e.start || frame >= e.start + len) continue;
+    const before = stacksAt(e.start - 1, turns).left;
+    const sheets = riffleSheets(frame, { start: e.start, count: e.riffle });
+    const first = sheets[0];
+    const last = sheets[sheets.length - 1];
+    return {
+      left: first.P < 1 ? 2 * before : BLANK_PAGE,
+      right: last.P > 0 ? 2 * (before + leavesOf(e)) + 1 : frame > e.start ? BLANK_PAGE : 2 * before + 1,
+    };
+  }
   const st = stacksAt(frame, turns);
-  return { left: 2 * st.left, right: 2 * (st.left + (st.airborne ? 1 : 0)) + 1 };
+  return { left: 2 * st.left, right: 2 * (st.left + (st.airborne ? leavesInAir(frame, turns) : 0)) + 1 };
 }
 
 /** A sheet that is in the air, or has only just landed (its flutter is still audible): what the `<Sheet>` is given. */
 export interface AirSheet {
-  /** the sheet's number in the book */
+  /** the sheet's number in the book (it seeds the sheet's own small differences) */
   index: number;
   /** the number of sheets turned when its turn began (the Sheet's `baseTurned`) */
   baseTurned: number;
   /** the Sheet's progress: 0 on the right stack, 1 on the left (a turn back runs from 1 to 0) */
   progress: number;
   landSec: number;
+  /** where the sheet stands in its group: alone for a single turn, the rank and count of a riffle (`SINGLE` or `{ rank, count }`) */
+  place: SheetPlacement;
+  /** the pages on the sheet's two sides, as indices in `BOOK_PAGES` (`BLANK_PAGE` for a side that is blank paper): the right page it starts on, the left page it ends on */
+  front: number;
+  back: number;
 }
 
 /** How long after landing a sheet still flutters enough to be drawn as a Sheet (eight time constants of its flutter, `SHEET.flutter.tauSec`). */
@@ -250,17 +359,43 @@ export const FLUTTER_SEC = 8 * SHEET.flutter.tauSec;
 
 export function airSheetsAt(frame: number, turns: readonly TurnEvent[]): AirSheet[] {
   const out: AirSheet[] = [];
+  // `before` counts the sheets of the block turned so far, `leaf` the leaves of the page list: they differ after a riffle or a chunk
   let before = 0;
+  let leaf = 0;
   for (const e of turns) {
-    const dir = e.dir ?? 1;
     const len = turnLength(e);
+    const L = leavesOf(e);
+    if (e.riffle) {
+      const count = e.riffle;
+      for (const x of riffleSheets(frame, { start: e.start, count, first: before, baseTurned: before })) {
+        if (frame >= x.start && x.landSec < FLUTTER_SEC) {
+          out.push({
+            index: x.index,
+            baseTurned: before,
+            progress: x.P,
+            landSec: x.landSec,
+            place: x.place,
+            front: x.rank === 0 ? 2 * leaf + 1 : BLANK_PAGE,
+            back: x.rank === count - 1 ? 2 * (leaf + L) : BLANK_PAGE,
+          });
+        }
+      }
+      before += sheetsOf(e);
+      leaf += L;
+      continue;
+    }
+    const dir = e.dir ?? 1;
     const index = dir === 1 ? before : before - 1;
     const P = turnProgress(frame, e.start, len);
     const landSec = landSeconds(frame, e.start, len);
     if (frame >= e.start && (dir === -1 ? frame < e.start + len : landSec < FLUTTER_SEC)) {
-      out.push({ index, baseTurned: index, progress: dir === 1 ? P : 1 - P, landSec: dir === 1 ? landSec : 0 });
+      // forward: the right page it starts on, the left page it lands on; back: the left page it starts on, the right page it lands on
+      const front = dir === 1 ? 2 * leaf + 1 : 2 * (leaf - L) + 1;
+      const back = dir === 1 ? 2 * (leaf + L) : 2 * leaf;
+      out.push({ index, baseTurned: index, progress: dir === 1 ? P : 1 - P, landSec: dir === 1 ? landSec : 0, place: SINGLE, front, back });
     }
-    before += dir;
+    before += dir * sheetsOf(e);
+    leaf += dir * L;
   }
   return out;
 }

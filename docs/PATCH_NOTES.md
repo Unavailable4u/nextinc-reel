@@ -917,3 +917,77 @@ Measured with a projection of the held book through the film's camera (in the te
 
 **To run on your machine**
 `npm run plate:verify`, `npm run motion`, `npm test`. Then `npm run stills -- --frames 1260,1600,1720,1860` (add `--scale 1`; read each at 100 percent) and `npm run stills -- --frames 1230,1260,1290` for the sweep. Open `ReelFilm` in the Studio at frame 1440 (the pages are painted: wait for them), scrub 1440-1740 a frame at a time (the cover, the two turns), and look at 1260 for the foil: it should flare as the cover passes square and be dark at 1170 and 1350.
+
+---
+
+## Patch 16 - Shots S10-S13: riffle, gallery, film, links; Gate G2  (2026-11-15; gate G2 is OPEN: nothing was rendered, see "Gate G2")
+
+Owner: reel team.
+
+**What it adds**
+- **The riffle** (D-69, D-70; `src/config/ledger.ts`). `TurnEvent` has three new fields: `riffle` (10 to 14 sheets instead of one), `through` (sheets of the 128-sheet block the stacks change by) and `leaves` (leaves of the 13-page list the faces move on by). Mini Me's script now has `{ start: 1920, riffle: 11, through: 62 }`: 11 sheets whip across from frame 1920 and the last lands on 2030, and the book lands on exactly the middle of its block (64 sheets turned) with the gallery spread (pages 6 and 7). The riffle's own sheets are blank paper except the first (it carries the figure page it starts from) and the last (its back is the gallery's left page). `faceIndices` returns `BLANK_PAGE` (-1) for a face of body text inside the riffle; `AirSheet` now carries `place`, `front` and `back`, and `OpenPages` and `DevBookMotion` draw every sheet from them. `checkTurns` (runs for every script when the ledger loads) refuses a script whose turns do not close the book on 0 sheets and 0 leaves.
+- **The turns of S12 and S13**: full 54-frame turns on frames 2280 (film spread, pages 8 and 9) and 2520 (links spread, pages 10 and 11).
+- **S14's flip back, kept consistent** (not Patch 17's design): the two quick turn-backs are now chunks (33 sheets and 3 leaves on 2760, 33 and 2 on 2772), so the block is closed on 0 turned and the cover shuts on the endpaper and the half-title. Without it the closed book would have carried 64 turned sheets to the riser.
+- **The book is raised upright** (D-71; `config/heroMotion.ts`): pitch offset -10 to +7 and yaw 0 to 3.5 over frames 1920-2040, held to 2760, back to 0 on 2880. At the reading pitch the QR page was 17.7 degrees off the camera's line of sight; it is 0.2 to 0.7 degrees off on every frame 2574-2759.
+- **The hand's sway is faded out for S13** (D-74; `MOTION.steady`, `steadyGain` in `book/rig/hold.ts`, used by `liftPoseAt`): from frame 2532 to 2759 the book's pose is identical on every frame, roll exactly 0. The camera's own steady range was there since Patch 05.
+- **The camera of S10-S13** (D-72; `config/camera.ts`, `VIEW_BLOCK`, `VIEW_LINKS`, `HERO_STATES.block` and `.links`): S10 is one `signature` ease from M 6.52 to 5.8 (focus 32 to 36) onto the spread's middle; S11 to S13 are one straight push of 720 frames to M 6.52 (4.0 percent a spread) with the window sliding 18 photo px towards the right page and the focus racked to 28 over the first 60 frames. Keys: S10 2040, S11 2100, S13 2760; S12 owns none.
+- **`src/shots/S10.tsx` to `S13.tsx`** with their cues (D-76): `riffle` 1920, `paper-settle` 2040, `page-turn` 2280 and 2520.
+- **`npm run qr:check -- --frames=2600-2700`** (D-75): renders film frames and decodes the whole picture, the way a phone looks at a screen. Without the option it is unchanged.
+- `tests/acts4.test.ts` (23 tests), five assertions of older tests changed on purpose (`tests/acts3to4a.test.ts` x3: the pitch track is held at -10 to frame 1920 only, the lab uses `faceIndices`, the camera now ends after 1920; `tests/camera.test.ts` x2: the audit's default range is 0-2759). Decisions D-69 to D-76, a paragraph in guide 05, the progress line of `docs/patches/INDEX.md`, the README row for `qr:check`, this entry.
+
+**PUBLIC API**
+```
+TurnEvent { start, dir?, quick?, riffle?, through?, leaves? }                  // src/config/ledger.ts
+BLANK_PAGE = -1; faceIndices(frame, turns): { left, right }                    // either may be BLANK_PAGE inside a riffle
+AirSheet { index, baseTurned, progress, landSec, place: SheetPlacement, front, back }   // front/back: indices in BOOK_PAGES or BLANK_PAGE
+checkTurns(id, turns)                                                          // throws unless the turns close the book
+stacksAt(frame, turns): { left, airborne }                                     // left counts LEAVES of the page list, turnedAt counts SHEETS of the block
+MOTION.steady { ranges, blendFrames }; steadyGain(frame, ranges?, blend?)      // config/bookMotion.ts, book/rig/hold.ts
+VIEW_BLOCK { M 5.8, panX 387, panY 497, focusCm 36, aperture 2.8 }             // frame 2040
+VIEW_LINKS { M 6.52, panX 405, panY 497, focusCm 28, aperture 2.8 }            // frame 2760
+HERO.pitch / HERO.yaw: keys now run to 2880 (pitch +7 and yaw 3.5 from 2040 to 2760)
+SHOT_KEYFRAMES.S10..S13; HERO_STATES.block, HERO_STATES.links
+npm run qr:check -- --frames=A-B [--every=N] [--clean] [--book=ID] [--keep]
+```
+
+**Decisions and conventions later patches must follow**
+- `turnedAt` is sheets of the block, `stacksAt` and `faceIndices` are leaves of the page list; they differ after the riffle. Anything that draws a sheet takes `place`, `front` and `back` from `airSheetsAt`; nothing computes `2 x index + 1` itself any more.
+- A script's turns must close the book (`checkTurns`). Patch 17 can change S14's two chunks (a backward riffle would suit the guide's "the pages flip back to the front" better) but the sums of `through` and `leaves` must come back to 0, and the book must be at pitch 87 and yaw 3.5 on frame 2760, going to 0 on 2880.
+- Patch 18 adds MiniLocker's S20 to `MOTION.steady.ranges` (the camera's range for it already exists).
+- The camera ends on frame 2760 with `VIEW_LINKS` (M 6.52, focus 28), a state reached at speed (the end of a straight push). S14's pull back to "the whole closing book" starts from it; the audit refuses a stop of over 60 frames and a move under 48.
+- `ObjectDefocus` is still not mounted. The focus of the hold is 28 (407 cm on the match camera) and the book is at about 511 cm: if Patch 22 mounts it, move the focus to the book (about 35) for frames 2574-2759 first, or the QR would be blurred.
+
+**Not done, on purpose**
+- **No render, no stills, no phone scan** (see "Gate G2"). **No motion blur on the riffle**: guide 01 asks for "slight" blur; the motion-blur decision is Patch 22's.
+- **The film page is not animated** and cannot be: the page is a painted texture with no frame input (a test reads the sources for a video or a frame read). No overlay on S10-S13.
+- The close, the set-down and the flip back to the front are Patch 17's (S14 only got the consistent chunks above).
+- "The camera pushes slowly toward one screenshot, then another" (guide 01, S11) is one straight push with the window sliding towards the right page; it does not aim at individual screenshots (no corner in the path, because a corner is a visible hitch at this speed). Add a pan key inside S11 if you want it to look at one picture and then another.
+
+**Known issues**
+- **Quick QR numbers (D-73).** The links page prints its codes at 4.6 cm. In the hold the page is 23.4 to 24.2 px per cm, so a 33-module code is 3.3 px a module and a 29-module one 3.8 px; the page painter's `qrCheckPxPerCm: 40` is about 1.7 times what the film gives. A simulated frame (blurred, with grain) decodes at 3.0 px a module, but a phone looking at a 1080p screen is the real test. If it fails, the levers are: M up to 6.6 for the last 90 frames (1 percent), a bigger code on the page, or one code instead of two.
+- **Print size at M 5.8 to 6.5.** The spread is 655 to 737 px wide in a 1920 px frame (the budget of D-63). Screenshot captions are drawn at full alpha and are 8 words or fewer (D-44), but whether they read at 100 percent is for your eyes; the R3 budget (6.6) is the limit.
+- **The riffle with a large `through` is untested by eye.** The sheets' geometry was only ever checked with a stack change of up to 14 sheets (Patch 10); here it is 62. Tests hold that the mesh is finite and the leaf has a sensible size; whether the landed sheets sit exactly on the left stack's face (no gap, no z-fighting under the last sheet) is for the stills of frames 2000-2040. A leaf is as wide as the block's face where the riffle starts (`baseTurned`), a little narrower than the face at the middle (the rounded back is wider there): a millimetre or so.
+- The first frame of Act 4 needs no new pages (Mini Me's are alive from Act 3); nothing new is painted or freed in this patch.
+
+**Gate G2**
+| Part of the gate | Status |
+|---|---|
+| Motion audit 1920-2759 clean (`npm run motion`) | done: 0 findings, no exception |
+| QR page square-on within 4 degrees, flat, steady, at least 90 frames | done by number: 0.2 to 0.7 degrees off square, roll exactly 0 and the pose identical from 2532, 186 frames from the landing (2574) to 2759; `tests/acts4.test.ts` |
+| Codes decode at the size the film gives | done by simulation only (3.0 px a module with blur and grain); **not** from a render |
+| `npm run qr:check -- --frames=2600-2700` | **not run**: the tool is written and its argument handling checked, but there was no browser |
+| Render S05-S13 at 60 fps, look for pops, flicker and plate tears | **not done** (no browser or GPU on the build machine). The numbers say: no camera pop (largest jump 0.48 percent of the frame, limit 2), the book never moves 1.2 cm or turns 0.5 degrees in one frame from frame 960 to 2880 |
+| Check the turn against guide 06 section 6 | **not done**: open `DevPageTurn` in the Studio and read the length read-out; the turns of S12 and S13 are the unchanged 54-frame turn, the riffle's sheets are the Patch 10 sheets with a stack change of 62 |
+| Scan the QR page from your screen with a real phone | **not done: yours** |
+**Gate G2 has not passed.** Everything that can be checked by a number has been; the picture has not been looked at.
+
+**Checks run**
+`npx tsc --noEmit` 0 errors. `npm test` 410 of 410 (387 before; 23 added in `tests/acts4.test.ts`: the riffle's clock and where it lands, the stacks (2, then 64 at the middle, then 65 and 66) and that they never jump, the full turns of S12 and S13, the page on each face on 15 chosen frames and the rules on all 1440 frames, the riffle's sheets (first front, last back, blank between, none left by frame 2100), a well-formed sheet at the middle of the block, `checkTurns` accepting the scripts and refusing five bad ones, the book's pitch and yaw tracks and that it never turns 0.5 degrees in a frame, the sway's fade, a pose that does not change at all from 2532 to 2759, the camera keys, the pull back and the three pushes (3.5 to 4.5 percent each), the lens, the audit, the spread's margins, the 90-frame QR hold, the flutter ending before 2640, the pixels per module and a simulated decode, the film page that never plays, the three must-read spreads at 120 frames or more, the cues, the tools). `npm run motion`: frames 0-2759 (S00-S13), 22 keyframes: STILL 1 (the documented opening one), FAST 0, DEEP 0, EDGE 0, POP 0, LATE 0, peak sideways speed 36.7 cm/s (S01, R2 limit 40), peak change of M 1.477 x per second (S04, limit 1.5), largest jump 0.94 percent, largest M 6.520, `shot registry: VALID`, keyframes S10 1, S11 1, S12 0, S13 1. `npm run motion -- --from=1920 --to=2759`: no findings at all; peak sideways speed 6.6 cm/s, peak change of M 1.182 x per second (S10's pull back), largest jump 0.48 percent.
+Measured through the film's camera (in the tests, without the operator): the spread keeps 200 px of margin on every side from 1920 to 2759 and is within 70 px of the middle of the frame's height from 2040 on; the page is 21.6 px per cm at the end of S10 and 24.2 at the end of S13; the gallery spread is on screen for 277 frames (from the last landing on 2030 to the next turn passing vertical on 2307), the film spread for 240 (2307 to 2547) and the links spread for 213 (2547 to 2760), each over the 120 frames guide 07 asks for.
+
+**To run on your machine**
+`npm run plate:verify`, `npm run motion`, `npm test`. Then, for Gate G2:
+1. `npm run stills -- --frames 1920,1960,1990,2010,2030,2040` and look at the riffle (the fan, the right stack thinning, the last sheet landing on the gallery without a gap); `npm run stills -- --frames 2100,2400,2640,2759` and read the screenshots, the film page and the links page at 100 percent (`--scale 1`).
+2. `npm run qr:check -- --frames=2600-2700 --every=20` (needs the browser), then again with `--clean` if it fails, to tell grain from size.
+3. Play frames 1920-2759 in the Studio (`ReelFilm`) and watch for pops and flicker; step 2280-2340 and 2520-2580 a frame at a time for the two turns.
+4. Open the film in the Studio at 2640 on your screen and scan the QR codes with a phone. If it does not scan, see D-73.

@@ -315,6 +315,21 @@ export const VIEW_OPEN = { M: 6.32, panX: 395, panY: 500, focusCm: 32, aperture:
  */
 export const VIEW_READ = { M: 6.52, panX: 392, panY: 512, focusCm: 32, aperture: 2.8 } as const;
 
+/**
+ * Where the pull-back of the riffle ends, on frame 2040 (the first frame of S11, which starts from it; Patch 16): the window is centred on
+ * the open spread as the raised book holds it (the spread's middle is plate px (387, 497) at a pitch of 87 degrees, measured in
+ * `tests/acts4.test.ts`), M 5.8 (a pull back of 11 percent from the reading view: the guide's "pull back 6 cm" at the focus of 36 is 14
+ * percent), focus 36 and f/2.8 as the table says for S10. S11-S13 then push in 4 percent a spread from here.
+ */
+export const VIEW_BLOCK = { M: 5.8, panX: 387, panY: 497, focusCm: 36, aperture: 2.8 } as const;
+
+/**
+ * Where the middle of the book ends, on frame 2760 (the first frame of S14): three pushes of 4 percent from `VIEW_BLOCK` end at M 6.52, the
+ * reading view's M, under the R3 budget of 6.6; the window has slid 18 photo px towards the right page, where the QR codes are (the
+ * right page's middle is plate px 415), and the lens is the table's for S11-S13 (focus 28, f/2.8).
+ */
+export const VIEW_LINKS = { M: 6.52, panX: 405, panY: 497, focusCm: 28, aperture: 2.8 } as const;
+
 /** The camera state S04 ends in (its closing key on frame 1080, `src/shots/S04.tsx`): S03's last key with the lift's view and lens. */
 const LIFT_STATE: State = { ...stateOf(S03[S03.length - 1]), M: VIEW_LIFT.M, focusCm: VIEW_LIFT.focusCm, aperture: VIEW_LIFT.aperture };
 const HERO_STATE: State = { ...LIFT_STATE, M: VIEW_HERO.M, panX: VIEW_HERO.panX, panY: VIEW_HERO.panY };
@@ -333,14 +348,32 @@ const READING: readonly CameraKeyframe[] = [
   { frame: 1920, ...READ_STATE, ease: "signature", regime: "R3" },
 ];
 
+// S10: the pull back from the reading view to the block view, one `signature` ease (the ease of S09's key on frame 1920) with the book
+// raised and the riffle under it. S11-S13: one straight push from there to the links view, 720 frames at a constant rate: 4 percent a
+// spread, no stop and no corner, so the QR hold is a flat, steady, slowly growing picture. The push starts at its own speed (about 1
+// percent of M per second) straight from the pull back's rest: an ease-in would have left the camera still for 80 frames at the turn
+// (the audit's STILL), and a jump from rest to 0.017 percent of M a frame is not seen. The lens racks from the table's focus of S10 (36)
+// to that of S11-S13 (28) over the first 60 frames of the push, with the key that carries the rack on the straight line.
+const BLOCK_STATE: State = { ...READ_STATE, M: VIEW_BLOCK.M, panX: VIEW_BLOCK.panX, panY: VIEW_BLOCK.panY, focusCm: VIEW_BLOCK.focusCm, aperture: VIEW_BLOCK.aperture };
+const LINKS_STATE: State = { ...BLOCK_STATE, M: VIEW_LINKS.M, panX: VIEW_LINKS.panX, panY: VIEW_LINKS.panY, focusCm: VIEW_LINKS.focusCm, aperture: VIEW_LINKS.aperture };
+const PUSH_FROM = 2040;
+const PUSH_TO = 2760;
+const PUSH_RACK_FRAMES = 60;
+const PUSH_KEY: State = { ...mixState(BLOCK_STATE, LINKS_STATE, PUSH_RACK_FRAMES / (PUSH_TO - PUSH_FROM)), focusCm: VIEW_LINKS.focusCm, aperture: VIEW_LINKS.aperture };
+const MIDDLE: readonly CameraKeyframe[] = [
+  { frame: PUSH_FROM, ...BLOCK_STATE, ease: "linear", regime: "R3" },
+  { frame: PUSH_FROM + PUSH_RACK_FRAMES, ...PUSH_KEY, ease: "linear", regime: "R3" },
+  { frame: PUSH_TO, ...LINKS_STATE, ease: "signature", regime: "R3" },
+];
+
 /**
- * The keyframes of S00-S03, one array per shot (Patch 13A), and of S05-S09 (Patch 15). The shot files in `src/shots/` take their `camera` from here, so a shot owns
+ * The keyframes of S00-S03, one array per shot (Patch 13A), of S05-S09 (Patch 15) and of S10-S13 (Patch 16). The shot files in `src/shots/` take their `camera` from here, so a shot owns
  * its keyframes and the registry (`src/shots/index.ts`, `FILM_CAMERA_KEYFRAMES`) can put them back together. A shot's keys lie inside its
  * own frames, plus one closing key on the first frame of the next shot (the state the next move starts from): S03's key at frame 960 is
  * the example. The arrays are the ones the builders above made, split where the shots split, in the order they were joined before.
  * Patch 15 adds S05-S09 (S04's one key is in `src/shots/S04.tsx`; S08 is inside the reading run and owns no key).
  */
-export const SHOT_KEYFRAMES: Readonly<Record<"S00" | "S01" | "S02" | "S03" | "S05" | "S06" | "S07" | "S08" | "S09", readonly CameraKeyframe[]>> = {
+export const SHOT_KEYFRAMES: Readonly<Record<"S00" | "S01" | "S02" | "S03" | "S05" | "S06" | "S07" | "S08" | "S09" | "S10" | "S11" | "S12" | "S13", readonly CameraKeyframe[]>> = {
   S00: S00.slice(0, -1),
   S01,
   S02,
@@ -350,10 +383,14 @@ export const SHOT_KEYFRAMES: Readonly<Record<"S00" | "S01" | "S02" | "S03" | "S0
   S07: READING.filter((k) => k.frame === 1560),
   S08: [],
   S09: READING.filter((k) => k.frame === 1920),
+  S10: MIDDLE.filter((k) => k.frame === 2040),
+  S11: MIDDLE.filter((k) => k.frame === 2100),
+  S12: [],
+  S13: MIDDLE.filter((k) => k.frame === 2760),
 };
 
-/** The state S04 ends in and the views of Patch 15 as states (the tests compare the shot files' keys with them). */
-export const HERO_STATES = { lift: LIFT_STATE, hero: HERO_STATE, open: OPEN_STATE, read: READ_STATE } as const;
+/** The state S04 ends in and the views of Patches 15 and 16 as states (the tests compare the shot files' keys with them). */
+export const HERO_STATES = { lift: LIFT_STATE, hero: HERO_STATE, open: OPEN_STATE, read: READ_STATE, block: BLOCK_STATE, links: LINKS_STATE } as const;
 
 /**
  * PLACEHOLDERS for S00-S03 (frames 0-959), taken from the table of guide 05 section 4:

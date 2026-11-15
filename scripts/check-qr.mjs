@@ -1,6 +1,12 @@
 // Decodes every QR code of the book pages from a RENDERED still and compares it with the target the selectors give (Patch 09, guide 04
 // "QR code rules").   npm run qr:check     (-- --book=mini-me to look at one book, -- --keep to keep the stills in out/qr)
 //
+// FILM FRAMES (Patch 16, gate G2).   npm run qr:check -- --frames=2600-2700 [--every=20] [--clean] [--keep]
+// Renders those frames of the FILM itself (`ReelFilm`, no readout, with its grain and vignette as a viewer sees them; `--clean` switches
+// the grain and the vignette off to tell a QR problem from a grain problem) and looks for codes in the whole 1920 x 1080 picture, the way
+// a phone looks at a screen: each code found is read, painted out, and the picture searched again. A frame passes when it shows exactly the
+// book's targets (`--book`, default mini-me) and nothing else. Exit code 1 when a frame fails. The frames of the hold are 2640-2759.
+//
 // How: the Studio's `DevPages` composition (view "page") draws one page, as painted, with nothing over it. This script renders that still
 // for every P-LINK and P-BACK page at `PAGE.qrCheckPxPerCm` (40) pixels per centimetre of paper (about what S13 and S20 give on screen),
 // cuts out each code's light square (the plan says where it is) and reads it with jsQR, a decoder that is not the generator. A code that
@@ -15,7 +21,7 @@ import jsQR from "jsqr";
 import sharp from "sharp";
 import { ROOT, OUT, parseArgs, fail, ensureDir, makeBundle, renderPng } from "./lib/env.mjs";
 
-const args = parseArgs(process.argv.slice(2), ["book", "keep"]);
+const args = parseArgs(process.argv.slice(2), ["book", "keep", "frames", "every", "clean"]);
 
 // the plans, from the TypeScript (esbuild reads it, as `npm run timeline` does). Where a code stands does not depend on the width of
 // the letters, so a rough measure is enough here; the picture sizes do not matter either.
@@ -35,6 +41,53 @@ fs.writeFileSync(
 const outfile = path.join(tmp, "qr-bundle.mjs");
 await build({ entryPoints: [entry], bundle: true, platform: "node", format: "esm", outfile, logLevel: "silent", loader: { ".json": "json" } });
 const m = await import(pathToFileURL(outfile).href + `?t=${Date.now()}`);
+
+if (args.frames !== undefined) {
+  const range = /^(\d+)-(\d+)$/.exec(String(args.frames));
+  if (!range) fail(`--frames needs a range like 2600-2700, got "${args.frames}"`, "for example: npm run qr:check -- --frames=2600-2700 --every=20");
+  const first = Number(range[1]);
+  const last = Number(range[2]);
+  const every = args.every !== undefined && args.every !== true ? Number(args.every) : 20;
+  if (!(last >= first) || !(every >= 1)) fail("--frames needs the first frame before the last, and --every at least 1");
+  const book = args.book && args.book !== true ? args.book : "mini-me";
+  if (!m.BOOK_IDS.includes(book)) fail(`unknown book "${book}"`, `one of: ${m.BOOK_IDS.join(", ")}`);
+  const want = m.getQrTargets(book).map((t) => t.url);
+  const serveUrl = await makeBundle();
+  const dir = ensureDir(path.join(OUT, "qr"));
+  const frames = [];
+  for (let f = first; f <= last; f += every) frames.push(f);
+  if (frames[frames.length - 1] !== last) frames.push(last);
+  let failed = 0;
+  for (const f of frames) {
+    const file = path.join(dir, `film-f${String(f).padStart(4, "0")}.png`);
+    await renderPng({ serveUrl, id: "ReelFilm", frame: f, output: file, inputProps: { hud: false, feather: true, grain: args.clean !== true, vignette: args.clean !== true } });
+    const { data, info } = await sharp(file).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    const px = new Uint8ClampedArray(data);
+    const found = [];
+    for (let pass = 0; pass < want.length + 2; pass++) {
+      const hit = jsQR(px, info.width, info.height);
+      if (!hit) break;
+      found.push({ url: hit.data, size: Math.round(Math.hypot(hit.location.topRightCorner.x - hit.location.topLeftCorner.x, hit.location.topRightCorner.y - hit.location.topLeftCorner.y)) });
+      // paint the code out (its bounding box and a margin) so the next pass can find another one
+      const xs = Object.values(hit.location).map((p) => p.x);
+      const ys = Object.values(hit.location).map((p) => p.y);
+      const padPx = 12;
+      const x0 = Math.max(0, Math.floor(Math.min(...xs)) - padPx);
+      const x1 = Math.min(info.width, Math.ceil(Math.max(...xs)) + padPx);
+      const y0 = Math.max(0, Math.floor(Math.min(...ys)) - padPx);
+      const y1 = Math.min(info.height, Math.ceil(Math.max(...ys)) + padPx);
+      for (let y = y0; y < y1; y++) px.fill(255, (y * info.width + x0) * 4, (y * info.width + x1) * 4);
+    }
+    const missing = want.filter((u) => !found.some((x) => x.url === u));
+    const extra = found.filter((x) => !want.includes(x.url));
+    const ok = missing.length === 0 && extra.length === 0;
+    if (!ok) failed++;
+    console.log(`  ${ok ? "ok    " : "FAIL  "} f${String(f).padStart(4, "0")}  ${found.length} code(s) found${found.length ? " (" + found.map((x) => `${x.size} px wide`).join(", ") + ")" : ""}${ok ? "" : "  <- " + [...missing.map((u) => `missing ${u}`), ...extra.map((x) => `unexpected "${x.url}"`)].join("; ")}`);
+    if (!args.keep) fs.rmSync(file, { force: true });
+  }
+  console.log(`\n${frames.length - failed}/${frames.length} frames show exactly the codes of ${book}${args.keep ? ` (stills kept in ${path.relative(ROOT, dir)})` : ""}`);
+  process.exit(failed ? 1 : 0);
+}
 
 const books = args.book && args.book !== true ? [args.book] : m.BOOK_IDS;
 for (const id of books) if (!m.BOOK_IDS.includes(id)) fail(`unknown book "${id}"`, `one of: ${m.BOOK_IDS.join(", ")}`);

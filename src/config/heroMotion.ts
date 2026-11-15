@@ -32,16 +32,30 @@ export const HERO = {
     { frame: 1171, deg: -8 },
     { frame: 1349, deg: 8 },
     { frame: 1437, deg: 0 },
+    // Patch 16: from the end of the reading hold the book is turned a little towards the camera, which stands 35 cm to the right of the
+    // book (a 4 degree sideways line of sight), so the page the camera looks at is square-on (guide 05 rule 7; `tests/acts4.test.ts` measures the angle)
+    { frame: 1920, deg: 0 },
+    { frame: 2040, deg: 3.5 },
+    { frame: 2760, deg: 3.5 },
+    { frame: 2880, deg: 0 },
   ] as HeroTrack,
   /**
    * The reading tilt (S06 on, guide 05 section 4: "tilt down 10 degrees to read the open book"): the book's pitch goes from 80 to 70
-   * degrees while the cover opens, stays there for the pages, and goes back to 80 over the last 120 frames before the set-down
-   * (frames 2760-2880, the closing shot) so the carry of Patch 17 starts from the reading pose and nothing jumps.
+   * degrees while the cover opens and stays there for the first pages (to frame 1920).
+   *
+   * Patch 16: during the riffle (S10, frames 1920-2040) the book is raised upright to 87 degrees (the offset goes from -10 to +7), so that
+   * the page of the middle spreads (S11 to S13) faces the camera: with the match camera 35 cm to the right of the book and 27 cm above it
+   * the line of sight to the page is 2.9 degrees above the horizontal, and the page's normal has to be within 4 degrees of it for the QR
+   * hold (guide 05 rule 7). At the reading pitch of 70 the page was 17 degrees off. The offset then stays at +7 to frame 2760 and goes
+   * back to 0 over the last 120 frames before the set-down (frames 2760-2880, the closing shot) so the carry of Patch 17 starts from the
+   * reading pose and nothing jumps.
    */
   pitch: [
     { frame: 1440, deg: 0 },
     { frame: 1560, deg: -10 },
-    { frame: 2760, deg: -10 },
+    { frame: 1920, deg: -10 },
+    { frame: 2040, deg: 7 },
+    { frame: 2760, deg: 7 },
     { frame: 2880, deg: 0 },
   ] as HeroTrack,
   /** the frame the specular sweep crosses the logo: the middle of the yaw sweep, beat 3 of bar 10 (bar index 10 counted from 0, guide 01) */

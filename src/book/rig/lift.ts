@@ -14,7 +14,7 @@ import { BOOKS, type BookId, type BookPose } from "../../config/books";
 import { FPS } from "../../config/timeline";
 import { EASES } from "../../lib/ease";
 import { springAt } from "../../lib/spring";
-import { readingPose, swayAt, swaySeedOf, withSway } from "./hold";
+import { readingPose, steadyGain, swayAt, swaySeedOf, withSway } from "./hold";
 import { angleBetweenDeg, lerpV3, poseOf, quatOfPose, slerp, smoothIn, type V3 } from "./pose";
 import type { Window } from "../../config/bookMotion";
 
@@ -115,9 +115,9 @@ export function liftPoseAt(frame: number, p: LiftParams): BookPose {
   const position: V3 = [flat[0], p.rest.position[1] - press + (reading.position[1] - p.rest.position[1]) * up, flat[2]];
   const base = poseOf(position, slerp(q0, q1, turn));
 
-  // the hand's sway comes in as the book leaves the desk and is whole by the end of the rise
+  // the hand's sway comes in as the book leaves the desk and is whole by the end of the rise; in a steady range (the links spread) it is gone
   const fade = frames <= 0 ? 0 : smoothIn(frames, [t.riseFrames * L.swayIn[0], t.riseFrames * L.swayIn[1]]);
-  return withSway(base, swayAt(frame, swaySeedOf(p.id), spec.weightG, fade));
+  return withSway(base, swayAt(frame, swaySeedOf(p.id), spec.weightG, fade * steadyGain(frame)));
 }
 
 /** The frames of the lift as `{ from, to }` spans for the ribbon's activity: the press and the rise. */

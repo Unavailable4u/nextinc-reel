@@ -24,6 +24,17 @@ export function leftBooksAt(frame: number, skip: readonly BookId[] = []): { id: 
 export const restsOnDesk = (state: BookMotionState): boolean => state.pose.position[1] < 0.4 && Math.abs(state.pose.pitchDeg ?? 0) < 1;
 
 /**
+ * How far above the desk to draw a book's baked contact patch, or null for no patch (Patch 17). A book that rests gets it on the desk (0).
+ * A book that is being set down BESIDE the pile (S15, S21) gets it from the moment it is turned flat, at its real height: the patch is
+ * not drawn while the book is high, comes in faint and wide as it lowers and tightens to the resting patch at the touch (`contactLook`),
+ * so it does not appear in one frame. A book in the hand or on top of another has none.
+ */
+export function decalHeightCm(state: BookMotionState): number | null {
+  if (state.location === "beside" && Math.abs(state.pose.pitchDeg ?? 0) < 1) return Math.max(0, state.pose.position[1]);
+  return restsOnDesk(state) ? 0 : null;
+}
+
+/**
  * THE PILE (Patch 12): MiniMe on top, MiniLocker, SPHEREx at the bottom, askew by the offsets of `PILE` in `config/books.ts`, the spines to
  * the camera, and the books beside it. It draws every book the ledger puts on the left of the desk at `frame`, wherever the rigs have it
  * (in the pile, in the hand, set down beside it), so the lift and the set-down happen on its books. Each book that lies on the desk gets
@@ -42,9 +53,10 @@ export const Pile: React.FC<{ frame: number; covers?: boolean; shadows?: boolean
   return (
     <>
       {decals
-        ? books
-            .filter((b) => restsOnDesk(b.state))
-            .map(({ id, state }) => <ContactDecal key={`decal-${id}`} X={state.pose.position[0]} Zd={-state.pose.position[2]} w={BOOKS[id].trimW} d={BOOKS[id].trimH} yawDeg={state.pose.yawDeg ?? 0} />)
+        ? books.flatMap(({ id, state }) => {
+            const h = decalHeightCm(state);
+            return h === null ? [] : [<ContactDecal key={`decal-${id}`} X={state.pose.position[0]} Zd={-state.pose.position[2]} w={BOOKS[id].trimW} d={BOOKS[id].trimH} yawDeg={state.pose.yawDeg ?? 0} heightCm={h} />];
+          })
         : null}
       {books.map(({ id, state }) => (
         <Book key={id} id={id} covers={covers} pose={state.pose} coverAngle={state.coverAngle} turned={state.turned} ribbonSwing={state.ribbonSwing} dust={id === top ? 1 : 0} castShadow={shadows} receiveShadow={shadows}>

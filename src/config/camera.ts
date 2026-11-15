@@ -363,17 +363,48 @@ const PUSH_KEY: State = { ...mixState(BLOCK_STATE, LINKS_STATE, PUSH_RACK_FRAMES
 const MIDDLE: readonly CameraKeyframe[] = [
   { frame: PUSH_FROM, ...BLOCK_STATE, ease: "linear", regime: "R3" },
   { frame: PUSH_FROM + PUSH_RACK_FRAMES, ...PUSH_KEY, ease: "linear", regime: "R3" },
-  { frame: PUSH_TO, ...LINKS_STATE, ease: "signature", regime: "R3" },
+  { frame: PUSH_TO, ...LINKS_STATE, ease: "signatureIn", regime: "R3" },
 ];
 
 /**
- * The keyframes of S00-S03, one array per shot (Patch 13A), of S05-S09 (Patch 15) and of S10-S13 (Patch 16). The shot files in `src/shots/` take their `camera` from here, so a shot owns
+ * Where the camera is once Mini Me has been set down and the camera has come back to the pile, on frame 3000 (the first frame of S16,
+ * which starts from it; Patch 17): the pile hold's own view (the last key of S03: M 4.63, the window the lift started from) with the lens
+ * of guide 05 section 4 for S15 (focus 40, f/2.8). MiniLocker is the top book of the pile again, so the next lift is the lift of S04 over a
+ * pile of two. The table's "M falls from 6.51 to 4.63" is this move: it starts from `VIEW_LINKS` (6.52).
+ */
+export const VIEW_SET = { M: S03[S03.length - 1].M, panX: S03[S03.length - 1].panX, panY: S03[S03.length - 1].panY, focusCm: 40, aperture: 2.8 } as const;
+/** The focus of S14 (guide 05 section 4: 38, f/2.8): reached over the first 60 frames of the pull back, held until the book is down. */
+export const FOCUS_CLOSE = 38;
+
+// S14-S15: the pull back and the return to the pile are ONE glide from the links view (frame 2760, where S11-S13's push ends) to the pile
+// view (frame 3000): 60 frames of ease-in, a straight run and 90 of ease-out, so the speed never jumps at the shot boundary on 2880 (two
+// `signature` eases back to back stop the camera for a frame and the audit reads two moves less than 20 frames apart, as it did for S02
+// and S03). The ease-out is the longer one so that the camera arrives at the pile gently while the book comes down, and so that the
+// straight run is fast enough to clear the turn at 2760: with 60 and 60 the push has just ended, the pull back starts from rest and the
+// audit finds 61 frames (2731-2791) whose ends are within 0.5 percent (STILL); with 60 and 90 it finds nothing. M goes 6.52 to 4.63 in
+// 1 / M (what a dolly does): 5.29 on frame 2880, where the carry starts, so the book is smaller in the frame as it is carried across and the
+// pile fills it as it comes down. The window slides to the pile hold's. The lens racks from 28 to the table's 38 over the first 60 frames,
+// while the held book is being closed, stays there, and goes to 40 in the last 90 frames.
+// The first key is S13's (its ease is `signatureIn` for this reason); the segment from 2910 is "R3/2": the plate is coming back (R2) with
+// the held book still in front of it (R3), so it takes the stricter speed of the two and the larger M, as S21's does.
+const SET_STATE: State = { ...stateOf(S03[S03.length - 1]), focusCm: VIEW_SET.focusCm, aperture: VIEW_SET.aperture };
+const CLOSE_GLIDE = glideShot(2760, 3000, LINKS_STATE, SET_STATE, { inFrames: 60, outFrames: 90, regime: "R3", next: { ease: "signature", regime: "R3" } });
+const CLOSING: readonly CameraKeyframe[] = [
+  CLOSE_GLIDE[0],
+  { ...CLOSE_GLIDE[1], focusCm: FOCUS_CLOSE, aperture: 2.8 },
+  { ...CLOSE_GLIDE[2], focusCm: FOCUS_CLOSE, aperture: 2.8, regime: "R3/2" },
+  CLOSE_GLIDE[3],
+];
+
+/**
+ * The keyframes of S00-S03, one array per shot (Patch 13A), of S05-S09 (Patch 15), of S10-S13 (Patch 16) and of S14-S15 (Patch 17). The shot files in `src/shots/` take their `camera` from here, so a shot owns
  * its keyframes and the registry (`src/shots/index.ts`, `FILM_CAMERA_KEYFRAMES`) can put them back together. A shot's keys lie inside its
  * own frames, plus one closing key on the first frame of the next shot (the state the next move starts from): S03's key at frame 960 is
  * the example. The arrays are the ones the builders above made, split where the shots split, in the order they were joined before.
- * Patch 15 adds S05-S09 (S04's one key is in `src/shots/S04.tsx`; S08 is inside the reading run and owns no key).
+ * Patch 15 adds S05-S09 (S04's one key is in `src/shots/S04.tsx`; S08 is inside the reading run and owns no key). Patch 17 adds S14 (the key
+ * on 2820, where the focus rack ends) and S15 (2910, where the ease-out starts, and the closing key on 3000 that S16 starts from).
  */
-export const SHOT_KEYFRAMES: Readonly<Record<"S00" | "S01" | "S02" | "S03" | "S05" | "S06" | "S07" | "S08" | "S09" | "S10" | "S11" | "S12" | "S13", readonly CameraKeyframe[]>> = {
+export const SHOT_KEYFRAMES: Readonly<Record<"S00" | "S01" | "S02" | "S03" | "S05" | "S06" | "S07" | "S08" | "S09" | "S10" | "S11" | "S12" | "S13" | "S14" | "S15", readonly CameraKeyframe[]>> = {
   S00: S00.slice(0, -1),
   S01,
   S02,
@@ -387,10 +418,12 @@ export const SHOT_KEYFRAMES: Readonly<Record<"S00" | "S01" | "S02" | "S03" | "S0
   S11: MIDDLE.filter((k) => k.frame === 2100),
   S12: [],
   S13: MIDDLE.filter((k) => k.frame === 2760),
+  S14: CLOSING.filter((k) => k.frame > 2760 && k.frame < 2880),
+  S15: CLOSING.filter((k) => k.frame >= 2880),
 };
 
-/** The state S04 ends in and the views of Patches 15 and 16 as states (the tests compare the shot files' keys with them). */
-export const HERO_STATES = { lift: LIFT_STATE, hero: HERO_STATE, open: OPEN_STATE, read: READ_STATE, block: BLOCK_STATE, links: LINKS_STATE } as const;
+/** The state S04 ends in and the views of Patches 15 to 17 as states (the tests compare the shot files' keys with them). */
+export const HERO_STATES = { lift: LIFT_STATE, hero: HERO_STATE, open: OPEN_STATE, read: READ_STATE, block: BLOCK_STATE, links: LINKS_STATE, set: SET_STATE } as const;
 
 /**
  * PLACEHOLDERS for S00-S03 (frames 0-959), taken from the table of guide 05 section 4:

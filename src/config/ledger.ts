@@ -159,7 +159,7 @@ export const BOOK_SCRIPT: Partial<Record<BookId, BookScript>> = {
     lift: { start: 960, speed: 1 }, // S04
     cover: [
       { kind: "open", start: 1440 }, // S06
-      { kind: "close", start: 2808, opts: { speed: 1.4 } }, // S14, after the pages are flipped back
+      { kind: "close", start: 2820, opts: { speed: 1.4 } }, // S14, after the pages are flipped back (they land on 2808): the board lands on 2870
     ],
     turns: [
       { start: 1560 }, // S07: the half-title
@@ -171,7 +171,9 @@ export const BOOK_SCRIPT: Partial<Record<BookId, BookScript>> = {
       { start: 2760, dir: -1, quick: true, through: 33, leaves: 3 },
       { start: 2772, dir: -1, quick: true, through: 33, leaves: 2 },
     ],
-    setDown: { start: 2880, speed: 1 }, // S15
+    // S15. The carry has to touch the desk on beat 98 (frame 2940, Patch 17): 60 frames. The book's 560 g make a carry of 89 frames at speed 1
+    // (contact on 2969, off the beat); every speed from 1.470 to 1.494 gives 60 (`framesFor` rounds), 1.48 is the middle of them.
+    setDown: { start: 2880, speed: 1.48 },
   },
   minilocker: {
     lift: { start: 3000, speed: 1.3 }, // S16

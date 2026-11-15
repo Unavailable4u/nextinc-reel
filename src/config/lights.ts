@@ -71,9 +71,27 @@ export const LIGHTS = {
   reflection: { color: "#C98A57", opacity: 0.07, depthCm: 1.2 },
   /** The shadow catcher: warm black, never pure black (guide 03). */
   catcher: { color: "#1B0F08", opacity: 0.62 },
-  /** The baked contact patch under a resting book: two layers, a tight dark line and a wider soft one. */
-  contact: { color: "#1B0F08", tightCm: 0.25, tightOpacity: 0.55, wideCm: 1.3, wideOpacity: 0.28 },
+  /**
+   * The baked contact patch under a resting book: two layers, a tight dark line and a wider soft one. `liftCm` and `liftSpread` are for a
+   * book that is still coming down onto the desk (Patch 17, S15; guide 03 section 4: "shadow radius grows with height"): the patch is not
+   * there at `liftCm` above the desk or higher (the lamp's shadow map is the only shadow), fades in as the book lowers and, wider by
+   * `liftSpread` at the first, tightens to the resting patch at the touch. See `contactLook`.
+   */
+  contact: { color: "#1B0F08", tightCm: 0.25, tightOpacity: 0.55, wideCm: 1.3, wideOpacity: 0.28, liftCm: 8, liftSpread: 1.8 },
 } as const;
+
+/**
+ * How the baked contact patch looks under a book `heightCm` above the desk: `opacity` is a multiplier of the patch (1 on the desk, 0 at
+ * `LIGHTS.contact.liftCm` and above) and `spread` the factor the patch is drawn wider by (1 on the desk, `liftSpread` at `liftCm`). Both go
+ * along a smoothstep, so the patch has no corner in time and the shadow tightens at the end of the descent, where the book slows down. A
+ * book on the desk (and a negative height, which the rig never gives) is exactly the resting patch.
+ */
+export function contactLook(heightCm: number): { opacity: number; spread: number } {
+  const C = LIGHTS.contact;
+  const t = Math.min(1, Math.max(0, heightCm / C.liftCm));
+  const e = t * t * (3 - 2 * t);
+  return { opacity: 1 - e, spread: 1 + (C.liftSpread - 1) * e };
+}
 
 export type LightName = "key" | "rim" | "kicker" | "fill" | "probe";
 

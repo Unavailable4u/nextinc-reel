@@ -115,8 +115,12 @@ export const MOTION = {
     acrossEase: "signature" as EaseName,
     turnEase: "signature" as EaseName,
     lowerEase: "arrive" as EaseName,
-    /** the book touches down at this fraction of the speed of its mean descent; the rest of it is the rebound */
-    landSlope: 0.5,
+    /**
+     * the book touches down at this fraction of the speed of its mean descent; the rest of it is the rebound. 0.5 until Patch 17, which
+     * lowered it to 0.35: Mini Me's carry has to be 60 frames (the touch is on beat 98, frame 2940), and at 0.5 a 60-frame carry touches the
+     * desk at 10.7 cm/s, where the 89 frames of the book's own weight touched at 6.7. At 0.35 it is 7.5 cm/s (D-77).
+     */
+    landSlope: 0.35,
     /** the rebound after touching down (guide 03 section 5: 0.3 mm), by the spring `settle` (4 to 6 frames) */
     reboundCm: 0.03,
     reboundSpring: SPRINGS.settle as SpringSpec,

@@ -276,7 +276,7 @@ test("patch 16: during the links spread the book does not move at all: no roll, 
 
 // ---------- the camera ----------
 
-test("patch 16: the camera keys of S10-S13 are on beats, in R3, owned one shot each, and the film's camera now ends on the first frame of S14", () => {
+test("patch 16: the camera keys of S10-S13 are on beats, in R3, owned one shot each, and S13's key is the state S14 starts from", () => {
   const frames = Object.fromEntries(ids.map((id) => [id, shotById(id).camera.map((k) => k.frame)]));
   eq(JSON.stringify(frames), JSON.stringify({ S10: [2040], S11: [2100], S12: [], S13: [2760] }));
   for (const id of ids) for (const k of shotById(id).camera) {
@@ -285,7 +285,7 @@ test("patch 16: the camera keys of S10-S13 are on beats, in R3, owned one shot e
     eq(k.rollDeg, 0, `${id} key ${k.frame}: no roll`);
     eq(k.tiltDeg, 0, `${id} key ${k.frame}: no tilt`);
   }
-  eq(FILM_CAMERA_KEYFRAMES[FILM_CAMERA_KEYFRAMES.length - 1].frame, 2760);
+  truthy(FILM_CAMERA_KEYFRAMES.some((k) => k.frame === 2760), "S13's key on the first frame of S14 is in the film's camera (Patch 17 adds S14-S15 after it)");
   eq(JSON.stringify(stateOf(shotById("S10").camera[0])), JSON.stringify(HERO_STATES.block));
   eq(JSON.stringify(stateOf(shotById("S13").camera[0])), JSON.stringify(HERO_STATES.links));
   eq(shotById("S09").camera[0].frame, 1920, "S09's key on the first frame of S10 is where S10 starts from");
@@ -321,7 +321,7 @@ test("patch 16: the audit is clean for frames 1920-2759 with no exception, the w
   const r = auditMotion({ from: 1920, to: 2759, exceptions: [] });
   eq(r.findings.length, 0, JSON.stringify(r.findings));
   const all = auditMotion();
-  eq(all.range.join("-"), "0-2759");
+  eq(all.range.join("-"), "0-2999", "the film's camera now runs to the end of S15 (Patch 17)");
   eq(all.unexplained, 0, JSON.stringify(all.findings.filter((f) => !f.known)));
   eq(all.counts.STILL, 1, "only the documented opening hold");
   const lim = limitFor("R3");
@@ -449,7 +449,8 @@ test("patch 16: the cues are on the shots' own frames, in order, and the turns' 
   eq(by("S11"), "2040:paper-settle", "guide 08: paper-settle on 2040");
   eq(by("S12"), "2280:page-turn");
   eq(by("S13"), "2520:page-turn");
-  for (const c of FILM_CUES) eq(c.frame % BEAT, 0, `cue ${c.name} on ${c.frame} is on a beat`);
+  // `book-set` of S15 is the one cue off the beat on purpose: its sound starts two frames before the touch on 2940 (Patch 17)
+  for (const c of FILM_CUES.filter((c) => c.name !== "book-set")) eq(c.frame % BEAT, 0, `cue ${c.name} on ${c.frame} is on a beat`);
   truthy(FILM_CUES.filter((c) => c.name === "page-turn").every((c) => TURNS.some((t) => t.start === c.frame && !t.riffle) || c.frame === 1560 || c.frame === 1680), "every page-turn cue of Mini Me is a turn of the script");
   eq(RIFFLE.start, 1920, "the flutter starts with the riffle");
 });

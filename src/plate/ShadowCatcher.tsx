@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import * as THREE from "three";
-import { LIGHTS } from "../config/lights";
+import { LIGHTS, contactLook } from "../config/lights";
 import { PLATE_MATCH, type PlateMatch } from "./PlateFollow";
 
 /**
@@ -84,24 +84,29 @@ function reflectionTexture(color: string): THREE.CanvasTexture {
 /**
  * Under a resting book (guide 03 section 4, "two layers"): the baked contact patch (a tight dark line and a wider soft shadow
  * that no shadow map can draw this tight) and the faint warm reflection along the front edge. `X`, `Zd` is the footprint's centre,
- * `w` x `d` its size in cm, `yawDeg` its turn. Children of <Stage>.
+ * `w` x `d` its size in cm, `yawDeg` its turn. `heightCm` is how far the book is above the desk (default 0, a book that rests): a book that
+ * is still coming down gets a fainter and wider patch (`contactLook`), which tightens as it lowers and is the resting one at the touch
+ * (Patch 17, S15). Children of <Stage>.
  */
-export const ContactDecal: React.FC<{ X: number; Zd: number; w: number; d: number; yawDeg?: number; reflection?: boolean }> = ({ X, Zd, w, d, yawDeg = 0, reflection = true }) => {
+export const ContactDecal: React.FC<{ X: number; Zd: number; w: number; d: number; yawDeg?: number; reflection?: boolean; heightCm?: number }> = ({ X, Zd, w, d, yawDeg = 0, reflection = true, heightCm = 0 }) => {
   const pad = Math.max(LIGHTS.contact.wideCm * 3, 3);
   const patch = useMemo(() => contactTexture(w, d, pad, 24), [w, d, pad]);
   const refl = useMemo(() => reflectionTexture(LIGHTS.reflection.color), []);
   const depth = LIGHTS.reflection.depthCm;
+  const look = contactLook(heightCm);
+  // high above the desk the patch is not there at all (nothing to draw)
+  if (look.opacity <= 0) return null;
   return (
     <group position={[X, 0, -Zd]} rotation={[0, (yawDeg * Math.PI) / 180, 0]}>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]} renderOrder={2}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]} scale={[look.spread, look.spread, 1]} renderOrder={2}>
         <planeGeometry args={[w + 2 * pad, d + 2 * pad]} />
-        <meshBasicMaterial map={patch} transparent depthWrite={false} toneMapped={false} polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} />
+        <meshBasicMaterial map={patch} transparent opacity={look.opacity} depthWrite={false} toneMapped={false} polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} />
       </mesh>
       {reflection ? (
         // along the front edge (towards the camera, +z), strongest next to the book
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, d / 2 + depth / 2]} renderOrder={3}>
           <planeGeometry args={[w, depth]} />
-          <meshBasicMaterial map={refl} transparent opacity={LIGHTS.reflection.opacity} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} />
+          <meshBasicMaterial map={refl} transparent opacity={LIGHTS.reflection.opacity * look.opacity} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} />
         </mesh>
       ) : null}
     </group>

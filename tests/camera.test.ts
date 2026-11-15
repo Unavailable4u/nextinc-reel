@@ -404,9 +404,9 @@ const key = (frame: number, over: Partial<CameraKeyframe> = {}): CameraKeyframe 
 const codes = (keys: CameraKeyframe[], from?: number, to?: number): Record<FindingCode, number> => auditMotion({ keys, from, to, exceptions: [] }).counts;
 const GOOD = [key(0), key(120, { M: 2.1, panX: 690 }), key(150, { M: 2.1, panX: 690 })];
 
-test("audit: S00 to S13 (frames 0-2759) pass with the one documented exception (STILL at the opening), and the peaks are inside the limits", () => {
+test("audit: S00 to S15 (frames 0-2999) pass with the one documented exception (STILL at the opening), and the peaks are inside the limits", () => {
   const r = auditMotion();
-  eq(r.range.join("-"), "0-2759", "the default keys are the film's (S00-S13 so far)");
+  eq(r.range.join("-"), "0-2999", "the default keys are the film's (S00-S15 so far)");
   eq(r.unexplained, 0, JSON.stringify(r.findings));
   eq(r.counts.FAST + r.counts.DEEP + r.counts.EDGE + r.counts.POP + r.counts.LATE, 0, "zero FAST, DEEP, EDGE, POP and LATE");
   eq(r.counts.STILL, 1);

@@ -991,3 +991,45 @@ Measured through the film's camera (in the tests, without the operator): the spr
 2. `npm run qr:check -- --frames=2600-2700 --every=20` (needs the browser), then again with `--clean` if it fails, to tell grain from size.
 3. Play frames 1920-2759 in the Studio (`ReelFilm`) and watch for pops and flicker; step 2280-2340 and 2520-2580 a frame at a time for the two turns.
 4. Open the film in the Studio at 2640 on your screen and scan the QR codes with a phone. If it does not scan, see D-73.
+
+## Patch 17 - Shots S14-S15: close and set down  (2026-11-15; not rendered, see "Not done")
+
+Owner: reel team.
+
+**What it adds**
+- **The close and the set-down on the beat** (D-77, D-78; `src/config/ledger.ts`, `config/bookMotion.ts`). Mini Me's `close` starts on 2820 and the board lands on 2870 (50 frames), the rebound is gone by 2880; the `setDown` starts on 2880 with `speed: 1.48`, a carry of 60 frames, so the book touches the desk on 2940 (beat 98) and is at rest on 2952. `MOTION.setDown.landSlope` goes from 0.5 to 0.35 so that the 60-frame carry touches at 7.5 cm/s instead of 10.7. After 2880 the ledger has MiniMe "beside" the pile and MiniLocker is the top book.
+- **The contact patch tightens as the book lowers** (D-80; `contactLook` in `config/lights.ts`, `ContactDecal` `heightCm`, `decalHeightCm` in `scene/Pile.tsx`): absent from 8 cm up, faint and 1.8 times wider as it comes down, the resting patch at the touch, with no frame changing it by more than a fifth.
+- **The camera of S14-S15** (D-79; `config/camera.ts`, `VIEW_SET`, `FOCUS_CLOSE`, `HERO_STATES.set`): one glide from the links view on 2760 to the pile hold's view (M 4.63, focus 40) on 3000, 60 frames in, 90 out; keys S14 2820, S15 2910 and 3000. S13's last key is now `signatureIn`.
+- **`src/shots/S14.tsx` and `S15.tsx`** with their cues (D-81): `riffle` 2760, `cover-close` 2820, `book-set` 2938 (two frames before the touch).
+- **What was already there and is used as it is**: the two flip-back chunks and the held book's return to the reading pose over 2760-2880 (Patch 16), the cover's close and its rebound (`book/rig/cover.ts`), the set-down's descent and 0.3 mm rebound (`book/rig/setDown.ts`), the dust of the close and of the touch (`dustSources`).
+- `tests/acts5.test.ts` (10 tests). Four assertions of older tests changed on purpose: `tests/acts4.test.ts` x3 (the film's camera now ends on 3000, the audit's range is 0-2999, `book-set` is exempt from the cues-on-a-beat rule) and `tests/camera.test.ts` x1 (the audit's default range). Decisions D-77 to D-81, the progress line of `docs/patches/INDEX.md`, this entry.
+
+**PUBLIC API**
+```
+VIEW_SET { M 4.63, panX, panY (the pile hold's), focusCm 40, aperture 2.8 }    // frame 3000, the state S16 starts from
+FOCUS_CLOSE = 38; HERO_STATES.set
+SHOT_KEYFRAMES.S14 (2820), SHOT_KEYFRAMES.S15 (2910, 3000)
+contactLook(heightCm): { opacity, spread }; LIGHTS.contact.liftCm, .liftSpread  // config/lights.ts
+ContactDecal heightCm?: number; decalHeightCm(state): number | null              // plate/ShadowCatcher.tsx, scene/Pile.tsx
+BOOK_SCRIPT["mini-me"].setDown { start: 2880, speed: 1.48 }; MOTION.setDown.landSlope 0.35
+```
+
+**Decisions and conventions later patches must follow**
+- A set-down that has to touch on a beat is made by choosing `speed` (`setDownTimes` gives `contact`); `landSlope` is shared by every book, so check the touch speed again if you change it. Patch 20's S21 has its own beat.
+- The film's camera ends on frame 3000 with `VIEW_SET`, a state reached with speed zero from the last key's `signature` ease (the lift of S04 starts from the same view, so S16 is the lift over a pile of two). S16's first key must start from `HERO_STATES.set`.
+- The only cue that is not on a beat is `book-set` on 2938 (D-81): the audio patch (21) must not lead it again.
+
+**Not done, on purpose**
+- **No render, no stills, no 60 fps look** (no browser or GPU on the build machine). The spec's "stills every 20 frames of S15" is yours: `npm run stills -- --frames 2880,2900,2920,2940,2960,2980,2999`. What to look at: the book is carried to the left of the pile and lowered flat, the patch under it comes in faint and wide and is a tight dark line at the touch, the settle is 4 to 6 frames, the plate does not jump while M falls from 5.3 to 4.63.
+- **"The back cover glimpse" of the storyboard (S14) is not a separate effect**: nothing in the code draws or aims at the back cover. What the closing book does is the held book's return from pitch 87 and yaw 3.5 to the reading pose over 2760-2880 (Patch 16's tracks) while the board shuts. If the glimpse is to be a visible beat, it needs its own yaw key in `config/heroMotion.ts` for about 2850-2880; say so and it is a small change.
+- The flip back is still Patch 16's two chunks, not a backward riffle (D-70 allows either).
+
+**Known issues**
+- The close starts on 2820, so the flipped-back pages are on screen with the cover open for 12 frames (2808-2820) before it swings; the camera is pulling back through them. If it reads as a hold, start the close earlier and move `cover-close` with it.
+- M is 5.29 on 2880 (the carry starts), not the table's 6.51: the table's "6.51 to 4.63" is a figure for the whole shot, and the glide is continuous from 6.52 on 2760.
+
+**Checks run**
+`npx tsc --noEmit` 0 errors. `npm test` 420 of 420 (410 before; 10 added in `tests/acts5.test.ts`). `npm run motion -- --from=2760 --to=2999`: no findings, peak sideways speed 8.8 cm/s, peak change of M 1.176 x per second, largest jump 0.58 percent. `npm run motion` (frames 0-2999, S00-S15): STILL 1 (the documented opening hold), FAST, DEEP, EDGE, POP and LATE 0, peak sideways speed 36.7 cm/s (S01), peak change of M 1.477 x per second (S04), `shot registry: VALID`.
+
+**To run on your machine**
+`npm run plate:verify`, `npm run motion`, `npm test`, then the stills above and a play of 2760-3000 in the Studio.

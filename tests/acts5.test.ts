@@ -23,7 +23,7 @@ test("patch 17: S14 and S15 are on the table's frames and own their keys, S15's 
   eq(`${SHOTS[15].from}-${SHOTS[15].to}`, "2880-2999");
   eq(JSON.stringify(shotById("S14").camera.map((k) => k.frame)), JSON.stringify([2820]));
   eq(JSON.stringify(shotById("S15").camera.map((k) => k.frame)), JSON.stringify([2910, 3000]));
-  eq(FILM_CAMERA_KEYFRAMES[FILM_CAMERA_KEYFRAMES.length - 1].frame, 3000, "the film's camera ends on the first frame of S16");
+  truthy(FILM_CAMERA_KEYFRAMES.some((k) => k.frame === 3000), "S15's closing key on 3000 is in the film's camera (Patch 18 adds S16-S21 after it)");
   for (const k of [...shotById("S14").camera, ...shotById("S15").camera]) {
     eq(k.frame % BEAT, 0, `key ${k.frame} is on a beat`);
     eq(k.rollDeg, 0);
@@ -50,7 +50,7 @@ test("patch 17: the audit is clean for frames 2760-2999, with no exception and t
   const r = auditMotion({ from: 2760, to: 2999, exceptions: [] });
   eq(r.findings.length, 0, JSON.stringify(r.findings));
   const all = auditMotion();
-  eq(all.range.join("-"), "0-2999");
+  eq(all.range.join("-"), "0-3959", "the film's camera now runs to the end of S21 (Patch 18)");
   eq(all.unexplained, 0, JSON.stringify(all.findings.filter((f) => !f.known)));
   eq(all.counts.STILL, 1, "only the documented opening hold");
   const lim = limitFor("R3");

@@ -159,7 +159,7 @@ test("patch 15: the orbit is within +-8 degrees, starts and ends at 0, is smooth
 
 test("patch 15: the orbit starts after the lift has settled, and the hero motion is zero outside S05-S14", () => {
   truthy(HERO.yaw[0].frame >= liftTimes("mini-me", 960).settled, "the lift's overshoot is over before the orbit starts");
-  for (const f of [0, 960, 1083, 2880, 2999, 3500, 5399]) {
+  for (const f of [0, 960, 1083, 2880, 2999, 3840, 4000, 5399]) {
     const o = heroOffsetAt(f);
     eq(o.yawDeg, 0, `yaw at ${f}`);
     if (f !== 1083 || true) eq(o.pitchDeg, 0, `pitch at ${f}`);

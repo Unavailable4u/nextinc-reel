@@ -396,6 +396,54 @@ const CLOSING: readonly CameraKeyframe[] = [
   CLOSE_GLIDE[3],
 ];
 
+// ---------- Act 6: the second book (Patch 18), S16-S21, frames 3000-3959 ----------
+//
+// The same camera grammar as Mini Me's, with the views of Patches 15 to 17 reused (the held book is in the same place, so the same windows frame it), and
+// faster where the book is: the guide's "30 percent faster" is the book's moves (`BOOK_SCRIPT.minilocker`); the camera has its own limits (guide 05, section 6).
+//
+//   S16 3000-3119  the lift of S04 over a pile of two: one `signature` ease from the pile view (`VIEW_SET`, M 4.63, focus 40) to `HERO_STATES.lift`
+//                  (M 6.0, focus 30, f/2), 120 frames like S04's, 1.477 x per second at its peak
+//   S17 3120-3359  the cover hero, 4 seconds: a glide (60 frames in, 60 out, a straight run) to `HERO_STATES.hero` (M 6.24, the window on the middle of the held book)
+//   S18 3360-3479  the cover opens: one `signature` ease to `HERO_STATES.open` (M 6.32, 20 px to the left, focus 32, f/2.8), as S06's
+//   S19 3480-3719  a rest of 30 frames on the title spread, the pull back to `HERO_STATES.block` (M 5.8, focus 36) over the riffle (3510-3570, 60 frames), then one
+//                  straight push of 240 frames to `HERO_STATES.links` (M 6.52, focus 28, the window 18 px towards the right page), the focus racked over its first 60
+//   S20-S21        the push ends on 3810 and carries on as one glide (60 in, a straight run of 30, 60 out) to the pile view on 3960, the state S22 starts from:
+//                  it is slow enough at the start (the ease-in) that the QR page is as big as the first book's until the page-back sheet covers it (3834)
+const BOOK2_KEYS = {
+  lift: 3120,
+  hero: 3360,
+  open: 3480,
+  openRest: 3510,
+  block: 3570,
+  rack: 3630,
+  links: 3810,
+  set: 3960,
+};
+const B2_RACK_FRAMES = 60;
+// The push of the second book ends a little lower on the photo than the first book's (panY 520, not 497): the glide that follows has 150 frames and not 240 to get
+// from here to the pile view, and with the window 48 photo px higher it slid at 14.6 cm/s, over the R3 limit of 10. The book stands 150 screen px above the middle of the
+// frame at the end of the push instead of in it, which the spread's margins allow (`tests/acts6.test.ts` measures them); the slide left is 28 photo px, 8 cm/s at its peak.
+const BOOK2_LINKS_PAN_Y = 520;
+const B2_LINKS_STATE: State = { ...LINKS_STATE, panY: BOOK2_LINKS_PAN_Y };
+const B2_PUSH_KEY: State = { ...mixState(BLOCK_STATE, B2_LINKS_STATE, B2_RACK_FRAMES / (BOOK2_KEYS.links - BOOK2_KEYS.block)), focusCm: VIEW_LINKS.focusCm, aperture: VIEW_LINKS.aperture };
+const B2_HERO_GLIDE = glideShot(BOOK2_KEYS.lift, BOOK2_KEYS.hero, LIFT_STATE, HERO_STATE, { inFrames: 60, outFrames: 60, regime: "R3" });
+const B2_CLOSE_GLIDE = glideShot(BOOK2_KEYS.links, BOOK2_KEYS.set, B2_LINKS_STATE, SET_STATE, { inFrames: 60, outFrames: 60, regime: "R3", next: { ease: "signature", regime: "R3" } });
+const BOOK2: readonly CameraKeyframe[] = [
+  { frame: BOOK2_KEYS.lift, ...LIFT_STATE, ease: "signatureIn", regime: "R3" },
+  B2_HERO_GLIDE[1],
+  B2_HERO_GLIDE[2],
+  { frame: BOOK2_KEYS.hero, ...HERO_STATE, ease: "signature", regime: "R3" },
+  { frame: BOOK2_KEYS.open, ...OPEN_STATE, ease: "linear", regime: "R3" },
+  { frame: BOOK2_KEYS.openRest, ...OPEN_STATE, ease: "signature", regime: "R3" },
+  { frame: BOOK2_KEYS.block, ...BLOCK_STATE, ease: "linear", regime: "R3" },
+  { frame: BOOK2_KEYS.rack, ...B2_PUSH_KEY, ease: "linear", regime: "R3" },
+  { ...B2_CLOSE_GLIDE[0] },
+  // the lens goes to the table's focus for the close (38) over the first 60 frames of the glide and stays there while the book is carried, as S14's
+  { ...B2_CLOSE_GLIDE[1], focusCm: FOCUS_CLOSE, aperture: 2.8 },
+  { ...B2_CLOSE_GLIDE[2], focusCm: FOCUS_CLOSE, aperture: 2.8, regime: "R3/2" },
+  B2_CLOSE_GLIDE[3],
+];
+
 /**
  * The keyframes of S00-S03, one array per shot (Patch 13A), of S05-S09 (Patch 15), of S10-S13 (Patch 16) and of S14-S15 (Patch 17). The shot files in `src/shots/` take their `camera` from here, so a shot owns
  * its keyframes and the registry (`src/shots/index.ts`, `FILM_CAMERA_KEYFRAMES`) can put them back together. A shot's keys lie inside its
@@ -404,7 +452,7 @@ const CLOSING: readonly CameraKeyframe[] = [
  * Patch 15 adds S05-S09 (S04's one key is in `src/shots/S04.tsx`; S08 is inside the reading run and owns no key). Patch 17 adds S14 (the key
  * on 2820, where the focus rack ends) and S15 (2910, where the ease-out starts, and the closing key on 3000 that S16 starts from).
  */
-export const SHOT_KEYFRAMES: Readonly<Record<"S00" | "S01" | "S02" | "S03" | "S05" | "S06" | "S07" | "S08" | "S09" | "S10" | "S11" | "S12" | "S13" | "S14" | "S15", readonly CameraKeyframe[]>> = {
+export const SHOT_KEYFRAMES: Readonly<Record<"S00" | "S01" | "S02" | "S03" | "S05" | "S06" | "S07" | "S08" | "S09" | "S10" | "S11" | "S12" | "S13" | "S14" | "S15" | "S16" | "S17" | "S18" | "S19" | "S20" | "S21", readonly CameraKeyframe[]>> = {
   S00: S00.slice(0, -1),
   S01,
   S02,
@@ -420,10 +468,17 @@ export const SHOT_KEYFRAMES: Readonly<Record<"S00" | "S01" | "S02" | "S03" | "S0
   S13: MIDDLE.filter((k) => k.frame === 2760),
   S14: CLOSING.filter((k) => k.frame > 2760 && k.frame < 2880),
   S15: CLOSING.filter((k) => k.frame >= 2880),
+  // Patch 18: the keys of the second book, each on the shot it lies in; S16 owns the closing key on 3120 (as S04 owns its closing key), S21 the one on 3960
+  S16: BOOK2.filter((k) => k.frame === 3120),
+  S17: BOOK2.filter((k) => k.frame > 3120 && k.frame < 3360),
+  S18: BOOK2.filter((k) => k.frame === 3360),
+  S19: BOOK2.filter((k) => k.frame >= 3480 && k.frame < 3720),
+  S20: BOOK2.filter((k) => k.frame >= 3720 && k.frame < 3840),
+  S21: BOOK2.filter((k) => k.frame >= 3840),
 };
 
 /** The state S04 ends in and the views of Patches 15 to 17 as states (the tests compare the shot files' keys with them). */
-export const HERO_STATES = { lift: LIFT_STATE, hero: HERO_STATE, open: OPEN_STATE, read: READ_STATE, block: BLOCK_STATE, links: LINKS_STATE, set: SET_STATE } as const;
+export const HERO_STATES = { lift: LIFT_STATE, hero: HERO_STATE, open: OPEN_STATE, read: READ_STATE, block: BLOCK_STATE, links: LINKS_STATE, set: SET_STATE, links2: B2_LINKS_STATE } as const;
 
 /**
  * PLACEHOLDERS for S00-S03 (frames 0-959), taken from the table of guide 05 section 4:

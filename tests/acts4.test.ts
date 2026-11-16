@@ -238,7 +238,7 @@ test("patch 16: the book is raised during S10 (pitch -10 to +7, yaw 0 to 3.5), t
 });
 
 test("patch 16: the hand's sway fades out for the links spread and back in after it; the camera's steady range is the same shot", () => {
-  eq(MOTION.steady.ranges.length, 1);
+  eq(MOTION.steady.ranges.length, 2, "S13 and, since Patch 18, S20");
   eq(MOTION.steady.ranges[0].from, SHOTS[13].from);
   eq(MOTION.steady.ranges[0].to, SHOTS[13].to);
   eq(bookSteadyGain(2000), 1);
@@ -321,7 +321,7 @@ test("patch 16: the audit is clean for frames 1920-2759 with no exception, the w
   const r = auditMotion({ from: 1920, to: 2759, exceptions: [] });
   eq(r.findings.length, 0, JSON.stringify(r.findings));
   const all = auditMotion();
-  eq(all.range.join("-"), "0-2999", "the film's camera now runs to the end of S15 (Patch 17)");
+  eq(all.range.join("-"), "0-3959", "the film's camera now runs to the end of S21 (Patch 18)");
   eq(all.unexplained, 0, JSON.stringify(all.findings.filter((f) => !f.known)));
   eq(all.counts.STILL, 1, "only the documented opening hold");
   const lim = limitFor("R3");
@@ -449,9 +449,11 @@ test("patch 16: the cues are on the shots' own frames, in order, and the turns' 
   eq(by("S11"), "2040:paper-settle", "guide 08: paper-settle on 2040");
   eq(by("S12"), "2280:page-turn");
   eq(by("S13"), "2520:page-turn");
-  // `book-set` of S15 is the one cue off the beat on purpose: its sound starts two frames before the touch on 2940 (Patch 17)
-  for (const c of FILM_CUES.filter((c) => c.name !== "book-set")) eq(c.frame % BEAT, 0, `cue ${c.name} on ${c.frame} is on a beat`);
-  truthy(FILM_CUES.filter((c) => c.name === "page-turn").every((c) => TURNS.some((t) => t.start === c.frame && !t.riffle) || c.frame === 1560 || c.frame === 1680), "every page-turn cue of Mini Me is a turn of the script");
+  // `book-set` of S15 is off the beat on purpose: its sound starts two frames before the touch on 2940 (Patch 17); Patch 18 adds three more, all of the second
+  // book's close (3816, 3846, 3898, see tests/acts6.test.ts)
+  const OFF_BEAT = [2938, 3816, 3846, 3898];
+  for (const c of FILM_CUES.filter((c) => !OFF_BEAT.includes(c.frame))) eq(c.frame % BEAT, 0, `cue ${c.name} on ${c.frame} is on a beat`);
+  truthy(FILM_CUES.filter((c) => c.name === "page-turn" && c.frame < 3000).every((c) => TURNS.some((t) => t.start === c.frame && !t.riffle) || c.frame === 1560 || c.frame === 1680), "every page-turn cue of Mini Me is a turn of the script");
   eq(RIFFLE.start, 1920, "the flutter starts with the riffle");
 });
 

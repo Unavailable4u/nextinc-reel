@@ -38,6 +38,21 @@ export const HERO = {
     { frame: 2040, deg: 3.5 },
     { frame: 2760, deg: 3.5 },
     { frame: 2880, deg: 0 },
+    // Patch 18, the second book (MiniLocker, in the hand from 3000 to 3839): the same orbit in S17, 30 percent faster in its ramps. The lift has
+    // settled on 3100 (`liftTimes("minilocker", 3000, 1.3).settled`); the orbit starts on 3124, reaches -8 on 3182, crosses yaw 0 on 3240
+    // (beat 108, the middle of S17: the sweep of the foil, `specularFrameBook2`), +8 on 3298 and is square again on 3356, four frames before
+    // the cover opens. Ramps of 58 frames and a sweep of 116: 13 degrees a second at the fastest, the same on the way in, across and out.
+    { frame: 3124, deg: 0 },
+    { frame: 3182, deg: -8 },
+    { frame: 3298, deg: 8 },
+    { frame: 3356, deg: 0 },
+    // the book is turned towards the camera for the middle spreads while the riffle fans (3510-3570), as Mini Me's was in S10, and held
+    // there through the QR hold (the film spread lies square-on, `tests/acts6.test.ts`); it goes back to the reading pose over the last 24
+    // frames before the carry (3816-3840), the same frames the page-back sheet takes to cross, so the set-down starts from `readingPose()`
+    { frame: 3510, deg: 0 },
+    { frame: 3570, deg: 3.5 },
+    { frame: 3816, deg: 3.5 },
+    { frame: 3840, deg: 0 },
   ] as HeroTrack,
   /**
    * The reading tilt (S06 on, guide 05 section 4: "tilt down 10 degrees to read the open book"): the book's pitch goes from 80 to 70
@@ -57,9 +72,19 @@ export const HERO = {
     { frame: 2040, deg: 7 },
     { frame: 2760, deg: 7 },
     { frame: 2880, deg: 0 },
+    // Patch 18, the second book: held at the reading pitch while the cover opens (3360-3450: the tilt of 10 degrees, 90 frames instead of 120),
+    // raised upright for the gallery and the film spread with the riffle (3510-3570), held to 3816 and back by 3840
+    { frame: 3360, deg: 0 },
+    { frame: 3450, deg: -10 },
+    { frame: 3510, deg: -10 },
+    { frame: 3570, deg: 7 },
+    { frame: 3816, deg: 7 },
+    { frame: 3840, deg: 0 },
   ] as HeroTrack,
   /** the frame the specular sweep crosses the logo: the middle of the yaw sweep, beat 3 of bar 10 (bar index 10 counted from 0, guide 01) */
   specularFrame: 1260,
+  /** the same for the second book (S17): the middle of its yaw sweep, frame 3240, the middle of the shot */
+  specularFrameBook2: 3240,
 } as const;
 
 const cosEase = (t: number): number => 0.5 - 0.5 * Math.cos(Math.PI * clamp01(t));

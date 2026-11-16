@@ -41,10 +41,16 @@ export const MOTION = {
   /**
    * Ranges where the held book must be steady (guide 05 rule 7 and guide 04, QR rules: "flat, no tremor, no roll"): the hand's sway
    * (the layers above) fades out inside them and back in after them, over `blendFrames`, so it is never switched on or off. The links
-   * spread of the first book (S13, Patch 16). The camera has a range of its own (`STEADY_RANGES` in `camera/operator.ts`); both cover
-   * the same shot. Patch 18 adds the film spread of the second book (S20) here.
+   * spread of the first book (S13, Patch 16) and the film spread with the QR codes of the second (S20, Patch 18). The camera has the same
+   * two ranges of its own (`STEADY_RANGES` in `camera/operator.ts`); both cover the same shots.
    */
-  steady: { ranges: [{ from: SHOTS[13].from, to: SHOTS[13].to }] as readonly { from: number; to: number }[], blendFrames: 12 },
+  steady: {
+    ranges: [
+      { from: SHOTS[13].from, to: SHOTS[13].to },
+      { from: SHOTS[20].from, to: SHOTS[20].to },
+    ] as readonly { from: number; to: number }[],
+    blendFrames: 12,
+  },
 
   /** the ribbon tail's swing while the book moves (a fraction of its full swing, `Book`'s `ribbonSwing`) */
   ribbon: { swing: 0.55, hz: 0.8, idleSwing: 0.1, idleHz: 0.35, riseFrames: 12, fallFrames: 40 },

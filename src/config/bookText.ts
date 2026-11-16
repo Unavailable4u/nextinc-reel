@@ -89,12 +89,13 @@ export const BOOK_TEXT: Record<string, BookText> = {
     spine: "MiniLocker",
     coverLine: "Blast Radius Zero",
     colophonLimit: true,
-    // reuse minilocker-film/public/deck/*.png (guide 00); crop all (guide 07)
+    // the raw captures are minilocker-film/public/deck/*.png (guide 00), copied untouched into public/screens/minilocker/; the books use the CROPPED copies that
+    // `npm run screens` writes beside them (guide 07: no tab strip, no address bar with the app's domain, no task bar). Never name a raw capture here.
     screenshots: [
-      { file: "screens/minilocker/attacklab_complete.png", caption: "Attack Lab: all runnable attacks contained", draft: true },
-      { file: "screens/minilocker/session.png", caption: "Sessions: every run keeps a ledger", draft: true },
-      { file: "screens/minilocker/fix_repo_complete.png", caption: "A finished task and its Blast Radius dial", draft: true },
-      { file: "screens/minilocker/attacklab_running_state.png", caption: "An attack running in a real sandbox", draft: true },
+      { file: "screens/minilocker/01-attacklab-complete.png", caption: "Attack Lab: all runnable attacks contained", draft: true },
+      { file: "screens/minilocker/02-session.png", caption: "Sessions: every run keeps a ledger", draft: true },
+      { file: "screens/minilocker/03-fix-repo-complete.png", caption: "A finished task and its Blast Radius dial", draft: true },
+      { file: "screens/minilocker/04-attacklab-running.png", caption: "An attack running in a real sandbox", draft: true },
     ],
   },
   "next-inc-immersive": {

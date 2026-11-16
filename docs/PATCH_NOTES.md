@@ -1033,3 +1033,56 @@ BOOK_SCRIPT["mini-me"].setDown { start: 2880, speed: 1.48 }; MOTION.setDown.land
 
 **To run on your machine**
 `npm run plate:verify`, `npm run motion`, `npm test`, then the stills above and a play of 2760-3000 in the Studio.
+
+---
+
+## Patch 18 - Shots S16-S21: the second book (MiniLocker)  (2026-11-16; not rendered, see "Not done")
+
+Owner: reel team.
+
+**What it adds**
+- **The second book's script** (`BOOK_SCRIPT.minilocker`, `src/config/ledger.ts`, D-82 to D-85). Lift on 3000 at speed 1.3 (the rise ends on 3065, settled on 3100); the cover opens on 3360 straight onto the colophon and the title page (MiniLocker's page list has no endpaper and no half-title, so S18 has no turn; the skeleton's quick turn on 3420 would have shown the gallery and is gone); one short riffle from 3510 (10 sheets of 20 frames, gaps of 3 to 5, 56 frames to the last landing on 3566, the stacks go 0 to 48 of the 112 sheets) onto the gallery spread (pages 2 and 3); a quick turn from 3690 (lands 3726) onto the film page and the links page (pages 4 and 5); the page-back as one quick chunk from 3816 (49 sheets, 2 leaves, lands 3852); the board closes from 3846 and lands on 3884 (speed 1.72, 38 frames); the carry starts on 3840 and the book touches on 3900 (beat 130, `setDown.speed` 1.385, 60 frames), rests on 3912.
+- **`TurnEvent.pace`** (D-83): a riffle may say how fast its sheets go (`turnFrames`, `gapFrom`, `gapTo`). `riffleOf` in the ledger is the one place that hands the pace to the riffle's clock; `checkTurns` refuses a pace on a single turn, a sheet under 6 frames and a gap under 1. Mini Me's riffle has no pace and is unchanged.
+- **The hero tracks of Act 6** (D-87, `config/heroMotion.ts`): the orbit of S17 (yaw 0 on 3124, -8 on 3182, 0 on 3240, +8 on 3298, 0 on 3356; `HERO.specularFrameBook2` 3240), the reading tilt 3360-3450, the raising to pitch +7 and yaw 3.5 with the riffle (3510-3570), held to 3816 and back to 0 on 3840.
+- **The camera of S16-S21** (D-86, `config/camera.ts`, `HERO_STATES.links2`, `SHOT_KEYFRAMES.S16` to `S21`): S16 is S04's handover from the pile view; S17 a glide to the hero view; S18 one ease to the open view; a rest of 30 frames; the pull back to the block view over the riffle; one straight push of 240 frames to the QR view; one glide from 3810 to the pile view on 3960 (the state S22 starts from). Keys: S16 3120; S17 3180, 3300; S18 3360; S19 3480, 3510, 3570, 3630; S20 3810; S21 3870, 3900, 3960.
+- **`src/shots/S16.tsx` to `S21.tsx`** with their cues (D-88).
+- **The steady range of S20** (D-85): `MOTION.steady.ranges` has S20 (the camera's range was there since Patch 05); `setDownPoseAt` now multiplies the hand's sway by `steadyGain` (the carry starts on the last frame of the range; without it the book jumped from no sway to the full sway). Outside a steady range nothing changes, so Mini Me's carry is what it was.
+- **The cropped screenshots** (D-82): `bookText.ts` names `screens/minilocker/01-attacklab-complete.png`, `02-session.png`, `03-fix-repo-complete.png`, `04-attacklab-running.png`; `scripts/crop-screens.mjs` cuts them from the raw captures; `content/books.md` says so. A test refuses a raw capture's name in the gallery.
+- `tests/acts6.test.ts` (24 tests). Older assertions changed on purpose: `tests/acts3to4a.test.ts` (the hero offset is 0 on 3840 and 4000, not 3500), `tests/acts4.test.ts` x3 (two steady ranges; the audit's range is 0-3959; the cues off the beat are named), `tests/acts5.test.ts` x2 (the camera no longer ends on 3000; the audit's range), `tests/camera.test.ts` x3 (the regime after the last key is S22's R2/4; the audit's range and its name). Decisions D-82 to D-88, one paragraph in guide 05, the progress line of `docs/patches/INDEX.md`, the header of `config/ledger.ts`, this entry.
+
+**PUBLIC API**
+```
+TurnEvent.pace?: { turnFrames, gapFrom, gapTo }                                 // src/config/ledger.ts
+HERO.specularFrameBook2 = 3240; HERO.yaw / HERO.pitch: keys now run to 3840      // src/config/heroMotion.ts
+HERO_STATES.links2 { M 6.52, panX 405, panY 520, focusCm 28, aperture 2.8 }      // the push of S19-S20 ends here (frame 3810)
+SHOT_KEYFRAMES.S16 .. S21; the film's camera ends on frame 3960 with HERO_STATES.set
+MOTION.steady.ranges: S13 and S20; setDownPoseAt follows steadyGain
+BOOK_SCRIPT.minilocker { lift 3000 x1.3; open 3360; riffle 3510; turn 3690; page-back 3816; close 3846 x1.72; setDown 3840 x1.385 }
+```
+
+**Decisions and conventions later patches must follow**
+- The film's camera ends on frame 3960 with the pile view (M 4.63, focus 40, f/2.8, ease `signature`, R3), the state S22 starts from; both books beside the pile are in that window (MiniLocker at plate x 240-298, MiniMe at 305-363). Patch 19 owns the keys from 3960 and the shot table's R2/4 regime.
+- The only cues off the beat are `book-set` on 2938 and 3898, `riffle` on 3816 and `cover-close` on 3846 (D-88); Patch 21 must not lead `book-set` again and decides the level of the quiet `riffle` of 3816.
+- MiniLocker is `beside` from 3840 and its cover is still open for the first 44 frames of the carry (`Pile` draws its pages while the cover is open, wherever the ledger has the book). If Patch 19 changes the ledger rows of 3840, `checkScripts` stops it.
+- The screenshots of the gallery are the cropped files. Never put a raw capture's name in `bookText.ts`.
+
+**Not done, on purpose**
+- **Nothing was rendered**: no still, no 60 fps look, no `qr:check`, no phone scan (no browser or GPU on the build machine; `npm run plate:verify` also needs one and was not run). Everything below is by number.
+- **The four MiniLocker screenshots are not in the repository** (`public/screens/minilocker/` is empty, as Patch 09 said). Until you copy the five captures of `minilocker-film/public/deck/` there and run `npm run screens`, the gallery spread shows empty mounted frames. The crop box is the one of Mini Me's 1920 x 1080 captures and was NOT measured on these files: look at each crop for a left-over strip of tab bar, the address, the task bar or a masked key field.
+- The film page is a still and stays one (as Patch 16). The camera does not aim at single screenshots in S19 (one straight push, as S11-S13).
+- `ObjectDefocus` is still not mounted; Patch 22's decision on motion blur covers the short riffle too (no blur on it now).
+
+**Known issues**
+- **The spread drifts up the frame.** The push ends with the window at panY 520 so that the closing glide stays under 10 cm/s (D-86): the spread is centred at 3570 (y 291-787) and sits at y 112-669 on 3810 (about 150 px above the middle). If it looks high, raise the glide's length instead (start it before 3810) and watch the QR size, or accept a pan nearer 497 with the glide labelled by a longer S22.
+- **The QR size is smaller at the start of the hold** (M 6.25 on 3726, 6.52 on 3816): 3.25 to 3.38 px a module, over the 3.0 the simulated decode needs; a phone scan is the real test (D-73).
+- **The carry starts while the page-back and the board are still moving** (3840-3852 the chunk lands, 3846-3884 the board swings): it is the price of the QR hold (D-84). If the overlap reads as hurried, the levers are `setDown.start` (it is the ledger's row, 3840) and the length of the close (speed 1.72), not the QR frames.
+- The title spread is on screen 3394 to 3522; the gallery 3566 to 3708 (142 frames); the film page and the links page 3708 to 3834 (126 frames): all over the 120 of guide 07. Whether the captions read at 100 percent at M 5.8 to 6.2 is for your eyes.
+- Frame 3830 is 5.1 degrees off square (the raising goes back from 3816); `tests/acts6.test.ts` allows 6 inside the `qr:check` window and 4 for the 90-frame hold (102 frames, 3726-3827).
+- The first frame of Act 6 needs MiniLocker's 7 pages painted and frees Mini Me's: the render holds for it (`useActPages`), a few seconds with a GPU.
+
+**Checks run**
+`npx tsc --noEmit` 0 errors. `npm test` 444 of 444 (420 before; 24 added in `tests/acts6.test.ts`: the keys and their owners, the views, the audit, the push, the ledger rows, the lift, the open on the title spread, the short riffle and its stacks, the film turn and the page-back, the close, the set-down, the carry's hand-over, the hero tracks, the pose never moving 1.2 cm or turning 0.6 degrees in a frame, the steady range, the three readable spreads, the spread's margins, the QR hold, the size of a module and a simulated decode, the cropped screenshots, the pages of Act 6, the cues, the dust, the shot files). `npm run motion` (frames 0-3959, S00-S21): STILL 1 (the documented opening hold), FAST, DEEP, EDGE, POP and LATE 0, peak sideways speed 36.7 cm/s (S01), peak change of M 1.477 x per second (S04), `shot registry: VALID`. `npm run motion -- --from=3000 --to=3959`: no findings, peak sideways speed 9.5 cm/s (R3 limit 10), peak change of M 1.446 x per second, largest jump 0.96 percent, largest M 6.520.
+Measured through the film's camera (in the tests, without the operator): the QR hold is 102 frames (3726 to 3827; the page is 0.4 to 0.5 degrees off square, the pose identical from 3732 to 3815, roll exactly 0); the codes are 33 modules at 4.6 cm on paper and 3.25 to 3.38 px a module on 3732-3830; the touch is at 7.84 cm/s (limit 8), the cover is done 16 frames before it; the stacks never change by 8 sheets in a frame during the riffle.
+
+**To run on your machine**
+`npm run plate:verify`, `npm test`, `npm run motion`. Copy the five MiniLocker captures into `public/screens/minilocker/`, `npm run screens`, look at the four crops. Then `npm run stills -- --frames 3200,3600,3780` (the spec's three: the hero, the gallery, the film spread), plus `3240` (the foil flare), `3410` (the title spread), `3530` (the riffle), `3860` (the page-back and the board), `3900` (the touch) with `--scale 1`; `npm run qr:check -- --book=minilocker --frames=3730-3830 --every=20` (the book defaults to mini-me, so `--book=minilocker` is needed; add `--clean` if it fails, to tell grain from size); then play 3000-3960 in the Studio and step 3816-3912 a frame at a time.

@@ -30,6 +30,13 @@ const CROPS = [
   { from: "mini-me/image copy 8.png", to: "mini-me/04-plan-architecture.png", box: CAPTURE_1080 },
   { from: "mini-me/image copy 9.png", to: "mini-me/05-plan-blueprint.png", box: CAPTURE_1080 },
   { from: "mini-me/image copy 10.png", to: "mini-me/06-build.png", box: CAPTURE_864 },
+  // MiniLocker (Patch 18): the four screenshots of the gallery spread, in the order of content/books.md. The captures are the 1920 x 1080 full-screen ones of
+  // minilocker-film/public/deck/ (guide 07: the same browser strip, address bar and task bar as Mini Me's, so the same box). The box was NOT measured on these files
+  // (they are not in this repository yet): look at each crop once, and if a strip of the tab bar, the address, the task bar or a masked field is left, change the box.
+  { from: "minilocker/attacklab_complete.png", to: "minilocker/01-attacklab-complete.png", box: CAPTURE_1080 },
+  { from: "minilocker/session.png", to: "minilocker/02-session.png", box: CAPTURE_1080 },
+  { from: "minilocker/fix_repo_complete.png", to: "minilocker/03-fix-repo-complete.png", box: CAPTURE_1080 },
+  { from: "minilocker/attacklab_running_state.png", to: "minilocker/04-attacklab-running.png", box: CAPTURE_1080 },
   { from: "next-inc-immersive/image2.png", to: "next-inc-immersive/01-hero.webp", box: { left: 0, top: 2, width: 1820, height: 925 }, webp: true },
   { from: "next-inc-immersive/image3.png", to: "next-inc-immersive/02-globe.webp", box: { left: 800, top: 2, width: 1041, height: 925 }, webp: true },
   { from: "next-inc-immersive/image1.png", to: "next-inc-immersive/03-intro.webp", box: { left: 0, top: 232, width: 1822, height: 688 }, webp: true },

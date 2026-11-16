@@ -10,7 +10,7 @@
 import { MOTION, framesFor } from "../../config/bookMotion";
 import { BOOKS, type BookId, type BookPose } from "../../config/books";
 import { FPS } from "../../config/timeline";
-import { readingPose, swayAt, swaySeedOf, withSway } from "./hold";
+import { readingPose, steadyGain, swayAt, swaySeedOf, withSway } from "./hold";
 import { hermiteIn, lerpV3, poseOf, quatOfPose, reboundAt, slerp, smoothIn, windowed, type V3 } from "./pose";
 
 export interface SetDownParams {
@@ -44,7 +44,9 @@ export function setDownPoseAt(frame: number, p: SetDownParams): BookPose {
   const spec = BOOKS[p.id];
   const reading = p.reading ?? readingPose();
   const t = setDownTimes(p.id, p.start, p.speed ?? 1);
-  if (frame <= t.start) return withSway(reading, swayAt(frame, swaySeedOf(p.id), spec.weightG));
+  // the hand's sway is off in a steady range (`MOTION.steady`, D-74) and comes back over its blend: the second book's carry starts on the last
+  // frame of its steady range (S20, Patch 18), so the carry has to follow the hold's own gain or the book would jump on the first frame
+  if (frame <= t.start) return withSway(reading, swayAt(frame, swaySeedOf(p.id), spec.weightG, steadyGain(frame)));
   if (frame >= t.rest) return p.rest;
 
   const u = Math.min(1, (frame - t.start) / t.carryFrames);
@@ -62,7 +64,7 @@ export function setDownPoseAt(frame: number, p: SetDownParams): BookPose {
 
   // the sway leaves as the book is carried away
   const fade = 1 - smoothIn(u, S.swayOut);
-  return fade > 0 ? withSway(base, swayAt(frame, swaySeedOf(p.id), spec.weightG, fade)) : base;
+  return fade > 0 ? withSway(base, swayAt(frame, swaySeedOf(p.id), spec.weightG, fade * steadyGain(frame))) : base;
 }
 
 /** The frames of the set-down as a `{ from, to }` span for the ribbon's activity: the carry. */

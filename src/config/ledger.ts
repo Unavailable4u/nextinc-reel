@@ -7,9 +7,9 @@
 // (the set is being changed out of sight) or not in the scene yet. The riser's poses come from `config/riser.ts`, the pile's from
 // `config/books.ts`; this file only says which one applies at a frame.
 //
-// The SCRIPT of a book (`BOOK_SCRIPT`) holds the frames of its moves for the shots this patch can verify (S04 to S16, S18,
-// S20 to S21). Mini Me's riffle and the turns of S12 and S13 were added by Patch 16; the rest of the second book's shots are not in it
-// yet: the shot patches (17 to 19) add their moves and may change a start frame, never a rig.
+// The SCRIPT of a book (`BOOK_SCRIPT`) holds the frames of its moves: Mini Me's (Patches 14 to 17) and the second book's (Patch 18: the lift, the
+// cover on its title spread, the short riffle, the film spread, the page-back, the close and the set-down). A shot patch may change a start
+// frame, never a rig.
 
 import { BOOKS, BOOK_IDS, PILE, pilePoses, type BookId, type BookPose } from "./books";
 import { MOTION } from "./bookMotion";
@@ -22,7 +22,7 @@ import { closeFrames, coverAngleAt, coverOpenSettleFrames, coverSpans, openShape
 import { liftPoseAt, liftSpan, liftTimes } from "../book/rig/lift";
 import { motionActivity, ribbonSwingAt, swaySeedOf, withHero } from "../book/rig/hold";
 import { setDownPoseAt, setDownSpan, setDownTimes } from "../book/rig/setDown";
-import { riffleFrames, riffleSheets } from "../book/rig/riffle";
+import { riffleFrames, riffleSheets, type RiffleParams } from "../book/rig/riffle";
 import { landSeconds, turnFrames, turnProgress } from "../book/rig/turn";
 import { SINGLE, type SheetPlacement } from "../book/sheetShape";
 
@@ -139,6 +139,12 @@ export interface TurnEvent {
   through?: number;
   /** leaves of the page list the faces move on by (default 1) */
   leaves?: number;
+  /**
+   * How fast a riffle's sheets go (Patch 18): the frames one sheet takes to turn and the gap between the starts of the first two sheets and
+   * of the last two. Without it the riffle is the config's (`SHEET.riffle`: 30 frames a sheet, gaps 6 to 10, which is 110 frames for Mini Me's
+   * 11 sheets). The second book's short riffle is 10 sheets of 20 frames with gaps of 3 to 5: 56 frames from the first start to the last landing.
+   */
+  pace?: Pick<RiffleParams, "turnFrames" | "gapFrom" | "gapTo">;
 }
 
 export interface BookScript {
@@ -175,17 +181,29 @@ export const BOOK_SCRIPT: Partial<Record<BookId, BookScript>> = {
     // (contact on 2969, off the beat); every speed from 1.470 to 1.494 gives 60 (`framesFor` rounds), 1.48 is the middle of them.
     setDown: { start: 2880, speed: 1.48 },
   },
+  // The second book (Patch 18): the same grammar, 30 percent faster, with the short page sequence (`BOOK_PAGES.minilocker`: (0, 1) colophon and
+  // title page, (2, 3) the gallery, (4, 5) the film page and the links page, 6 the back). Its block has 112 sheets.
   minilocker: {
-    lift: { start: 3000, speed: 1.3 }, // S16
+    lift: { start: 3000, speed: 1.3 }, // S16: the press on 3000, the rise ends on 3065, settled on 3100
     cover: [
-      { kind: "open", start: 3360, opts: { speed: 1.3 } }, // S18
-      { kind: "close", start: 3828, opts: { speed: 1.4 } }, // the page is back at 3828; the cover lands at 3875, 35 frames into the carry (see the notes of Patch 11)
+      { kind: "open", start: 3360, opts: { speed: 1.3 } }, // S18: the board swings 41 frames and has settled on 3419; the book opens on its title page (colophon on the left), no turn
+      // S21: the board starts as the flipped-back chunk lands (3852) and lands on 3884, 38 frames at a speed of 1.72 (Mini Me's 50 frames, 30 percent shorter)
+      { kind: "close", start: 3846, opts: { speed: 1.72 } },
     ],
     turns: [
-      { start: 3420, quick: true }, // S18: straight to the title page
-      { start: 3792, dir: -1, quick: true }, // S20: the page goes back
+      // S19: one short riffle of 10 sheets, 56 frames from the first start to the last landing, to the middle of the block (48 of 112 sheets): the gallery spread
+      { start: 3510, riffle: 10, through: 48, pace: { turnFrames: 20, gapFrom: 3, gapTo: 5 } },
+      // S19 into S20: the film spread (the film page on the left, the links page and its QR codes on the right). A quick turn from 3690 lands on 3726; the QR page is
+      // uncovered from about 3708 (the sheet is vertical on 3708) and nothing crosses it until the page-back sheet is vertical on 3834
+      { start: 3690, quick: true },
+      // S21: the pages go back to the front as one quick chunk (the 49 sheets turned and the 2 leaves), so the block is closed on 0 turned. One chunk and not
+      // two, as Mini Me's: while a chunk is in the air the right face keeps the page under it (the QR page, index 5) until the sheet has crossed over it,
+      // and two chunks 6 frames apart would have swapped that page for the gallery's on the second one's start, 12 frames before the first one is vertical
+      { start: 3816, dir: -1, quick: true, through: 49, leaves: 2 },
     ],
-    setDown: { start: 3840, speed: 1.3 }, // S21
+    // S21: the carry starts on 3840 (the first frame beside the pile) and touches on 3900 (beat 130): 60 frames, which for the book's 490 g is a speed
+    // of 1.3745 to 1.3977 (`framesFor` rounds); 1.385 is the middle. The cover lands on 3884, 16 frames before the touch.
+    setDown: { start: 3840, speed: 1.385 },
   },
 };
 
@@ -231,6 +249,12 @@ export function checkTurns(id: string, turns: readonly TurnEvent[]): void {
       const dir = e.dir ?? 1;
       if (e.riffle && dir !== 1) throw new Error(`ledger: ${id} turn ${i}: a riffle only goes forward`);
       if (e.riffle && (e.riffle < 10 || e.riffle > 14)) throw new Error(`ledger: ${id} turn ${i}: a riffle is 10 to 14 sheets, got ${e.riffle}`);
+      if (e.pace && !e.riffle) throw new Error(`ledger: ${id} turn ${i}: a pace is only for a riffle`);
+      if (e.pace) {
+        const { turnFrames: tf, gapFrom, gapTo } = e.pace;
+        if (!(tf !== undefined && tf >= MOTION.minFrames)) throw new Error(`ledger: ${id} turn ${i}: a sheet of a riffle takes at least ${MOTION.minFrames} frames, got ${tf}`);
+        if (!(gapFrom !== undefined && gapTo !== undefined && gapFrom >= 1 && gapTo >= 1)) throw new Error(`ledger: ${id} turn ${i}: a riffle's gaps are at least 1 frame, got ${gapFrom} and ${gapTo}`);
+      }
       const phys = e.through ?? (e.riffle ?? 1);
       if (!(phys >= (e.riffle ?? 1))) throw new Error(`ledger: ${id} turn ${i}: it changes the stacks by ${phys} sheets but draws ${e.riffle ?? 1}`);
       sheets += dir * phys;
@@ -247,19 +271,21 @@ for (const [id, s] of Object.entries(BOOK_SCRIPT)) checkTurns(id, s.turns);
 
 /** The sheets a riffle event draws. */
 const riffleCount = (e: TurnEvent): number => e.riffle ?? 1;
+/** What the riffle's clock (`book/rig/riffle.ts`) is given for an event: its start, its sheets and its pace if it has one (Patch 18). */
+const riffleOf = (e: TurnEvent, more: Partial<RiffleParams> = {}): RiffleParams => ({ start: e.start, count: e.riffle ?? 0, ...e.pace, ...more });
 /** The sheets of the block a turn event changes the stacks by, and the leaves of the page list it moves the faces by. */
 const sheetsOf = (e: TurnEvent): number => e.through ?? riffleCount(e);
 const leavesOf = (e: TurnEvent): number => e.leaves ?? 1;
 
 /** The frames a turn event takes: a sheet's 54 (36 quick), or a riffle's first start to its last landing. */
-const turnLength = (e: TurnEvent): number => (e.riffle ? riffleFrames({ start: e.start, count: e.riffle }).total : turnFrames(e.quick ?? false));
+const turnLength = (e: TurnEvent): number => (e.riffle ? riffleFrames(riffleOf(e)).total : turnFrames(e.quick ?? false));
 
 /** The number to give the Book as `turned` at a frame: each turn adds (or takes away) its `through` sheets as its eased progress goes, a riffle as its sheets cross. */
 export function turnedAt(frame: number, turns: readonly TurnEvent[]): number {
   let n = 0;
   for (const e of turns) {
     if (e.riffle) {
-      const crossed = riffleSheets(frame, { start: e.start, count: e.riffle }).reduce((sum, x) => sum + x.P, 0);
+      const crossed = riffleSheets(frame, riffleOf(e)).reduce((sum, x) => sum + x.P, 0);
       n += (sheetsOf(e) * crossed) / e.riffle;
     } else {
       n += (e.dir ?? 1) * sheetsOf(e) * turnProgress(frame, e.start, turnLength(e));
@@ -328,7 +354,7 @@ export function faceIndices(frame: number, turns: readonly TurnEvent[]): { left:
     const len = turnLength(e);
     if (frame < e.start || frame >= e.start + len) continue;
     const before = stacksAt(e.start - 1, turns).left;
-    const sheets = riffleSheets(frame, { start: e.start, count: e.riffle });
+    const sheets = riffleSheets(frame, riffleOf(e));
     const first = sheets[0];
     const last = sheets[sheets.length - 1];
     return {
@@ -369,7 +395,7 @@ export function airSheetsAt(frame: number, turns: readonly TurnEvent[]): AirShee
     const L = leavesOf(e);
     if (e.riffle) {
       const count = e.riffle;
-      for (const x of riffleSheets(frame, { start: e.start, count, first: before, baseTurned: before })) {
+      for (const x of riffleSheets(frame, riffleOf(e, { count, first: before, baseTurned: before }))) {
         if (frame >= x.start && x.landSec < FLUTTER_SEC) {
           out.push({
             index: x.index,

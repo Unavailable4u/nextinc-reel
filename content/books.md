@@ -49,7 +49,7 @@ Edit this file, then re-render the shots that show the book (`docs/ops/RUNBOOK.m
 | art | five blue foil arcs (Blast Radius dial geometry), small Mark on the title page and spine head |
 | line | `Blast Radius Zero` italic small caps |
 | pages used (short sequence) | P-COLO (left) + P-TITLE (right), then P-GAL x2, then P-FILM + P-LINK on one spread, P-BACK |
-| screenshots (order) | 1 `attacklab_complete` 2 `session` 3 `fix_repo_complete` 4 `attacklab_running_state` (crop all: guide 07) |
+| screenshots (order) | 1 `attacklab_complete` 2 `session` 3 `fix_repo_complete` 4 `attacklab_running_state`: copy the raw captures into `public/screens/minilocker/` and run `npm run screens`; the book uses the cropped `01-attacklab-complete.png`, `02-session.png`, `03-fix-repo-complete.png`, `04-attacklab-running.png` (guide 07), never the raw files |
 | captions **(approve)** | 1 `Attack Lab: all runnable attacks contained` 2 `Sessions: every run keeps a ledger` 3 `A finished task and its Blast Radius dial` 4 `An attack running in a real sandbox` |
 | film page | from data: `minilocker-film` ("Blast Radius Zero", 2:50) |
 | QR 1 / QR 2 | repo / film (from data); no live URL, so no "Visit" |

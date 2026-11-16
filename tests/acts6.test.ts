@@ -92,9 +92,10 @@ test("patch 18: S16-S21 are on the table's frames, own their keys (one shot each
     eq(k.frame % BEAT, 0, `${id} key ${k.frame}`);
     eq(k.rollDeg, 0, `${id} key ${k.frame}: no roll`);
     eq(k.tiltDeg, 0, `${id} key ${k.frame}: no tilt`);
-    truthy(k.regime === "R3" || k.regime === "R3/2", `${id} key ${k.frame} is R3 (or R3/2)`);
+    // the key on 3960 is the first key of S22 too: the segment that starts there is S22's pull back (Patch 19)
+    truthy(k.regime === "R3" || k.regime === "R3/2" || (k.frame === 3960 && k.regime === "R2/4"), `${id} key ${k.frame} is R3 (or R3/2; R2/4 on 3960)`);
   }
-  eq(FILM_CAMERA_KEYFRAMES[FILM_CAMERA_KEYFRAMES.length - 1].frame, 3960, "the film's camera ends on the first frame of S22");
+  truthy(FILM_CAMERA_KEYFRAMES.some((k) => k.frame === 3960), "S21's closing key on 3960 is still the first key of S22 (the film's camera ends on 4800 since Patch 19)");
   eq(JSON.stringify(stateOf(shotById("S21").camera[2])), JSON.stringify(HERO_STATES.set), "S21 ends on the pile view S22 starts from");
 });
 
@@ -122,7 +123,7 @@ test("patch 18: the audit is clean for frames 3000-3959 with no exception, the l
   const r = auditMotion({ from: 3000, to: 3959, exceptions: [] });
   eq(r.findings.length, 0, JSON.stringify(r.findings));
   const all = auditMotion();
-  eq(all.range.join("-"), "0-3959");
+  eq(all.range.join("-"), "0-4799", "the film's camera now runs to the end of S23 (Patch 19)");
   eq(all.unexplained, 0, JSON.stringify(all.findings.filter((f) => !f.known)));
   eq(all.counts.STILL, 1, "only the documented opening hold");
   const lim = limitFor("R3");

@@ -427,7 +427,8 @@ const BOOK2_LINKS_PAN_Y = 520;
 const B2_LINKS_STATE: State = { ...LINKS_STATE, panY: BOOK2_LINKS_PAN_Y };
 const B2_PUSH_KEY: State = { ...mixState(BLOCK_STATE, B2_LINKS_STATE, B2_RACK_FRAMES / (BOOK2_KEYS.links - BOOK2_KEYS.block)), focusCm: VIEW_LINKS.focusCm, aperture: VIEW_LINKS.aperture };
 const B2_HERO_GLIDE = glideShot(BOOK2_KEYS.lift, BOOK2_KEYS.hero, LIFT_STATE, HERO_STATE, { inFrames: 60, outFrames: 60, regime: "R3" });
-const B2_CLOSE_GLIDE = glideShot(BOOK2_KEYS.links, BOOK2_KEYS.set, B2_LINKS_STATE, SET_STATE, { inFrames: 60, outFrames: 60, regime: "R3", next: { ease: "signature", regime: "R3" } });
+// its last key (frame 3960) is S21's closing key and the first key of S22 (Patch 19): the segment that starts there is S22's pull back, an ease-in in "R2/4"
+const B2_CLOSE_GLIDE = glideShot(BOOK2_KEYS.links, BOOK2_KEYS.set, B2_LINKS_STATE, SET_STATE, { inFrames: 60, outFrames: 60, regime: "R3", next: { ease: "signatureIn", regime: "R2/4" } });
 const BOOK2: readonly CameraKeyframe[] = [
   { frame: BOOK2_KEYS.lift, ...LIFT_STATE, ease: "signatureIn", regime: "R3" },
   B2_HERO_GLIDE[1],
@@ -444,15 +445,55 @@ const BOOK2: readonly CameraKeyframe[] = [
   B2_CLOSE_GLIDE[3],
 ];
 
+// ---------- Act 7: to the right (Patch 19), S22-S23, frames 3960-4799 ----------
+//
+// The camera pulls back from the pile, slides right along the desk past the keyboard and the chair, and settles on the riser. It is TWO glides with one stop between them,
+// and the stop is under the chair wipe (`config/chairWipe.ts`: the frame is covered from 4134 to 4206), so nobody sees the camera rest:
+//
+//   S22 3960-4170  pull back and truck (R2/4): M 4.63 to 2.46 (the table's pull back) and the window from the pile (plate px 423) to 700, focus racked from 40 to 90,
+//                  a glide of 60 frames in, a straight run and 60 out. The ease-out is the part the wipe covers (4134-4170).
+//   S22 4170-4380  settle and push (R2/4, then R4 from 4380): M 2.46 to 3.76 and the window on to 948, focus back to 50. A glide as well (60 in, 90 straight, 60 out), so
+//                  the move is 210 frames: the 150 frames the table's 4320 would leave made the sideways speed 59 cm/s (limit 40) and M change 1.9 x a second. The
+//                  ease-out starts on 4320 (S22's closing key, M 3.47) and the camera is settled on 4380, one second into S23, the frame the first label arrives on.
+//   S23 4380-4800  one straight push of 5.9 percent (the table's 6) to M 3.98 with the window sliding 10 more plate px, the aperture closing to f/4 (the table's "all four sharp").
+//                  It starts at its own speed from the settle's rest (as S11's push does from the pull back's) and carries on into S24's push (the closing key's ease is linear).
+//
+// The numbers of the table that this changes: S22 ends on M 3.47 and not 3.76 (that M is reached on 4380); the truck is +525 plate px (the table's +456 left the riser's
+// right-hand label 100 px off the frame, see D-91); the pan y falls from the pile hold's 545 to 520 so the four books sit in the upper half with the desk's front below.
+const TURN_FRAME = 4170;
+const SETTLE_FRAME = 4380;
+/** The wide view under the chair wipe (frame 4170): the table's M 2.46, the window half way along the desk (the chair's middle is plate px 806), focus 90 (the table's start). */
+export const VIEW_TURN = { M: 2.46, panX: 700, panY: 535, focusCm: 90, aperture: 2.8 } as const;
+/** The camera settled beside the riser (frame 4380): the table's S23 start M 3.76, the window 11 plate px short of the end of the push, focus 50, f/2.8. */
+export const VIEW_RISER_IN = { M: 3.76, panX: 948, panY: 520, focusCm: 50, aperture: 2.8 } as const;
+/** The end of S23 (frame 4800, the first frame of S24): M 3.98 (the table's 6 percent push), f/4, the window left of the lit shelf (the riser stands at plate px 898-1048). */
+export const VIEW_RISER = { M: 3.98, panX: 958, panY: 520, focusCm: 50, aperture: 4 } as const;
+
+const TURN_STATE: State = { ...SET_STATE, ...VIEW_TURN };
+const RISER_IN_STATE: State = { ...SET_STATE, ...VIEW_RISER_IN };
+const RISER_STATE: State = { ...SET_STATE, ...VIEW_RISER };
+const PULL_BACK = glideShot(BOOK2_KEYS.set, TURN_FRAME, SET_STATE, TURN_STATE, { inFrames: 60, outFrames: 60, regime: "R2/4", next: { ease: "signatureIn", regime: "R2/4" } });
+const SETTLE = glideShot(TURN_FRAME, SETTLE_FRAME, TURN_STATE, RISER_IN_STATE, { inFrames: 60, outFrames: 60, regime: "R2/4", next: { ease: "linear", regime: "R4" } });
+const ACT7: readonly CameraKeyframe[] = [
+  // frame 3960 is S21's closing key; the keys of S22 are the rest of the pull back (4020, 4110, 4170), then the settle's (4230, 4320), and S23's are 4380 and the closing key 4800
+  PULL_BACK[1],
+  PULL_BACK[2],
+  PULL_BACK[3],
+  SETTLE[1],
+  SETTLE[2],
+  SETTLE[3],
+  { frame: 4800, ...RISER_STATE, ease: "linear", regime: "R4" },
+];
+
 /**
- * The keyframes of S00-S03, one array per shot (Patch 13A), of S05-S09 (Patch 15), of S10-S13 (Patch 16) and of S14-S15 (Patch 17). The shot files in `src/shots/` take their `camera` from here, so a shot owns
+ * The keyframes of S00-S03, one array per shot (Patch 13A), of S05-S09 (Patch 15), of S10-S13 (Patch 16), of S14-S15 (Patch 17), of S16-S21 (Patch 18) and of S22-S23 (Patch 19). The shot files in `src/shots/` take their `camera` from here, so a shot owns
  * its keyframes and the registry (`src/shots/index.ts`, `FILM_CAMERA_KEYFRAMES`) can put them back together. A shot's keys lie inside its
  * own frames, plus one closing key on the first frame of the next shot (the state the next move starts from): S03's key at frame 960 is
  * the example. The arrays are the ones the builders above made, split where the shots split, in the order they were joined before.
  * Patch 15 adds S05-S09 (S04's one key is in `src/shots/S04.tsx`; S08 is inside the reading run and owns no key). Patch 17 adds S14 (the key
  * on 2820, where the focus rack ends) and S15 (2910, where the ease-out starts, and the closing key on 3000 that S16 starts from).
  */
-export const SHOT_KEYFRAMES: Readonly<Record<"S00" | "S01" | "S02" | "S03" | "S05" | "S06" | "S07" | "S08" | "S09" | "S10" | "S11" | "S12" | "S13" | "S14" | "S15" | "S16" | "S17" | "S18" | "S19" | "S20" | "S21", readonly CameraKeyframe[]>> = {
+export const SHOT_KEYFRAMES: Readonly<Record<"S00" | "S01" | "S02" | "S03" | "S05" | "S06" | "S07" | "S08" | "S09" | "S10" | "S11" | "S12" | "S13" | "S14" | "S15" | "S16" | "S17" | "S18" | "S19" | "S20" | "S21" | "S22" | "S23", readonly CameraKeyframe[]>> = {
   S00: S00.slice(0, -1),
   S01,
   S02,
@@ -475,10 +516,13 @@ export const SHOT_KEYFRAMES: Readonly<Record<"S00" | "S01" | "S02" | "S03" | "S0
   S19: BOOK2.filter((k) => k.frame >= 3480 && k.frame < 3720),
   S20: BOOK2.filter((k) => k.frame >= 3720 && k.frame < 3840),
   S21: BOOK2.filter((k) => k.frame >= 3840),
+  // Patch 19: S22 owns the keys 4020 to 4320 (the settle's ease-out starts on its last frame, as S15's does), S23 the key on 4380 and its closing key on 4800
+  S22: ACT7.filter((k) => k.frame < 4380),
+  S23: ACT7.filter((k) => k.frame >= 4380),
 };
 
 /** The state S04 ends in and the views of Patches 15 to 17 as states (the tests compare the shot files' keys with them). */
-export const HERO_STATES = { lift: LIFT_STATE, hero: HERO_STATE, open: OPEN_STATE, read: READ_STATE, block: BLOCK_STATE, links: LINKS_STATE, set: SET_STATE, links2: B2_LINKS_STATE } as const;
+export const HERO_STATES = { lift: LIFT_STATE, hero: HERO_STATE, open: OPEN_STATE, read: READ_STATE, block: BLOCK_STATE, links: LINKS_STATE, set: SET_STATE, links2: B2_LINKS_STATE, turn: TURN_STATE, riserIn: RISER_IN_STATE, riser: RISER_STATE } as const;
 
 /**
  * PLACEHOLDERS for S00-S03 (frames 0-959), taken from the table of guide 05 section 4:

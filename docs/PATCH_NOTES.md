@@ -1086,3 +1086,53 @@ Measured through the film's camera (in the tests, without the operator): the QR 
 
 **To run on your machine**
 `npm run plate:verify`, `npm test`, `npm run motion`. Copy the five MiniLocker captures into `public/screens/minilocker/`, `npm run screens`, look at the four crops. Then `npm run stills -- --frames 3200,3600,3780` (the spec's three: the hero, the gallery, the film spread), plus `3240` (the foil flare), `3410` (the title spread), `3530` (the riffle), `3860` (the page-back and the board), `3900` (the touch) with `--scale 1`; `npm run qr:check -- --book=minilocker --frames=3730-3830 --every=20` (the book defaults to mini-me, so `--book=minilocker` is needed; add `--clean` if it fails, to tell grain from size); then play 3000-3960 in the Studio and step 3816-3912 a frame at a time.
+
+---
+
+## Patch 19 - Shots S22-S23: truck right, chair wipe, riser reveal, labels  (2026-11-16; not rendered, see "Not done")
+
+Owner: reel team.
+
+**What it adds**
+- **The camera of S22-S23** (D-89, D-91; `src/config/camera.ts`, `VIEW_TURN`, `VIEW_RISER_IN`, `VIEW_RISER`, `SHOT_KEYFRAMES.S22` and `.S23`, `HERO_STATES.turn`, `.riserIn`, `.riser`). S22 pulls back and trucks right from the pile view on 3960 (M 4.63, window at plate px 423) to M 2.46 and plate px 700 on 4170, a glide of 60 frames in, a straight run and 60 out, focus 40 to 90. The camera comes to rest there, inside the wipe's full cover, then a second glide (60 in, 90 straight, 60 out) settles it beside the riser on 4380 (M 3.76, plate px 948, focus 50). S23 is one straight push of 5.9 percent to M 3.98 and f/4 on 4800 (window 958); the closing key is `linear` so S24's push can carry on. Keys: S22 4020, 4110, 4170, 4230, 4320; S23 4380, 4800. S21's closing key on 3960 now starts S22 (an ease in, "R2/4").
+- **The chair wipe** (D-90; `src/config/chairWipe.ts`, `src/fx/ChairWipe.tsx`, the overlay of `S22.tsx`). A band of dark leather as tall as the frame, soft-edged (330 px each side), travelling right to left, on the picture from 4050 to 4290 and covering every column of the frame from 4134 to 4206: the ledger's swap is 4140-4199 and the three books arrive on 4200, so each has 6 frames of margin. The ledger is not changed.
+- **The labels** (D-92, D-93; `src/config/labels.ts`, `src/fx/labelLayout.ts`, `src/fx/Labels.tsx`, the overlay of `S23.tsx`). A hairline leader (0.75 px), a 5 px dot, `Vol. I` and the name in CMU Serif Italic 26 px, `2026 - coming soon` in CMU Typewriter 18 px, ink on a `#F5F0E6` chip at 88 percent. One per book in the site's order on 4380, 4440, 4500 and 4560, each with a soft highlight sweep over its book (54 frames, alpha 0.2 at most), fading out over 4740-4800. All words come from `getRiserLabel`.
+- **Cues**: `chair-pass` on 4140 (S22), `label-tick` on each label's frame (S23), as guide 08's sheet.
+- `tests/acts7.test.ts` (17 tests). Older assertions changed on purpose: `tests/acts4.test.ts`, `acts5.test.ts`, `acts6.test.ts` (the audit's range is now 0-4799; S21's key on 3960 may be "R2/4"; the film's camera no longer ends on 3960), `tests/camera.test.ts` x2 (the regime after the last key is S24's R4; the audit's range and name), `tests/film.test.ts` (a title). Decisions D-89 to D-93, one paragraph in guide 05, the progress line of `docs/patches/INDEX.md`, this entry.
+
+**PUBLIC API**
+```
+VIEW_TURN { M 2.46, panX 700, panY 535, focusCm 90, aperture 2.8 }              // frame 4170, under the wipe
+VIEW_RISER_IN { M 3.76, panX 948, panY 520, focusCm 50, aperture 2.8 }          // frame 4380
+VIEW_RISER { M 3.98, panX 958, panY 520, focusCm 50, aperture 4 }               // frame 4800, the state S24 starts from
+HERO_STATES.turn / .riserIn / .riser; SHOT_KEYFRAMES.S22 / .S23                 // src/config/camera.ts
+CHAIR_WIPE { enter 4050, exit 4290, centre 4170, coverFrom 4134, coverTo 4206, feather 330, ... }
+chairBandAt(frame), chairAlpha(frame, x), chairCover(frame, step), chairColour(frame, x), chairSeams(frame)   // src/config/chairWipe.ts
+LABELS { first 4380, gap 60, leaderPx 0.75, dotPx 5, titlePx 26, subPx 18, ... }; labelFrame(id); labelText(id); LABEL_PLACE   // src/config/labels.ts
+labelsAt(frame): LabelFrame[]; bookPlateRects()                                 // src/fx/labelLayout.ts
+```
+
+**Decisions and conventions later patches must follow**
+- The film's camera ends on frame 4800 with `VIEW_RISER` (M 3.98, focus 50, f/4, ease `linear`, R4), a state reached at speed (the end of a straight push). Patch 20's S24 starts from it ("push 3 percent", M 3.98 to 4.09); the audit refuses a stop of over 60 frames and a move under 48. The audit's default range is now 0-4799.
+- The labels fade out over 4740-4800 (`LABELS.fadeOutFrom`, `fadeOutTo`); the overlay is only drawn while S23 is active. If S24 keeps them, the shot that owns the overlay changes, not the labels.
+- The riser stands at plate px 898-1048; at the end of S23 the books are on screen from y 222 to 650 and the window is 243 px short of the lit shelf. Patch 20's dimming works on this picture.
+- A shot's overlay that needs the camera must not import it from `config/`: the shot files are loaded before the camera path is (the labels' numbers are in `config/labels.ts` and the layout in `fx/labelLayout.ts` for this reason).
+
+**Not done, on purpose**
+- **Nothing was rendered**: no still, no 60 fps look (no browser or GPU on the build machine; `npm run plate:verify` was not run). The spec's stills every 10 frames from 4120 to 4220 are yours; what is proved by number is that every column of the frame has alpha 1 on every frame 4134-4206 and that the places the pile and the two books leave are covered or off the frame on every frame after.
+- No S24 (the ending, the dimming, the wordmark): Patch 20.
+- The sweep is a 2D lift over each cover, not light on the 3D book; `ObjectDefocus` is still not mounted (the books are sharp at f/4 as the table asks).
+
+**Known issues**
+- **The look of the wipe is a guess** (D-90): the leather's colour (`CHAIR_WIPE.body`, `.rim`), the width of the soft edge (330 px), the speed (5 px a frame in the middle, about 55 at the ends) and the seams are tuned by number only. If it reads as a black dip, raise `sheen` or `seamOpacity`; if it is too fast, widen `enter`/`exit` (the cover must stay 4134-4206).
+- While the wipe enters, the plate's own chair (plate x 740-872, on the right of the frame) is still visible under the band: two chairs for about 40 frames. The band is much larger and softer, so it should read as the same chair coming to the lens; look at 4070-4130.
+- The chair is not out of the frame at the end: in S23 it is the dark mass on the left (the window shows plate x from about 730), as D-26 says. The labels of Vol. I and III stand on it.
+- D-92 (30 or 60 frames between labels) and the "three labels at f4580" of guide 01 are for you.
+- The first frame of S22 is S21's last key: the camera comes to rest on 3960 for one frame (S21's ease-out meets S22's ease-in), as at every earlier shot boundary.
+
+**Checks run**
+`npx tsc --noEmit` 0 errors. `npm test` 461 of 461 (444 before; 17 added in `tests/acts7.test.ts`: the keys and their owners, the views and M's single dip, the audit, the margin, the chair passed, the wipe's cover on 4134-4206 and the swap's two frames, the soft edge and the slow middle, the vanished places, the leather's colour, the words of the labels, their frames and their order, no chip over a book and 40 px inside the frame on every frame, the measured text widths, the sweeps, the cues, the overlays and the determinism rules, the ledger). `npm run motion` (frames 0-4799, S00-S23): STILL 1 (the documented opening hold), FAST, DEEP, EDGE, POP and LATE 0, peak sideways speed 36.7 cm/s (S01), peak change of M 1.477 x per second (S04), `shot registry: VALID`. `npm run motion -- --from=3960 --to=4799`: no findings at all, peak sideways speed 35.9 cm/s (R2/4 limit 40), peak change of M 1.422 x per second, largest jump 1.08 percent, largest M 4.630.
+Measured through the film's camera (in the tests): the nearest a chip comes to the frame's edge from its own frame is over 90 px, no chip meets any cover and no leader crosses another book on any of the 480 frames of S23; the window never leaves the 40 px margin on any frame of S22-S23.
+
+**To run on your machine**
+`npm run plate:verify`, `npm test`, `npm run motion`. Then `npm run stills -- --frames 4050,4080,4110,4120,4130,4140,4150,4160,4170,4180,4190,4200,4210,4220,4250,4290` (the wipe: nothing but leather on 4134-4206, no riser and no pile on any frame before it), `npm run stills -- --frames 4320,4380,4440,4500,4580,4790 --scale 1` (the labels: read the text at 100 percent, look at the sweeps on 4395, 4455, 4515, 4575), then play 3960-4800 in the Studio and step 4120-4220 a frame at a time.

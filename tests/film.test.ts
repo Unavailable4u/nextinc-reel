@@ -31,7 +31,7 @@ test("film: cameraAt follows the registry's keyframes by default, and they are P
   }
 });
 
-test("film: the camera holds its last state after its last keyframe (S05-S25 add none yet)", () => {
+test("film: the camera holds its last state after its last keyframe (S24-S25 add none yet)", () => {
   const last = FILM_CAMERA_KEYFRAMES[FILM_CAMERA_KEYFRAMES.length - 1].frame;
   const held = cameraAt(last, { operator: false });
   for (const f of [last + 1, last + 600, TOTAL - 1]) {

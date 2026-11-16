@@ -74,8 +74,33 @@ export const STEADY_RANGES: readonly { from: number; to: number }[] = [
   { from: SHOTS[20].from, to: SHOTS[20].to },
 ];
 
+/**
+ * Ranges where the camera is locked off: while a book is held up to the camera and read (the cover hero to the close of the first book,
+ * the cover hero to the film spread of the second) the operator adds nothing at all, no breathing, tremor, lean or reach. At M 6 and
+ * above one centimetre of camera is about 130 screen px, so the breathing alone swung the picture up and down by 30 px and the reach
+ * of S04 was still ringing out for the first 40 frames of the cover hero (up to 100 px), which read as the camera angle wandering. The
+ * camera still follows its authored keyframes (the slow push and the slides in `config/camera.ts`); only the hand-held layer is off.
+ *   hold      the gain is 0 from `hold[0]` to `hold[1]`
+ *   blendIn   frames before `hold[0]` over which the operator fades out (the reach of S04 is let go inside them, not cut)
+ *   blendOut  frames after `hold[1]` over which it fades back in
+ */
+export const LOCKED_RANGES: readonly { hold: readonly [number, number]; blendIn: number; blendOut: number }[] = [
+  { hold: [SHOTS[5].from + 60, SHOTS[15].from], blendIn: 120, blendOut: 60 },
+  { hold: [SHOTS[17].from, SHOTS[21].from], blendIn: 60, blendOut: 60 },
+];
+
 /** Every frame at which an operator event starts or ends. All are multiples of 30 (the audit reports a LATE if one is not). */
-export const OPERATOR_EVENT_FRAMES: readonly number[] = [...new Set([...LEAN_INS.flatMap((l) => [l.from, l.until]), REACH.dip, REACH.settle, ...STEADY_RANGES.flatMap((r) => [r.from, r.to + 1]), SHOTS[1].from, SHOTS[1].to + 1])].sort((a, b) => a - b);
+export const OPERATOR_EVENT_FRAMES: readonly number[] = [
+  ...new Set([
+    ...LEAN_INS.flatMap((l) => [l.from, l.until]),
+    REACH.dip,
+    REACH.settle,
+    ...STEADY_RANGES.flatMap((r) => [r.from, r.to + 1]),
+    ...LOCKED_RANGES.flatMap((r) => [r.hold[0] - r.blendIn, r.hold[0], r.hold[1], r.hold[1] + r.blendOut]),
+    SHOTS[1].from,
+    SHOTS[1].to + 1,
+  ]),
+].sort((a, b) => a - b);
 
 // ---------- seeded noise: one field per layer, fixed seeds ----------
 
@@ -104,6 +129,17 @@ export function steadyGain(frame: number): number {
   let g = 1;
   for (const r of STEADY_RANGES) {
     const inside = Math.min(ramp(frame, r.from - OPERATOR.steadyBlendFrames, OPERATOR.steadyBlendFrames), 1 - ramp(frame, r.to + 1, OPERATOR.steadyBlendFrames));
+    g = Math.min(g, 1 - inside);
+  }
+  return g;
+}
+
+/** 1 outside the locked ranges, 0 inside, eased (smoothstep) over `blendIn` frames before a range and `blendOut` frames after it. */
+export function lockGain(frame: number): number {
+  let g = 1;
+  for (const r of LOCKED_RANGES) {
+    const [a, b] = r.hold;
+    const inside = Math.min(ramp(frame, a - r.blendIn, r.blendIn), 1 - ramp(frame, b, r.blendOut));
     g = Math.min(g, 1 - inside);
   }
   return g;
@@ -168,15 +204,22 @@ function reaching(frame: number): OperatorOffset {
 }
 
 /**
- * The operator's whole offset at a frame: breathing everywhere, the walk in S01, tremor in R3, and the lean-in, the reach and the
+ * The hand-held layers at a frame, before the lock: breathing everywhere, the walk in S01, tremor in R3, and the lean-in, the reach and the
  * settle at their frames. Inside a steady range (a QR hold) the breathing and the tremor fade out. `regime` is the authored regime of
- * the frame (path.ts passes it).
+ * the frame (path.ts passes it). The film does not draw this directly: it draws `operatorAt`, which puts the lock on top.
  */
-export function operatorAt(frame: number, regime: Regime): OperatorOffset {
+export function operatorFreeAt(frame: number, regime: Regime): OperatorOffset {
   const steady = steadyGain(frame);
   const layers = [breathing(frame), tremor(frame, regime)].map((o) => scale(o, steady));
   layers.push(walking(frame), leaning(frame), reaching(frame));
   return layers.reduce(add, NO_OFFSET);
+}
+
+/** The operator's whole offset at a frame: the hand-held layers, faded to nothing while a book is held up to the camera (`LOCKED_RANGES`). */
+export function operatorAt(frame: number, regime: Regime): OperatorOffset {
+  const g = lockGain(frame);
+  const free = operatorFreeAt(frame, regime);
+  return g >= 1 ? free : g <= 0 ? NO_OFFSET : scale(free, g);
 }
 
 const add = (a: OperatorOffset, b: OperatorOffset): OperatorOffset => ({ rightCm: a.rightCm + b.rightCm, upCm: a.upCm + b.upCm, forwardCm: a.forwardCm + b.forwardCm, tiltDownDeg: a.tiltDownDeg + b.tiltDownDeg });

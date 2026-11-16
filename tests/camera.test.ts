@@ -8,7 +8,7 @@ import { EASES, SIGNATURE_PEAK_SLOPE, signature, signatureIn, signatureOut } fro
 import { springAt } from "../src/lib/spring";
 import { auditMotion, type FindingCode } from "../src/camera/audit";
 import { isBlurDrawn, plateBlurPx, plateDistanceCm } from "../src/camera/focus";
-import { LEAN_INS, MIN_LAYER_FRAMES, OPERATOR, OPERATOR_EVENT_FRAMES, REACH, STEADY_RANGES, operatorAt, steadyGain, walkEnvelope } from "../src/camera/operator";
+import { LEAN_INS, LOCKED_RANGES, MIN_LAYER_FRAMES, OPERATOR, OPERATOR_EVENT_FRAMES, REACH, STEADY_RANGES, lockGain, operatorAt, operatorFreeAt, steadyGain, walkEnvelope } from "../src/camera/operator";
 import { authoredAt, cameraAt, lensOf, turnShiftPx } from "../src/camera/path";
 import { FILM_CAMERA_KEYFRAMES } from "../src/shots";
 import { PLATE_MATCH, VIEW_FIT, clampView, photoToScreen, windowBox } from "../src/plate/PlateFollow";
@@ -276,13 +276,13 @@ test("operator: the walk is S01 only, fades in over 30 frames and out over frame
 });
 
 test("operator: tremor is R3 only and not in a steady range; breathing is everywhere but fades out in a steady range", () => {
-  const r2 = operatorAt(2000, "R2");
-  const r3 = operatorAt(2000, "R3");
+  const r2 = operatorFreeAt(2000, "R2");
+  const r3 = operatorFreeAt(2000, "R3");
   truthy(Math.abs(r3.rightCm - r2.rightCm) > 0 || Math.abs(r3.upCm - r2.upCm) > 0, "R3 differs from R2 by the tremor");
   truthy(Math.abs(r3.rightCm - r2.rightCm) <= OPERATOR.tremor.cm + 1e-9);
   const s = STEADY_RANGES[0];
   const mid = Math.round((s.from + s.to) / 2);
-  const st = operatorAt(mid, "R3");
+  const st = operatorFreeAt(mid, "R3");
   near(st.rightCm, 0, 1e-12, "no tremor in the QR hold");
   near(st.upCm, 0, 1e-12, "no breathing in the QR hold");
   near(steadyGain(s.from - 40), 1, 1e-12);
@@ -306,7 +306,7 @@ test("operator: the lean-in is 3 cm forward and 0.6 degrees down over 1 s, and t
 test("operator: the reach dips 2 cm in 24 frames, then rings back up with about 0.7 cm of overshoot", () => {
   const d = OPERATOR.reachDip;
   const dipEnd = REACH.dip + d.frames;
-  const up = (f: number) => operatorAt(f, "R3").upCm;
+  const up = (f: number) => operatorFreeAt(f, "R3").upCm;
   truthy(up(dipEnd) < -1.5, "down by about 2 cm at the bottom of the dip");
   // the spring itself: from -2 to rest, overshoot 0.7 cm
   const s = OPERATOR.settle;
@@ -318,6 +318,40 @@ test("operator: the reach dips 2 cm in 24 frames, then rings back up with about 
   truthy(best > 0.3, "the camera rings back up past its rest after the settle");
   // quiet again well after
   truthy(Math.abs(up(REACH.settle + 150)) < 0.6, "settled");
+});
+
+test("operator: the camera is locked off while a book is held up to the camera, and nothing is cut", () => {
+  eq(LOCKED_RANGES.length, 2, "one range per book");
+  for (const r of LOCKED_RANGES) {
+    const [a, b] = r.hold;
+    near(lockGain(a - r.blendIn - 1), 1, 1e-12, "free before the blend");
+    near(lockGain(a), 0, 1e-12, "locked from the start of the hold");
+    near(lockGain(b), 0, 1e-12, "locked to the end of the hold");
+    near(lockGain(b + r.blendOut + 1), 1, 1e-12, "free after the blend");
+    truthy(lockGain(a - 6) > 0 && lockGain(a - 6) < 1, "blended in");
+    truthy(lockGain(b + 6) > 0 && lockGain(b + 6) < 1, "blended out");
+    // inside the hold the operator adds nothing, in any regime: no breathing, tremor, lean or reach
+    for (let f = a; f <= b; f += 5) {
+      const o = operatorAt(f, "R3");
+      truthy(o.rightCm === 0 && o.upCm === 0 && o.forwardCm === 0 && o.tiltDownDeg === 0, `locked at ${f}`);
+    }
+    // the gain only ever falls into the hold and rises out of it, so the operator is never switched on or off
+    for (let f = a - r.blendIn; f < a; f++) truthy(lockGain(f + 1) <= lockGain(f) + 1e-12, `falls at ${f}`);
+    for (let f = b; f < b + r.blendOut; f++) truthy(lockGain(f + 1) >= lockGain(f) - 1e-12, `rises at ${f}`);
+  }
+  // the cover hero and the reading shots of Mini Me and the gallery and film shots of MiniLocker are locked, the walk and the first lean-in are not
+  near(lockGain(1200), 0, 1e-12);
+  near(lockGain(2400), 0, 1e-12);
+  near(lockGain(3300), 0, 1e-12);
+  near(lockGain(300), 1, 1e-12);
+  near(lockGain(700), 1, 1e-12);
+  truthy(Math.abs(operatorAt(300, "R2").upCm) > 0, "the walk is still there");
+  // the cover hero (S05) no longer starts with the reach still ringing: the operator's vertical step in its first 80 frames is half of what
+  // the unlocked layers made (0.055 cm a frame), and its offset on the first frame of the hero is under 60 percent of the unlocked one
+  let worst = 0;
+  for (let f = 1080; f < 1160; f++) worst = Math.max(worst, Math.abs(operatorAt(f + 1, "R3").upCm - operatorAt(f, "R3").upCm));
+  truthy(worst < 0.035, `the reach is let go smoothly (largest step ${worst.toFixed(3)} cm)`);
+  truthy(Math.abs(operatorAt(1080, "R3").upCm) < 0.6 * Math.abs(operatorFreeAt(1080, "R3").upCm), "most of the reach is gone when the hero starts");
 });
 
 // ---------- roll ----------

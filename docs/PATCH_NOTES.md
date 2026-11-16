@@ -1185,3 +1185,19 @@ ReelFilm props: dim (default true)
 
 **To run on your machine**
 `npm run plate:verify`, `npm test`, `npm run motion`. Then `npm run stills -- --frames 4800,4830,4860,4890,4920,4950,4980,5010,5040,5100,5160,5280,5340,5370,5385,5399 --scale 1` (the dim, the x being stroked on, the letters rising, the card, the fade: read the tagline and the address at 100 percent, look for a book that is too dark or an x that touches the t), `npm run sheets -- --every=60 --render` for the full-film contact sheet the spec asks for, then **gate G3: play the whole film in the Studio, start to finish**, and step 4800-5000 a frame at a time. Answer D-94 (the dim's look), D-95 (the x's colour) and D-97 (grain on the last frame).
+
+
+## Patch 20a - Camera lock-off for the book scenes  (2026-11-17; not rendered, see "Not done")
+
+**What changed**
+- `src/camera/operator.ts`: a lock on top of the operator model. `LOCKED_RANGES` (Mini Me: frames 1140-2879, fading out over the 120 frames before 1140 and back in over the 60 frames after 2879; MiniLocker: 3120-3839, 60 frames each way) and `lockGain(frame)`, a smoothstep from 1 to 0 and back. `operatorAt` is now `operatorFreeAt` (the old function, unchanged: breathing, walk, tremor, lean-in, reach) times that gain. Nothing else in the camera changed: the keyframes of `config/camera.ts` are as they were.
+- Why: at M 6 and above one cm of camera is about 130 screen px. Breathing swung the picture 30 px up and down through every reading shot (the two QR holds were already steady), and the reach of S04 was still ringing out and the lean easing back for the first 40 frames of the cover hero (up to 106 px, with a drop of 5 px a frame at about 1110), which read as the camera angle wandering. Measured with the operator on and off over each shot, screen px at 1920 wide: S05 106 -> 52 (the tail of the fade, falling smoothly) with its largest frame-to-frame step 6.1 -> 2.0 px; S06-S14 and S17-S20 30 -> 0.
+- `OPERATOR_EVENT_FRAMES` has the new blend frames (1020, 1140, 2880, 2940, 3060, 3120, 3840, 3900), all on beats.
+- `tests/camera.test.ts`: the tremor and reach tests read `operatorFreeAt` (they test the layers, not the lock); one new test for the lock (gain 1 outside and 0 inside, blends monotonic, nothing added inside in any regime, the walk and the S02 lean untouched, the hero hand-over step under 0.035 cm a frame).
+
+**Not done, on purpose**
+- **Nothing was rendered.** The change was measured with `cameraAt` and the audit, not looked at.
+- The authored moves in the book shots are as they were: the 48 px slide down the photo in S05 (the re-centring on the held book), the 20 px slide left in S06 (to the open book's middle), the pull back of S10 (M 6.52 to 5.8) and the 4 percent pushes of S11-S13. The book's own motion is as it was too: the +-8 degree yaw orbit of S05, the reading pitch (-10 degrees from 1560, +7 from 2040) and the hand's sway (0.4 degrees at most, `MOTION.sway`).
+
+**Checks run**
+`npx tsc --noEmit` 0 errors. `npm test` 478 of 478 (477 before, one added). `npm run motion`: `MOTION AUDIT: PASSED (1 documented exception)`, the numbers the same as before (peak sideways speed 36.7 cm/s, peak change of M 1.477 x per second).

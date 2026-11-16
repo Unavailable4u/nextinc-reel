@@ -14,6 +14,7 @@ import { Riser, riserBooksAt } from "./scene/Riser";
 import { Dust } from "./scene/Dust";
 import { Grain } from "./fx/Grain";
 import { Vignette } from "./fx/Vignette";
+import { Dim } from "./fx/Dim";
 import { FILM_CAMERA_KEYFRAMES, activeShot } from "./shots";
 import { loadFonts, stacks } from "./lib/fonts";
 
@@ -32,9 +33,11 @@ export type ReelFilmProps = {
   grain?: boolean;
   /** the vignette over the whole frame (placeholder, Patch 22 tunes it). Default on. */
   vignette?: boolean;
+  /** the room's dim over the canvas (Patch 20: -1.5 stops from frame 4800; nothing at all before it). Default on. */
+  dim?: boolean;
 };
 
-export const defaultReelFilmProps: ReelFilmProps = { hud: true, feather: true, scene: true, grain: true, vignette: true };
+export const defaultReelFilmProps: ReelFilmProps = { hud: true, feather: true, scene: true, grain: true, vignette: true, dim: true };
 
 const Readout: React.FC = () => {
   const frame = useCurrentFrame();
@@ -97,11 +100,11 @@ export const OverlayLayer: React.FC<{ frame: number }> = ({ frame }) => {
  * THE FILM. Patches 00-04: the photograph, the readout. Patch 05: the camera rig drives the view, the roll and the lens from the
  * keyframes. Patch 13B: the film plays from the shot registry (`src/shots`): the camera is the one the shot files provide
  * (`FILM_CAMERA_KEYFRAMES`), the set is in the scene, the active shot's overlay is drawn above it, and the grain and the vignette are
- * named layers with their own switches. Layer order, bottom to top: plate and scene (one canvas), overlay, grain, vignette, readout.
+ * named layers with their own switches. Patch 20 adds the dim (the room's exposure, a layer of its own with its own switch). Layer order, bottom to top: plate and scene (one canvas), dim, overlay, grain, vignette, readout.
  * This file never names a shot, so it does not change when a shot is filled in or replaced (guide 02, "Architecture rules").
  * The camera holds its last state after its last keyframe.
  */
-export const ReelFilm: React.FC<ReelFilmProps> = ({ hud, feather, view, scene = true, grain = true, vignette = true }) => {
+export const ReelFilm: React.FC<ReelFilmProps> = ({ hud, feather, view, scene = true, grain = true, vignette = true, dim = true }) => {
   const frame = useCurrentFrame();
   const bar = feather ? PILLARBOX.feather : 0;
   const set = scene ? <FilmSet frame={frame} /> : null;
@@ -116,6 +119,7 @@ export const ReelFilm: React.FC<ReelFilmProps> = ({ hud, feather, view, scene = 
           {set}
         </CameraRig>
       )}
+      <Dim on={dim} />
       <OverlayLayer frame={frame} />
       <Grain on={grain} />
       <Vignette on={vignette} />

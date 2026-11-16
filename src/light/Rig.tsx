@@ -2,6 +2,7 @@ import React, { useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { RectAreaLightUniformsLib } from "three/examples/jsm/lights/RectAreaLightUniformsLib.js";
 import { LIGHTS, deskToWorld, keyShimmer, lampWorld, type LightName } from "../config/lights";
+import { dimAt, keyColourAt } from "../config/dim";
 import { PLATE_MATCH, type PlateMatch } from "../plate/PlateFollow";
 
 /** A thin area light that faces a point (an area light has no target, so it is aimed once, when it mounts). */
@@ -31,6 +32,9 @@ export type LightRigProps = {
  *   fill   a cool hemisphere light, about 8% of the key
  * The environment probe (glossy and foil materials) is a separate component: <ProbeEnvironment />.
  * Children of <Stage>; world space (cm). Tone mapping stays off (the Stage sets that).
+ *
+ * THE DIM (Patch 20, `config/dim.ts`): from frame 4800 the lamp falls and warms and the strips (rim, kicker) come up a little, which is what keeps the books softly lit while the room goes dark.
+ * Before frame 4800 every gain is exactly 1 and the colour is `LIGHTS.key.color` itself, so the lights are what they were.
  */
 export const LightRig: React.FC<LightRigProps> = ({ frame = 0, on = {}, shadows = true, match = PLATE_MATCH }) => {
   useMemo(() => RectAreaLightUniformsLib.init(), []);
@@ -39,12 +43,13 @@ export const LightRig: React.FC<LightRigProps> = ({ frame = 0, on = {}, shadows 
   const lamp = lampWorld(match);
   const r = LIGHTS.rim;
   const kick = LIGHTS.kicker;
+  const dim = dimAt(frame);
   return (
     <>
       {lit("key") ? (
         <pointLight
-          color={k.color}
-          intensity={k.intensityCd * keyShimmer(frame)}
+          color={keyColourAt(frame, k.color)}
+          intensity={k.intensityCd * keyShimmer(frame) * dim.keyGain}
           decay={k.decay}
           distance={0}
           position={lamp}
@@ -61,14 +66,14 @@ export const LightRig: React.FC<LightRigProps> = ({ frame = 0, on = {}, shadows 
       {lit("rim") ? (
         <AimedRectLight
           color={r.color}
-          intensity={r.intensityNits}
+          intensity={r.intensityNits * dim.stripGain}
           width={r.widthCm}
           height={r.heightCm}
           position={deskToWorld(r.at.X, r.at.Y, r.at.Zd)}
           aim={deskToWorld(r.aim.X, r.aim.Y, r.aim.Zd)}
         />
       ) : null}
-      {lit("kicker") ? <pointLight color={kick.color} intensity={kick.intensityCd} decay={kick.decay} distance={0} position={deskToWorld(kick.at.X, kick.at.Y, kick.at.Zd)} /> : null}
+      {lit("kicker") ? <pointLight color={kick.color} intensity={kick.intensityCd * dim.stripGain} decay={kick.decay} distance={0} position={deskToWorld(kick.at.X, kick.at.Y, kick.at.Zd)} /> : null}
       {lit("fill") ? <hemisphereLight color={LIGHTS.fill.color} groundColor={LIGHTS.fill.color} intensity={LIGHTS.fill.intensity} /> : null}
     </>
   );

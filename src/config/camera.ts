@@ -485,15 +485,38 @@ const ACT7: readonly CameraKeyframe[] = [
   { frame: 4800, ...RISER_STATE, ease: "linear", regime: "R4" },
 ];
 
+// ---------- Act 8: the mark (Patch 20), S24-S25, frames 4800-5399 ----------
+//
+// The room dims and the wordmark draws in while the camera carries on, slower. It is ONE straight move from the end of S23's push (frame 4800, `VIEW_RISER`) to the end of the film, so the camera is
+// never still under the card (guide 05, rule 1: a hold over 60 frames needs a drift) and there is no corner in speed where S24 ends and S25 begins:
+//   S24 4800-5280  the table's push of 3 percent, M 3.98 to 4.09, the lens opening from f/4 to f/2.8 (the table: the riser falls off, so the plate behind the books goes soft and the
+//                  wordmark sits over a soft background), focus 50. The window slides 17.6 plate px right and down, which is the part that keeps the audit's STILL quiet (M alone
+//                  moves 0.5 percent only in 87 frames) and what gives the card room: the books drift towards the middle of the frame and rise, leaving the desk's front below them for the wordmark.
+//   S25 5280-5400  the same line carried on at the same speed (the table's "hold with micro-drift"): M ends at 4.12 (0.7 percent more than 4.09), the lens does not change. The last key is on 5400,
+//                  the frame after the film, as every shot's closing key is on the first frame of the next shot, so the audit's default range is the whole film, 0-5399.
+// The speed of M drops at 4800 (S23's push is 5.9 percent in 420 frames, S24's 3 percent in 480): the table's two numbers, 0.8 percent a second to 0.34, with the dim starting on the same frame.
+const MARK_FRAME = 5280;
+const END_FRAME = 5400;
+/** The camera at the end of S24 (frame 5280): the table's M 4.09 and f/2.8, focus 50, the window 17.6 plate px right and down of the riser view (the books sit near the middle of the frame, about y 125-570). */
+export const VIEW_MARK = { M: 4.09, panX: 975.6, panY: 537.6, focusCm: 50, aperture: 2.8 } as const;
+const MARK_STATE: State = { ...RISER_STATE, ...VIEW_MARK };
+/** The end of the film (frame 5400): the line of S24 carried on for 120 more frames, the lens as it was. */
+const END_STATE: State = { ...mixState(RISER_STATE, MARK_STATE, (END_FRAME - 4800) / (MARK_FRAME - 4800)), focusCm: VIEW_MARK.focusCm, aperture: VIEW_MARK.aperture };
+export const VIEW_END = { M: END_STATE.M, panX: END_STATE.panX, panY: END_STATE.panY, focusCm: END_STATE.focusCm, aperture: END_STATE.aperture } as const;
+const ACT8: readonly CameraKeyframe[] = [
+  { frame: MARK_FRAME, ...MARK_STATE, ease: "linear", regime: "R4" },
+  { frame: END_FRAME, ...END_STATE, ease: "linear", regime: "R4" },
+];
+
 /**
- * The keyframes of S00-S03, one array per shot (Patch 13A), of S05-S09 (Patch 15), of S10-S13 (Patch 16), of S14-S15 (Patch 17), of S16-S21 (Patch 18) and of S22-S23 (Patch 19). The shot files in `src/shots/` take their `camera` from here, so a shot owns
+ * The keyframes of S00-S03, one array per shot (Patch 13A), of S05-S09 (Patch 15), of S10-S13 (Patch 16), of S14-S15 (Patch 17), of S16-S21 (Patch 18), of S22-S23 (Patch 19) and of S24-S25 (Patch 20). The shot files in `src/shots/` take their `camera` from here, so a shot owns
  * its keyframes and the registry (`src/shots/index.ts`, `FILM_CAMERA_KEYFRAMES`) can put them back together. A shot's keys lie inside its
  * own frames, plus one closing key on the first frame of the next shot (the state the next move starts from): S03's key at frame 960 is
  * the example. The arrays are the ones the builders above made, split where the shots split, in the order they were joined before.
  * Patch 15 adds S05-S09 (S04's one key is in `src/shots/S04.tsx`; S08 is inside the reading run and owns no key). Patch 17 adds S14 (the key
  * on 2820, where the focus rack ends) and S15 (2910, where the ease-out starts, and the closing key on 3000 that S16 starts from).
  */
-export const SHOT_KEYFRAMES: Readonly<Record<"S00" | "S01" | "S02" | "S03" | "S05" | "S06" | "S07" | "S08" | "S09" | "S10" | "S11" | "S12" | "S13" | "S14" | "S15" | "S16" | "S17" | "S18" | "S19" | "S20" | "S21" | "S22" | "S23", readonly CameraKeyframe[]>> = {
+export const SHOT_KEYFRAMES: Readonly<Record<"S00" | "S01" | "S02" | "S03" | "S05" | "S06" | "S07" | "S08" | "S09" | "S10" | "S11" | "S12" | "S13" | "S14" | "S15" | "S16" | "S17" | "S18" | "S19" | "S20" | "S21" | "S22" | "S23" | "S24" | "S25", readonly CameraKeyframe[]>> = {
   S00: S00.slice(0, -1),
   S01,
   S02,
@@ -519,10 +542,13 @@ export const SHOT_KEYFRAMES: Readonly<Record<"S00" | "S01" | "S02" | "S03" | "S0
   // Patch 19: S22 owns the keys 4020 to 4320 (the settle's ease-out starts on its last frame, as S15's does), S23 the key on 4380 and its closing key on 4800
   S22: ACT7.filter((k) => k.frame < 4380),
   S23: ACT7.filter((k) => k.frame >= 4380),
+  // Patch 20: S24 owns the closing key on 5280 (the table's M 4.09); S25 owns the closing key on 5400, the frame after the film, so the film's camera runs to its last frame
+  S24: ACT8.filter((k) => k.frame === MARK_FRAME),
+  S25: ACT8.filter((k) => k.frame === END_FRAME),
 };
 
 /** The state S04 ends in and the views of Patches 15 to 17 as states (the tests compare the shot files' keys with them). */
-export const HERO_STATES = { lift: LIFT_STATE, hero: HERO_STATE, open: OPEN_STATE, read: READ_STATE, block: BLOCK_STATE, links: LINKS_STATE, set: SET_STATE, links2: B2_LINKS_STATE, turn: TURN_STATE, riserIn: RISER_IN_STATE, riser: RISER_STATE } as const;
+export const HERO_STATES = { lift: LIFT_STATE, hero: HERO_STATE, open: OPEN_STATE, read: READ_STATE, block: BLOCK_STATE, links: LINKS_STATE, set: SET_STATE, links2: B2_LINKS_STATE, turn: TURN_STATE, riserIn: RISER_IN_STATE, riser: RISER_STATE, mark: MARK_STATE, end: END_STATE } as const;
 
 /**
  * PLACEHOLDERS for S00-S03 (frames 0-959), taken from the table of guide 05 section 4:

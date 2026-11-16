@@ -50,7 +50,7 @@ test("patch 17: the audit is clean for frames 2760-2999, with no exception and t
   const r = auditMotion({ from: 2760, to: 2999, exceptions: [] });
   eq(r.findings.length, 0, JSON.stringify(r.findings));
   const all = auditMotion();
-  eq(all.range.join("-"), "0-4799", "the film's camera now runs to the end of S23 (Patch 19)");
+  eq(all.range.join("-"), "0-5399", "the film's camera now runs to the end of S25, the whole film (Patch 20; it ended at S23 in Patch 19)");
   eq(all.unexplained, 0, JSON.stringify(all.findings.filter((f) => !f.known)));
   eq(all.counts.STILL, 1, "only the documented opening hold");
   const lim = limitFor("R3");

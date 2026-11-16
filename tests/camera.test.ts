@@ -182,7 +182,7 @@ test("camera path: after the last keyframe the camera holds, and the regime come
   const last = authoredAt(lastFrame).state;
   const later = authoredAt(lastFrame + 20);
   eq(JSON.stringify(later.state), JSON.stringify(last));
-  eq(later.regime, "R4", "the keys now end on 4800 and frame 4820 is S24 (Patch 19); it was S22's R2/4 while they ended on 3960 and S04's R3 while they ended on 1080");
+  eq(later.regime, "R4", "the keys now end on 5400, the frame after the film, and frame 5420 is clamped to S25 (Patch 20); it was S24's R4 while they ended on 4800 and S22's R2/4 while they ended on 3960");
   eq(authoredAt(0).regime, "R1");
   eq(authoredAt(300).regime, "R2");
 });
@@ -404,9 +404,9 @@ const key = (frame: number, over: Partial<CameraKeyframe> = {}): CameraKeyframe 
 const codes = (keys: CameraKeyframe[], from?: number, to?: number): Record<FindingCode, number> => auditMotion({ keys, from, to, exceptions: [] }).counts;
 const GOOD = [key(0), key(120, { M: 2.1, panX: 690 }), key(150, { M: 2.1, panX: 690 })];
 
-test("audit: S00 to S23 (frames 0-4799) pass with the one documented exception (STILL at the opening), and the peaks are inside the limits", () => {
+test("audit: S00 to S25 (frames 0-5399, the whole film) pass with the one documented exception (STILL at the opening), and the peaks are inside the limits", () => {
   const r = auditMotion();
-  eq(r.range.join("-"), "0-4799", "the default keys are the film's (S00-S23 so far)");
+  eq(r.range.join("-"), "0-5399", "the default keys are the film's (S00-S25, the whole film, Patch 20)");
   eq(r.unexplained, 0, JSON.stringify(r.findings));
   eq(r.counts.FAST + r.counts.DEEP + r.counts.EDGE + r.counts.POP + r.counts.LATE, 0, "zero FAST, DEEP, EDGE, POP and LATE");
   eq(r.counts.STILL, 1);

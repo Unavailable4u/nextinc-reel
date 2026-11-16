@@ -31,10 +31,11 @@ test("film: cameraAt follows the registry's keyframes by default, and they are P
   }
 });
 
-test("film: the camera holds its last state after its last keyframe (S24-S25 add none yet)", () => {
+test("film: the camera runs to the last frame of the film, and holds its last state after its last keyframe (the last key is on 5400, Patch 20)", () => {
   const last = FILM_CAMERA_KEYFRAMES[FILM_CAMERA_KEYFRAMES.length - 1].frame;
+  eq(last, TOTAL, "the closing key is on the frame after the film, so the audit's default range is frames 0 to 5399");
   const held = cameraAt(last, { operator: false });
-  for (const f of [last + 1, last + 600, TOTAL - 1]) {
+  for (const f of [last + 1, last + 600]) {
     const c = cameraAt(f, { operator: false });
     near(c.view.M, held.view.M, 1e-9, `M at ${f}`);
     near(c.view.cx, held.view.cx, 1e-9, `cx at ${f}`);

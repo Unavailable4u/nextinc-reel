@@ -34,7 +34,8 @@ test("patch 19: S22 and S23 are on the table's frames, own their keys (on beats,
     eq(k.tiltDeg, 0, `${id} key ${k.frame}: no tilt`);
     truthy(k.regime === (k.frame >= 4380 ? "R4" : "R2/4"), `${id} key ${k.frame} regime ${k.regime}`);
   }
-  eq(FILM_CAMERA_KEYFRAMES[FILM_CAMERA_KEYFRAMES.length - 1].frame, 4800, "the closing key is the first frame of S24");
+  truthy(FILM_CAMERA_KEYFRAMES.some((k) => k.frame === 4800), "S23's closing key on 4800 is still the first key of S24 (the film's camera ends on 5400 since Patch 20)");
+  eq(shotById("S23").camera[shotById("S23").camera.length - 1].frame, 4800, "S23's closing key is the first frame of S24");
   // S21's closing key on 3960 starts S22: the pull back is an ease in, in R2/4
   const k3960 = FILM_CAMERA_KEYFRAMES.find((k) => k.frame === 3960)!;
   eq(k3960.regime, "R2/4");
@@ -80,7 +81,7 @@ test("patch 19: the audit is clean for frames 3960-4799 with no exception (EDGE 
   truthy(r.stats.peakPopFraction < 0.02, "no pop");
   truthy(r.stats.maxM <= limit4(), "M inside the budget of the regime");
   const all = auditMotion();
-  eq(all.range.join("-"), "0-4799");
+  eq(all.range.join("-"), "0-5399", "the whole film since Patch 20");
   eq(all.unexplained, 0, JSON.stringify(all.findings.filter((f) => !f.known)));
   eq(all.counts.STILL, 1, "only the documented opening hold");
   eq(all.counts.EDGE + all.counts.FAST + all.counts.DEEP + all.counts.POP + all.counts.LATE, 0);
@@ -283,7 +284,7 @@ test("patch 19: S22 and S23 have an overlay each, the registry draws it only ins
   truthy(shotById("S22").overlay !== undefined && shotById("S23").overlay !== undefined);
   for (const f of [3960, 4100, 4319]) eq(activeShot(f).overlay, shotById("S22").overlay);
   for (const f of [4320, 4500, 4799]) eq(activeShot(f).overlay, shotById("S23").overlay);
-  eq(activeShot(4800).overlay, undefined, "the labels are not drawn in S24");
+  truthy(activeShot(4800).overlay !== shotById("S23").overlay, "the labels are not drawn in S24 (its overlay is the wordmark, Patch 20)");
   for (const rel of ["src/fx/ChairWipe.tsx", "src/fx/Labels.tsx", "src/fx/labelLayout.ts", "src/config/chairWipe.ts", "src/config/labels.ts", "src/shots/S22.tsx", "src/shots/S23.tsx"]) {
     const src = read(rel);
     for (const bad of ["Math.random", "Date.now", "setTimeout", "setInterval", "requestAnimationFrame", "useFrame", "transition", "backdrop-filter", "animation:", "mix-blend-mode"]) eq(src.includes(bad), false, `${rel} has no ${bad}`);

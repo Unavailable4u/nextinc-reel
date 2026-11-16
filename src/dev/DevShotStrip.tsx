@@ -9,6 +9,7 @@ import { CameraRig } from "../camera/CameraRig";
 import { FILM_CAMERA_KEYFRAMES } from "../shots";
 import { FilmSet, OverlayLayer } from "../ReelFilm";
 import { Vignette } from "../fx/Vignette";
+import { Dim } from "../fx/Dim";
 import { loadArtwork } from "../paint/covers";
 import { loadFonts, stacks } from "../lib/fonts";
 import { DEFAULT_COLUMNS, MAX_COLUMNS, MAX_OFFSET, MIN_COLUMNS, cellLabel, labelHeight, stripCells, stripLayout, type StripCell } from "./shotStrip";
@@ -193,6 +194,7 @@ const Strip: React.FC<DevShotStripProps> = ({ offset, columns, hud, settleMs }) 
                 // the film's 2D layers at the cell's frame, drawn at full size and scaled down with the cell
                 <div style={{ position: "absolute", left: 0, top: 0, width: WIDTH, height: HEIGHT, transform: `scale(${scale})`, transformOrigin: "0 0", pointerEvents: "none" }}>
                   <Freeze frame={c.frame}>
+                    <Dim />
                     <OverlayLayer frame={c.frame} />
                     <Vignette />
                   </Freeze>

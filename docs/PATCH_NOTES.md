@@ -1136,3 +1136,52 @@ Measured through the film's camera (in the tests): the nearest a chip comes to t
 
 **To run on your machine**
 `npm run plate:verify`, `npm test`, `npm run motion`. Then `npm run stills -- --frames 4050,4080,4110,4120,4130,4140,4150,4160,4170,4180,4190,4200,4210,4220,4250,4290` (the wipe: nothing but leather on 4134-4206, no riser and no pile on any frame before it), `npm run stills -- --frames 4320,4380,4440,4500,4580,4790 --scale 1` (the labels: read the text at 100 percent, look at the sweeps on 4395, 4455, 4515, 4575), then play 3960-4800 in the Studio and step 4120-4220 a frame at a time.
+
+---
+
+## Patch 20 - Shots S24-S25: dim, wordmark, tagline, fade; gate G3  (2026-11-17; not rendered, see "Not done")
+
+Owner: reel team.
+
+**What it adds**
+- **The dim** (D-94; `src/config/dim.ts`, `src/fx/Dim.tsx`, `src/light/Rig.tsx`, `ReelFilm`'s new `dim` switch). From 4800, over 120 frames (a smoothstep), the room goes down 1.5 stops. The photograph is unlit, so its exposure is one warm-black layer over the canvas (alpha 0.377 at the end), drawn above the canvas and below the shots' overlays, so the wordmark is not dimmed. The lamp falls to 0.2 of its light and warms to `#E8A05A`; the LED strip and the kicker rise to 2x, which is what keeps the books softly lit. Before 4800 every gain is exactly 1 and the alpha exactly 0 (a test holds it), so nothing earlier changes by a pixel; `plate:verify` is untouched.
+- **The wordmark** (D-95; `src/config/wordmark.ts`, `src/fx/Wordmark.tsx`). The name from `getCompany()` split at its x ("Ne", x, "t Inc."): the letters in CMU Serif Bold placed by their measured advances (`ADVANCE_BOLD`, read from `public/fonts/cmu-serif-700-roman.woff2`; no kerning exists between this name's letters), the x the path of `public/site/brand/glyph-x.json`, untouched, its contour stroked on from 4860 (the x is an outline, so "stroked on" is the contour drawn, then filled from 4920, the stroke going as the fill arrives), the letters rising left to right 4950-5012, the tagline on 5040 and the address (`wearenext.tech`) on 5100, both from the data. The x is the site's dark-scheme crimson `#FF4660`. The card stands under the books on a soft warm-black scrim.
+- **The end** (D-97; `src/fx/FadeOut.tsx`, `src/shots/S25.tsx`). S25 draws the finished card for the 90-frame hold (5280-5369), then black over everything the shot draws, 5370-5399, the last frame black.
+- **The camera of S24-S25** (D-96; `src/config/camera.ts`, `VIEW_MARK`, `VIEW_END`, `HERO_STATES.mark`, `.end`, `SHOT_KEYFRAMES.S24`, `.S25`). One straight move from the riser view on 4800: the table's push of 3 percent to M 4.09 and f/2.8 on 5280, the same line on to M 4.12 on 5400 with the lens still, the window sliding 22 plate px right and down. Keys: S24 5280, S25 5400 (the frame after the film, so `npm run motion` covers frames 0-5399).
+- **Cues** from guide 08: `lamp-swell` 4800, `wordmark-tone` 4860 (S24), `room-tone-fade` 5340, the last second (S25).
+- `tests/acts8.test.ts` (16 tests). Older assertions changed on purpose: the range `0-4799` became `0-5399` in `tests/acts4.test.ts`, `acts5`, `acts6`, `acts7` and `camera.test.ts`; `acts7.test.ts` (the film's camera no longer ends on 4800; S24 now has an overlay); `film.test.ts` (the camera runs to the last frame). Decisions D-94 to D-97, one paragraph in guide 05, the progress line of `docs/patches/INDEX.md`, this entry.
+
+**PUBLIC API**
+```
+DIM { from 4800, frames 120, stops -1.5, key { endGain 0.2, warmColour }, strips { endGain 2 }, bookKeyShare 0.5 }
+dimAt(frame): { progress, stops, exposure, overlayAlpha, keyGain, keyWarmth, stripGain }; dimProgress(frame); keyColourAt(frame, base); dimRgb(); bookStops(frame)   // src/config/dim.ts
+WORDMARK { stroke 4860/60, fill 4920/30, letters 4950 gap 4 x30, tagline 5040/45, address 5100/45, sizePx 168, baselineY 820, ... }; END { fadeFrom 5370, fadeTo 5399 }
+wordmarkParts(name), wordmarkLayout(name), wordmarkAt(frame), xInkBox(), fadeAlpha(frame), cardText(), advanceOf(ch), CARD_COMPLETE 5145   // src/config/wordmark.ts
+VIEW_MARK { M 4.09, panX 975.6, panY 537.6, focusCm 50, aperture 2.8 }   // frame 5280;  VIEW_END (frame 5400: M 4.1185, panX 980, panY 542)
+ReelFilm props: dim (default true)
+```
+
+**Decisions and conventions later patches must follow**
+- The film's camera ends on frame 5400 and the audit's default range is 0-5399. The only documented exception is still the opening STILL.
+- The grain and the vignette are above the fade (D-97): the last frame is black with grain on it. Patch 22 decides whether the grain fades with the picture.
+- Patch 21 (audio): the three new cues are on beats; the swell runs 4800-5000 and the room tone fades over 5340-5399 (guide 08).
+- Patch 22 (finishing): the dim is the room's exposure and must stay a layer of its own below the overlay; bloom, halation and the colour grade go above it. The soft clip on the lamp is moot in S24 (the lamp is out of frame).
+- Every word on the card is the data's. If the site's name changes, the wordmark follows it (it needs an x; the test says so).
+
+**Not done, on purpose**
+- **Nothing was rendered**, so **gate G3 is open**: playing the whole film start to finish and deciding whether the ending feels earned is yours. No still, no 60 fps look (no browser or GPU on the build machine; `npm run plate:verify` was not run). The one picture made was a static mock of the card on the dimmed plate (the real plate window of frame 5280, the font outlines at the config's positions, the books not drawn): the x sits in line between the e and the t and the card is readable.
+- No audio and no finishing (the spec's "Do not").
+- The riser's books are lit by the lights in 3D but nothing measured how bright a book ends: `bookStops` says -1.4 stops by an assumed half of its light from the lamp.
+
+**Known issues**
+- **The look of the dim is by number only** (D-94): the lamp's fall (0.2), its warm colour, the strips' rise (2x) and the 0.377 layer are to be tuned by looking at 4800, 4860, 4920 and 5280. If the books read too dark, raise `DIM.strips.endGain`; if the lamp's warmth is not seen, `DIM.key.warmColour`. A book dips about 0.1 stop under the room mid-dim before the strips win it back.
+- **The books' reflections still show the lamp's spot at full strength** (`LIGHTS.probe.lampSpotNits` is not faded): it is small and under the dim, but the foil's sparkle of the lamp does not fall with the lamp.
+- **The speed of the zoom drops at 4800** (S23's push is 0.8 percent a second, S24's 0.34): the table's two numbers, with the dim starting on the same frame. If it shows, S23's closing key is the lever, not this patch.
+- **The card sits over a changing picture** at the start (the plate moves under it for 600 frames) and is a 2D layer, so it does not defocus with the lens. The books' bottom edge is at y 650 on 4800 and 570 on 5399; the capitals start at y 706.
+- **The x's colour** (`#FF4660`) is a choice (D-95): `#C0102C` is the covers' crimson and is under 3:1 here.
+
+**Checks run**
+`npx tsc --noEmit` 0 errors. `npm test` 477 of 477 (461 before; 16 added in `tests/acts8.test.ts`: the keys and their owners, the views, no corner in the speed at 5280, the audit for 4800-5399 with no exception, the dim's exact nothing before 4800 and its -1.5 stops after, its smoothness, the lamp and the strips and the books' exposure, the words being the data's and none typed in a file, the x being the site's path and the letters' measured advances, the timing of the card, the card clear of every book on every frame, the contrast of the letters (7:1), the x (3:1), the tagline and the address against the brightest 5 percent of the real plate under each, the fade and the hold, the overlays and the determinism rules, the cues, the layer order). `npm run motion` (frames 0-5399, S00-S25, the whole film, 0:00.00-1:30.00): STILL 1 (the documented opening hold), FAST, DEEP, EDGE, POP and LATE 0, peak sideways speed 36.7 cm/s (S01), peak change of M 1.477 x per second (S04), largest M 6.520, `shot registry: VALID`, `MOTION AUDIT: PASSED (1 documented exception)`. `npm run motion -- --from=4800 --to=5399 --all` is clean (the test runs it with `exceptions: []`).
+
+**To run on your machine**
+`npm run plate:verify`, `npm test`, `npm run motion`. Then `npm run stills -- --frames 4800,4830,4860,4890,4920,4950,4980,5010,5040,5100,5160,5280,5340,5370,5385,5399 --scale 1` (the dim, the x being stroked on, the letters rising, the card, the fade: read the tagline and the address at 100 percent, look for a book that is too dark or an x that touches the t), `npm run sheets -- --every=60 --render` for the full-film contact sheet the spec asks for, then **gate G3: play the whole film in the Studio, start to finish**, and step 4800-5000 a frame at a time. Answer D-94 (the dim's look), D-95 (the x's colour) and D-97 (grain on the last frame).

@@ -1201,3 +1201,18 @@ ReelFilm props: dim (default true)
 
 **Checks run**
 `npx tsc --noEmit` 0 errors. `npm test` 478 of 478 (477 before, one added). `npm run motion`: `MOTION AUDIT: PASSED (1 documented exception)`, the numbers the same as before (peak sideways speed 36.7 cm/s, peak change of M 1.477 x per second).
+
+
+## Patch 20b - The render no longer hangs on the pages and the covers  (2026-11-17)
+
+**What was wrong.** `useActPages` and `useArtwork` (the cover painting) took their `delayRender` while rendering and kept the handle in a `useRef`. The 3D canvas goes through a Suspense wait first, so React throws the first render of the set away before it commits, and the retry starts with a fresh ref and takes a second `delayRender`. The effect only ever let go of one of them. The other was held until its timeout, with the log showing both "Painting the pages of act 4 ... cleared after 2330ms" and, 238 seconds later, "Painting the pages of act 4 ... not cleared after 238000ms". Every frame of Acts 3 to 6 (the book frames) could hit it; `npm run stills`, `npx remotion still` and the Studio's render all did, and Acts 0 to 2 never did because nothing there waits.
+
+**What changed**
+- `src/lib/renderHold.ts` (new): the holds as named slots outside React. `hold(key, label, timeout?)` does nothing when the key is already held, `release(key)` does nothing when it is not. `createHolds(delay, resume)` is the pure part, `holds` is the one on Remotion's `delayRender` and `continueRender`.
+- `src/scene/useActPages.ts` and `src/book/CoverSlots.tsx`: use `holds` (slots `act-pages` and `cover:<id>`). "Painted" is also kept outside React (`paintedKey`, `PAINTED`) and set before the release, so a render between the release and the state update cannot take a new hold.
+- Tests: `tests/renderHold.test.ts` (4 new: one delayRender however often it is asked, a thrown-away render leaves nothing held, release of a free key is a no-op, independent keys), and the Patch 15 source test now looks for `holds.hold` and `holds.release` and for no ref holding a handle.
+
+**Checked**
+`npx tsc --noEmit` 0 errors. `npm test` 482 of 482. `npm run motion` PASSED, same numbers. Frame 2069 of `ReelFilm` rendered end to end here in software GL in 22 seconds (it hung for minutes before this patch), with every wait cleared in about 3 seconds.
+
+**Not done.** The soft, noisy look of the book pages in the Studio frame of S11 is not fixed by this and has not been found yet. The pages painted flat (DevPages) are clean, so it comes from the 3D stage; my software-GL render showed the pages as plain grey, which is not what the Studio showed, so it says nothing about the noise. Needs the stills from a real GPU.

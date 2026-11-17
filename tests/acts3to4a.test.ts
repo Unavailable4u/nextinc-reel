@@ -304,7 +304,8 @@ test("patch 15: Mini Me's pages are alive from frame 1440 (Act 3) and not before
 
 test("patch 15: the pages hook loads by act, holds the render, frees the textures and drops the canvases; the film's set uses it", () => {
   const hook = read("src/scene/useActPages.ts");
-  for (const word of ["prepareAct", "disposeAct", "delayRender", "continueRender", "cancelRender", "releasePageTexture", "booksAliveInAct", "actAt"]) truthy(hook.includes(word), `useActPages uses ${word}`);
+  for (const word of ["prepareAct", "disposeAct", "holds.hold", "holds.release", "cancelRender", "releasePageTexture", "booksAliveInAct", "actAt"]) truthy(hook.includes(word), `useActPages uses ${word}`);
+  truthy(!hook.includes("useRef<number"), "no render handle in a ref: a render React throws away would lose it (Patch 20b)");
   const film = read("src/ReelFilm.tsx");
   truthy(film.includes("useActPages(frame)") && film.includes("<Pile frame={frame} pages={pages} />"), "FilmSet gives the pile the pages of the act");
   const pile = read("src/scene/Pile.tsx");

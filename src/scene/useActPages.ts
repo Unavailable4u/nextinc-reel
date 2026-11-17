@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type * as THREE from "three";
-import { cancelRender, continueRender, delayRender } from "remotion";
+import { cancelRender } from "remotion";
 import type { BookId } from "../config/books";
 import { actAt } from "../config/pageSpecs";
 import { pageTexture, releasePageTexture } from "../book/pageTextures";
 import type { BookPages } from "../paint/pages";
 import { booksAliveInAct, disposeAct, prepareAct } from "../paint/spread";
+import { holds } from "../lib/renderHold";
 
 /** The painted pages of one book as three.js textures: `texture(i)` is page i of the book's list (`BOOK_PAGES`), null past the last page. */
 export interface PageSet {
@@ -14,6 +15,10 @@ export interface PageSet {
 }
 
 const NONE: readonly PageSet[] = [];
+
+const HOLD = "act-pages";
+/** The key of the books whose pages are painted and alive, kept outside React (see `lib/renderHold`); "" when none. */
+let paintedKey = "";
 
 /**
  * THE TEXTURE LIFECYCLE OF THE PAGES (Patch 15, guide 02: one book's pages alive at a time). The pages a frame needs are the ones of its
@@ -28,18 +33,10 @@ export function useActPages(frame: number): readonly PageSet[] {
   const ids = booksAliveInAct(act);
   const key = ids.join(",");
   const [loaded, setLoaded] = useState<{ key: string; books: BookPages[] }>({ key: "", books: [] });
-  const held = useRef<number | null>(null);
   const alive = useRef<BookPages[]>([]);
 
-  const letGo = (): void => {
-    if (held.current !== null) {
-      continueRender(held.current);
-      held.current = null;
-    }
-  };
-  if (key !== "" && loaded.key !== key && held.current === null) {
-    held.current = delayRender(`Painting the pages of act ${act}`, { timeoutInMilliseconds: 240000 });
-  }
+  // the hold is one named slot outside React: a render React throws away before it commits cannot leave a second one behind
+  if (key !== "" && loaded.key !== key && paintedKey !== key) holds.hold(HOLD, `Painting the pages of act ${act}`, 240000);
 
   useEffect(() => {
     let on = true;
@@ -48,16 +45,18 @@ export function useActPages(frame: number): readonly PageSet[] {
     alive.current = alive.current.filter((x) => ids.includes(x.id));
     disposeAct(act);
     if (key === "") {
+      paintedKey = "";
       setLoaded((l) => (l.key === "" ? l : { key: "", books: [] }));
-      letGo();
+      holds.release(HOLD);
       return;
     }
     prepareAct(act).then(
       (books) => {
         if (!on) return;
         alive.current = books;
+        paintedKey = key; // before the release, so a render between the two does not hold again
         setLoaded({ key, books });
-        letGo();
+        holds.release(HOLD);
       },
       (e: unknown) => cancelRender(e),
     );

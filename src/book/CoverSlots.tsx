@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import * as THREE from "three";
-import { cancelRender, continueRender, delayRender } from "remotion";
+import { cancelRender } from "remotion";
 import { BOOKS, type BookId, type BookSpec } from "../config/books";
 import { SURFACES, type Surface } from "../config/covers";
 import { loadArtwork, type Artwork } from "../paint/covers";
+import { holds } from "../lib/renderHold";
 import { FOIL_LIFT_CM, PRINT_LIFT_CM, spineHalfGeometry, stampMaterial, printMaterial, surfaceTextures, type SurfaceTextures } from "./coverMaterials";
 import { anchorFrames, type AnchorName } from "./geometry";
 
@@ -14,24 +15,20 @@ import { anchorFrames, type AnchorName } from "./geometry";
  */
 export function useArtwork(id: BookId, enabled = true): Artwork | null {
   const [art, setArt] = useState<Artwork | null>(null);
-  const handle = useRef<number | null>(null);
-  if (enabled && handle.current === null && art === null) handle.current = delayRender(`Painting the cover of ${id}`);
-  const release = (): void => {
-    if (handle.current !== null) {
-      continueRender(handle.current);
-      handle.current = null;
-    }
-  };
+  const key = `cover:${id}`;
+  // the hold lives outside React (`lib/renderHold`): a render React throws away before it commits must not leave a second one behind
+  if (enabled && art === null && !PAINTED.has(id)) holds.hold(key, `Painting the cover of ${id}`);
   useEffect(() => {
     if (!enabled) {
-      release();
+      holds.release(key);
       return;
     }
     let alive = true;
     loadArtwork(id).then(
       (a) => {
+        PAINTED.add(id); // before the release, so a render between the two does not hold again
         if (alive) setArt(a);
-        release();
+        holds.release(key);
       },
       (e: unknown) => cancelRender(e),
     );
@@ -41,6 +38,9 @@ export function useArtwork(id: BookId, enabled = true): Artwork | null {
   }, [id, enabled]);
   return enabled ? art : null;
 }
+
+/** The books whose covers have been painted (the painting is shared, so a later mount of the same book has nothing to wait for). */
+const PAINTED = new Set<BookId>();
 
 interface Built {
   tex: Record<Surface, SurfaceTextures>;
